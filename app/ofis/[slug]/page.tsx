@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Building2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
@@ -7,6 +8,12 @@ import { trMoney, ROOM_OPTIONS, TYPE_TR } from "@/lib/labels";
 import { RequestForm } from "@/components/showcase-forms";
 import { ShowcaseMap, type MapListing } from "@/components/showcase-map";
 import { TrackImpressions } from "@/components/vitrin-tracking";
+import { officeJsonLd } from "@/lib/seo";
+
+const BASE_URL = (process.env.AUTH_URL ?? "http://localhost:3000").replace(
+  /\/$/,
+  "",
+);
 
 type Params = Promise<{ slug: string }>;
 type Search = Promise<{
@@ -19,7 +26,14 @@ type Search = Promise<{
   minArea?: string;
 }>;
 
-const LISTING_TYPES = ["APARTMENT", "HOUSE", "VILLA", "LAND", "COMMERCIAL", "OFFICE"] as const;
+const LISTING_TYPES = [
+  "APARTMENT",
+  "HOUSE",
+  "VILLA",
+  "LAND",
+  "COMMERCIAL",
+  "OFFICE",
+] as const;
 
 export async function generateMetadata({
   params,
@@ -29,12 +43,33 @@ export async function generateMetadata({
   const { slug } = await params;
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
-    select: { name: true, city: true },
+    select: {
+      id: true,
+      name: true,
+      city: true,
+      district: true,
+    },
   });
   if (!tenant) return {};
+  const title = `${tenant.name} — Satılık ve Kiralık Portföy`;
+  const description = `${tenant.name} güncel portföyü: ${tenant.city ?? "Türkiye"} genelinde satılık ve kiralık gayrimenkuller.`;
+  const cover = await prisma.listingMedia.findFirst({
+    where: { listing: { tenantId: tenant.id, status: "ACTIVE" } },
+    orderBy: { order: "asc" },
+    select: { url: true },
+  });
   return {
-    title: `${tenant.name} — Satılık ve Kiralık Portföy`,
-    description: `${tenant.name} güncel portföyü: ${tenant.city ?? "Türkiye"} genelinde satılık ve kiralık gayrimenkuller.`,
+    title,
+    description,
+    alternates: { canonical: `${BASE_URL}/ofis/${slug}` },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: `${BASE_URL}/ofis/${slug}`,
+      images: cover ? [{ url: cover.url }] : [],
+    },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 
@@ -51,9 +86,17 @@ export default async function ShowcasePage({
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
     select: {
-      id: true, name: true, city: true, district: true,
-      showcaseEnabled: true, showcaseTagline: true,
-      aboutTitle: true, aboutText: true, visionText: true, aboutStats: true, showTeam: true,
+      id: true,
+      name: true,
+      city: true,
+      district: true,
+      showcaseEnabled: true,
+      showcaseTagline: true,
+      aboutTitle: true,
+      aboutText: true,
+      visionText: true,
+      aboutStats: true,
+      showTeam: true,
     },
   });
   if (!tenant || !tenant.showcaseEnabled) notFound();
@@ -66,7 +109,9 @@ export default async function ShowcasePage({
   const minPrice = num(sp.minPrice);
   const maxPrice = num(sp.maxPrice);
   const minArea = num(sp.minArea);
-  const typeFilter = LISTING_TYPES.includes(sp.type as (typeof LISTING_TYPES)[number])
+  const typeFilter = LISTING_TYPES.includes(
+    sp.type as (typeof LISTING_TYPES)[number],
+  )
     ? (sp.type as (typeof LISTING_TYPES)[number])
     : null;
 
@@ -75,12 +120,19 @@ export default async function ShowcasePage({
       where: {
         tenantId: tenant.id,
         status: "ACTIVE",
-        ...(sp.purpose === "SALE" || sp.purpose === "RENT" ? { purpose: sp.purpose } : {}),
+        ...(sp.purpose === "SALE" || sp.purpose === "RENT"
+          ? { purpose: sp.purpose }
+          : {}),
         ...(sp.district ? { district: sp.district } : {}),
         ...(sp.rooms ? { rooms: sp.rooms } : {}),
         ...(typeFilter ? { type: typeFilter } : {}),
         ...(minPrice || maxPrice
-          ? { price: { ...(minPrice ? { gte: minPrice } : {}), ...(maxPrice ? { lte: maxPrice } : {}) } }
+          ? {
+              price: {
+                ...(minPrice ? { gte: minPrice } : {}),
+                ...(maxPrice ? { lte: maxPrice } : {}),
+              },
+            }
           : {}),
         ...(minArea ? { netArea: { gte: minArea } } : {}),
       },
@@ -115,19 +167,27 @@ export default async function ShowcasePage({
 
   const stats = Array.isArray(tenant.aboutStats)
     ? (tenant.aboutStats as Array<{ value: string; label: string }>).filter(
-        (x) => x && x.value && x.label
+        (x) => x && x.value && x.label,
       )
     : [];
   const hasAbout = !!(tenant.aboutText || tenant.visionText || stats.length);
   const ROLE_TR: Record<string, string> = {
-    OWNER: "Ofis Sahibi", BROKER: "Broker", AGENT: "Danışman", ASSISTANT: "Asistan",
+    OWNER: "Ofis Sahibi",
+    BROKER: "Broker",
+    AGENT: "Danışman",
+    ASSISTANT: "Asistan",
   };
 
   const qs = (patch: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
     const merged = {
-      purpose: sp.purpose, district: sp.district, rooms: sp.rooms,
-      type: sp.type, minPrice: sp.minPrice, maxPrice: sp.maxPrice, minArea: sp.minArea,
+      purpose: sp.purpose,
+      district: sp.district,
+      rooms: sp.rooms,
+      type: sp.type,
+      minPrice: sp.minPrice,
+      maxPrice: sp.maxPrice,
+      minArea: sp.minArea,
       ...patch,
     };
     for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v);
@@ -136,9 +196,23 @@ export default async function ShowcasePage({
   };
 
   const hasAdvanced = !!(typeFilter || minPrice || maxPrice || minArea);
+  const jsonLd = officeJsonLd(
+    {
+      name: tenant.name,
+      slug,
+      phone: null,
+      city: tenant.city,
+      district: tenant.district,
+    },
+    BASE_URL,
+  );
 
   return (
     <div className="space-y-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <TrackImpressions tenantId={tenant.id} />
       {/* Kahraman */}
       <div>
@@ -159,9 +233,21 @@ export default async function ShowcasePage({
       <div className="space-y-3">
         <div className="flex flex-wrap gap-2">
           {[
-            { label: "Tümü", href: qs({ purpose: undefined }), on: !sp.purpose },
-            { label: "Satılık", href: qs({ purpose: "SALE" }), on: sp.purpose === "SALE" },
-            { label: "Kiralık", href: qs({ purpose: "RENT" }), on: sp.purpose === "RENT" },
+            {
+              label: "Tümü",
+              href: qs({ purpose: undefined }),
+              on: !sp.purpose,
+            },
+            {
+              label: "Satılık",
+              href: qs({ purpose: "SALE" }),
+              on: sp.purpose === "SALE",
+            },
+            {
+              label: "Kiralık",
+              href: qs({ purpose: "RENT" }),
+              on: sp.purpose === "RENT",
+            },
           ].map((f) => (
             <Link
               key={f.label}
@@ -180,7 +266,9 @@ export default async function ShowcasePage({
           {districts.map(({ district }) => (
             <Link
               key={district}
-              href={qs({ district: sp.district === district ? undefined : district })}
+              href={qs({
+                district: sp.district === district ? undefined : district,
+              })}
               className={`rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-wider transition-colors ${
                 sp.district === district
                   ? "border-brand-600 bg-brand-600 text-white"
@@ -206,14 +294,25 @@ export default async function ShowcasePage({
         </div>
 
         {/* Detaylı arama — JS gerektirmez (GET formu) */}
-        <details open={hasAdvanced} className="rounded-[10px] border border-ink/15 bg-white">
+        <details
+          open={hasAdvanced}
+          className="rounded-[10px] border border-ink/15 bg-white"
+        >
           <summary className="cursor-pointer select-none px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-ink/60 hover:text-ink">
-            Detaylı Arama {hasAdvanced && <span className="text-brand-600">· aktif</span>}
+            Detaylı Arama{" "}
+            {hasAdvanced && <span className="text-brand-600">· aktif</span>}
           </summary>
-          <form method="GET" className="grid grid-cols-2 gap-3 border-t border-ink/10 p-4 sm:grid-cols-5">
+          <form
+            method="GET"
+            className="grid grid-cols-2 gap-3 border-t border-ink/10 p-4 sm:grid-cols-5"
+          >
             {/* Aktif çip filtrelerini koru */}
-            {sp.purpose && <input type="hidden" name="purpose" value={sp.purpose} />}
-            {sp.district && <input type="hidden" name="district" value={sp.district} />}
+            {sp.purpose && (
+              <input type="hidden" name="purpose" value={sp.purpose} />
+            )}
+            {sp.district && (
+              <input type="hidden" name="district" value={sp.district} />
+            )}
             {sp.rooms && <input type="hidden" name="rooms" value={sp.rooms} />}
             <div>
               <label className="mb-1 block font-mono text-[9.5px] uppercase tracking-wider text-ink/50">
@@ -226,7 +325,9 @@ export default async function ShowcasePage({
               >
                 <option value="">Tümü</option>
                 {LISTING_TYPES.map((t) => (
-                  <option key={t} value={t}>{TYPE_TR[t]}</option>
+                  <option key={t} value={t}>
+                    {TYPE_TR[t]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -235,7 +336,10 @@ export default async function ShowcasePage({
                 Min Fiyat (₺)
               </label>
               <input
-                type="number" name="minPrice" min={0} defaultValue={sp.minPrice ?? ""}
+                type="number"
+                name="minPrice"
+                min={0}
+                defaultValue={sp.minPrice ?? ""}
                 placeholder="0"
                 className="w-full rounded-lg border border-ink/20 px-2.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
               />
@@ -245,7 +349,10 @@ export default async function ShowcasePage({
                 Max Fiyat (₺)
               </label>
               <input
-                type="number" name="maxPrice" min={0} defaultValue={sp.maxPrice ?? ""}
+                type="number"
+                name="maxPrice"
+                min={0}
+                defaultValue={sp.maxPrice ?? ""}
                 placeholder="∞"
                 className="w-full rounded-lg border border-ink/20 px-2.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
               />
@@ -255,7 +362,10 @@ export default async function ShowcasePage({
                 Min Net m²
               </label>
               <input
-                type="number" name="minArea" min={0} defaultValue={sp.minArea ?? ""}
+                type="number"
+                name="minArea"
+                min={0}
+                defaultValue={sp.minArea ?? ""}
                 placeholder="0"
                 className="w-full rounded-lg border border-ink/20 px-2.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
               />
@@ -269,7 +379,12 @@ export default async function ShowcasePage({
               </button>
               {hasAdvanced && (
                 <Link
-                  href={qs({ type: undefined, minPrice: undefined, maxPrice: undefined, minArea: undefined })}
+                  href={qs({
+                    type: undefined,
+                    minPrice: undefined,
+                    maxPrice: undefined,
+                    minArea: undefined,
+                  })}
                   className="rounded-lg border border-ink/20 px-3 py-2 text-sm font-medium text-ink/60 hover:border-ink/50"
                 >
                   Temizle
@@ -288,7 +403,8 @@ export default async function ShowcasePage({
             <ShowcaseMap listings={mapListings} slug={slug} />
           </div>
           <p className="mt-2 font-mono text-[11px] text-ink/50">
-            Fiyat plakasına dokun → ilan detayına git. Filtreler haritayı da süzer.
+            Fiyat plakasına dokun → ilan detayına git. Filtreler haritayı da
+            süzer.
           </p>
         </section>
       )}
@@ -298,7 +414,8 @@ export default async function ShowcasePage({
         <div className="rounded-[10px] border border-dashed border-ink/25 bg-white/60 p-12 text-center">
           <Building2 className="mx-auto mb-3 h-9 w-9 text-ink/20" />
           <p className="text-sm text-ink/55">
-            Bu kriterlere uyan ilan şu an vitrinde yok — filtreleri genişletmeyi deneyin.
+            Bu kriterlere uyan ilan şu an vitrinde yok — filtreleri genişletmeyi
+            deneyin.
           </p>
         </div>
       ) : (
@@ -313,13 +430,14 @@ export default async function ShowcasePage({
                 className="group overflow-hidden rounded-[10px] border border-ink/15 bg-white transition-colors hover:border-ink/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
               >
                 <div className="relative">
-                  <div className="h-48 overflow-hidden bg-brand-50">
+                  <div className="relative h-48 overflow-hidden bg-brand-50">
                     {l.media[0] ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={l.media[0].url}
                         alt={l.title}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                        fill
+                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center text-ink/20">
@@ -335,17 +453,23 @@ export default async function ShowcasePage({
                   </span>
                 </div>
                 <div className="px-4 pb-4 pt-6">
-                  <h3 className="line-clamp-1 text-[15px] font-bold">{l.title}</h3>
+                  <h3 className="line-clamp-1 text-[15px] font-bold">
+                    {l.title}
+                  </h3>
                   <p className="mt-1.5 font-display text-lg font-extrabold tracking-tight">
                     {trMoney.format(Number(l.price))}
                     {l.purpose === "RENT" && (
-                      <span className="text-sm font-medium text-ink/45"> /ay</span>
+                      <span className="text-sm font-medium text-ink/45">
+                        {" "}
+                        /ay
+                      </span>
                     )}
                   </p>
                   <div className="olcu mt-2.5">
                     <span className="olcu-cizgi" />
                     <span>
-                      {l.rooms ?? "—"} · net {l.netArea ?? l.grossArea ?? "—"} m²
+                      {l.rooms ?? "—"} · net {l.netArea ?? l.grossArea ?? "—"}{" "}
+                      m²
                     </span>
                     <span className="olcu-cizgi" />
                   </div>
@@ -403,7 +527,12 @@ export default async function ShowcasePage({
                 {team.map((u) => (
                   <div key={u.id} className="shrink-0 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 font-display font-extrabold text-white">
-                      {u.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
+                      {u.name
+                        .split(" ")
+                        .map((p) => p[0])
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase()}
                     </div>
                     <p className="mt-1.5 text-xs font-bold">{u.name}</p>
                     <p className="font-mono text-[8.5px] uppercase tracking-wider text-ink/50">
@@ -423,7 +552,8 @@ export default async function ShowcasePage({
           Aradığınızı bulamadınız mı?
         </h2>
         <p className="mt-1.5 max-w-lg text-sm text-ink/60">
-          Kriterlerinizi bırakın — uyan bir mülk portföye girdiği an sizi arayalım.
+          Kriterlerinizi bırakın — uyan bir mülk portföye girdiği an sizi
+          arayalım.
         </p>
         <div className="mt-5">
           <RequestForm

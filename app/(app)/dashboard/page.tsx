@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
 import { ParselMap, type ParselDeal } from "@/components/parsel-map";
@@ -15,41 +16,63 @@ export default async function DashboardPage() {
   const endOfDay = new Date(startOfDay);
   endOfDay.setDate(endOfDay.getDate() + 1);
 
-  const [openDeals, activeListings, openLeads, latestListings, todaysAppointments, insights] =
-    await Promise.all([
-      db.deal.findMany({
-        where: { stage: { notIn: ["CLOSED_WON", "CLOSED_LOST"] }, value: { not: null } },
-        orderBy: { value: "desc" },
-        include: {
-          contact: { select: { fullName: true } },
-          listing: { select: { refCode: true, title: true } },
-        },
-      }),
-      db.listing.count({ where: { status: "ACTIVE" } }),
-      db.lead.count({ where: { status: "OPEN" } }),
-      db.listing.findMany({
-        where: { status: "ACTIVE" },
-        orderBy: { createdAt: "desc" },
-        take: 4,
-        include: { media: { orderBy: { order: "asc" }, take: 1 } },
-      }),
-      db.appointment.findMany({
-        where: { startsAt: { gte: startOfDay, lt: endOfDay } },
-        orderBy: { startsAt: "asc" },
-        include: { contact: true, listing: true, agent: { select: { name: true } } },
-      }),
-      db.insight.findMany({
-        where: { dismissedAt: null },
-        orderBy: [{ severity: "desc" }, { createdAt: "desc" }],
-        take: 8,
-        select: { id: true, rule: true, severity: true, title: true, body: true, listingId: true },
-      }),
-    ]);
+  const [
+    openDeals,
+    activeListings,
+    openLeads,
+    latestListings,
+    todaysAppointments,
+    insights,
+  ] = await Promise.all([
+    db.deal.findMany({
+      where: {
+        stage: { notIn: ["CLOSED_WON", "CLOSED_LOST"] },
+        value: { not: null },
+      },
+      orderBy: { value: "desc" },
+      include: {
+        contact: { select: { fullName: true } },
+        listing: { select: { refCode: true, title: true } },
+      },
+    }),
+    db.listing.count({ where: { status: "ACTIVE" } }),
+    db.lead.count({ where: { status: "OPEN" } }),
+    db.listing.findMany({
+      where: { status: "ACTIVE" },
+      orderBy: { createdAt: "desc" },
+      take: 4,
+      include: { media: { orderBy: { order: "asc" }, take: 1 } },
+    }),
+    db.appointment.findMany({
+      where: { startsAt: { gte: startOfDay, lt: endOfDay } },
+      orderBy: { startsAt: "asc" },
+      include: {
+        contact: true,
+        listing: true,
+        agent: { select: { name: true } },
+      },
+    }),
+    db.insight.findMany({
+      where: { dismissedAt: null },
+      orderBy: [{ severity: "desc" }, { createdAt: "desc" }],
+      take: 8,
+      select: {
+        id: true,
+        rule: true,
+        severity: true,
+        title: true,
+        body: true,
+        listingId: true,
+      },
+    }),
+  ]);
 
   const parselDeals: ParselDeal[] = openDeals.map((d) => ({
     id: d.id,
     name: d.contact?.fullName ?? "İsimsiz fırsat",
-    listing: d.listing ? `${d.listing.refCode} · ${d.listing.title}` : "İlansız",
+    listing: d.listing
+      ? `${d.listing.refCode} · ${d.listing.title}`
+      : "İlansız",
     value: Number(d.value),
     stage: d.stage,
     stageLabel: STAGE_TR[d.stage],
@@ -61,10 +84,18 @@ export default async function DashboardPage() {
       hour: "numeric",
       hour12: false,
       timeZone: "Europe/Istanbul",
-    }).format(new Date())
+    }).format(new Date()),
   );
   const greeting =
-    hour < 6 ? "İyi geceler" : hour < 12 ? "Günaydın" : hour < 18 ? "Tünaydın" : hour < 22 ? "İyi akşamlar" : "İyi geceler";
+    hour < 6
+      ? "İyi geceler"
+      : hour < 12
+        ? "Günaydın"
+        : hour < 18
+          ? "Tünaydın"
+          : hour < 22
+            ? "İyi akşamlar"
+            : "İyi geceler";
   const weekday = new Date().toLocaleDateString("tr-TR", { weekday: "long" });
   const firstName = session.name.split(" ")[0];
 
@@ -88,9 +119,16 @@ export default async function DashboardPage() {
           [openLeads, "Açık talep"],
           [todaysAppointments.length, "Bugün randevu"],
         ].map(([n, l], i) => (
-          <div key={l} className={`flex-1 py-3.5 text-center ${i > 0 ? "border-l border-ink/10" : ""}`}>
-            <p className="font-display text-2xl font-extrabold tracking-tight">{n}</p>
-            <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink/50">{l}</p>
+          <div
+            key={l}
+            className={`flex-1 py-3.5 text-center ${i > 0 ? "border-l border-ink/10" : ""}`}
+          >
+            <p className="font-display text-2xl font-extrabold tracking-tight">
+              {n}
+            </p>
+            <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink/50">
+              {l}
+            </p>
           </div>
         ))}
       </div>
@@ -111,7 +149,10 @@ export default async function DashboardPage() {
               <div key={a.id} className="relative pb-5 pl-5">
                 <span className="absolute -left-1 top-2 h-[7px] w-[7px] rounded-full bg-brand-600" />
                 <p className="font-mono text-[11px] font-semibold text-brand-600">
-                  {a.startsAt.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                  {a.startsAt.toLocaleTimeString("tr-TR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </p>
                 <p className="mt-0.5 text-[14.5px] font-bold">{a.title}</p>
                 <p className="text-xs text-ink/55">
@@ -144,10 +185,15 @@ export default async function DashboardPage() {
                 className="group overflow-hidden rounded-[10px] border border-ink/10 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-brand-500/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
               >
                 <div className="relative">
-                  <div className="h-40 bg-brand-50">
+                  <div className="relative h-40 bg-brand-50">
                     {l.media[0] ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={l.media[0].url} alt={l.title} className="h-full w-full object-cover" />
+                      <Image
+                        src={l.media[0].url}
+                        alt={l.title}
+                        fill
+                        sizes="(min-width: 640px) 50vw, 100vw"
+                        className="object-cover"
+                      />
                     ) : (
                       <div className="flex h-full items-center justify-center text-ink/20">
                         <Building2 size={30} />
@@ -155,15 +201,23 @@ export default async function DashboardPage() {
                     )}
                   </div>
                   <span className="kunye absolute -bottom-3 left-3 shadow-sm">
-                    {l.refCode.replace("EF-2026-0", "EF·0").replace("EF-", "EF·")} — {(l.neighborhood ?? l.district).toUpperCase()}
+                    {l.refCode
+                      .replace("EF-2026-0", "EF·0")
+                      .replace("EF-", "EF·")}{" "}
+                    — {(l.neighborhood ?? l.district).toUpperCase()}
                   </span>
                 </div>
                 <div className="px-4 pb-4 pt-6">
-                  <h3 className="line-clamp-1 text-[15px] font-bold">{l.title}</h3>
+                  <h3 className="line-clamp-1 text-[15px] font-bold">
+                    {l.title}
+                  </h3>
                   <p className="mt-1.5 font-display text-lg font-extrabold tracking-tight">
                     {trMoney.format(Number(l.price))}
                     {l.purpose === "RENT" && (
-                      <span className="text-sm font-medium text-ink/45"> /ay</span>
+                      <span className="text-sm font-medium text-ink/45">
+                        {" "}
+                        /ay
+                      </span>
                     )}
                   </p>
                   <div className="olcu mt-2.5">

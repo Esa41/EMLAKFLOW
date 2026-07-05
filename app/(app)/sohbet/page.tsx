@@ -11,11 +11,19 @@ export default async function SohbetPage() {
   const rows = await prisma.message.findMany({
     where: { tenantId: session.tenantId, sessionId: { startsWith: "v_" } },
     orderBy: { createdAt: "desc" },
-    select: { sessionId: true, senderId: true, senderName: true, body: true, createdAt: true },
+    select: {
+      sessionId: true,
+      senderId: true,
+      senderName: true,
+      body: true,
+      createdAt: true,
+    },
   });
 
   // Ziyaretçi izi: bu sohbet oturumlarının vitrinde baktığı ilanlar + kalma süresi
-  const sessionIds = [...new Set(rows.map((r) => r.sessionId).filter(Boolean))] as string[];
+  const sessionIds = [
+    ...new Set(rows.map((r) => r.sessionId).filter(Boolean)),
+  ] as string[];
   const trailEvents = sessionIds.length
     ? await prisma.listingEvent.findMany({
         where: {
@@ -39,7 +47,13 @@ export default async function SohbetPage() {
   // Oturum → ilan bazında en uzun süre (aynı ilana birden çok bakışta tekilleştir)
   const trails = new Map<
     string,
-    Array<{ listingId: string; refCode: string; title: string; durationMs: number; at: Date }>
+    Array<{
+      listingId: string;
+      refCode: string;
+      title: string;
+      durationMs: number;
+      at: Date;
+    }>
   >();
   for (const e of trailEvents) {
     if (!e.sessionId || !e.listingId || !e.listing) continue;
@@ -62,30 +76,43 @@ export default async function SohbetPage() {
   // En yeni mesaj başta olacak şekilde oturumlara indirge.
   const map = new Map<
     string,
-    { sessionId: string; visitorName: string | null; lastBody: string; lastAt: Date }
+    {
+      sessionId: string;
+      visitorName: string | null;
+      lastBody: string;
+      lastAt: Date;
+      awaitingReply: boolean;
+    }
   >();
   for (const m of rows) {
     if (!m.sessionId) continue;
     if (!map.has(m.sessionId)) {
+      // Sorgu "desc" sıralı geldiği için bir oturum için ilk karşılaşılan
+      // satır o oturumun en son mesajıdır → senderId boşsa yanıt bekliyor demektir.
       map.set(m.sessionId, {
         sessionId: m.sessionId,
         visitorName: null,
         lastBody: m.body,
         lastAt: m.createdAt,
+        awaitingReply: !m.senderId,
       });
     }
     const s = map.get(m.sessionId)!;
     // Ziyaretçi adı = en yeni danışman-olmayan gönderenin adı.
-    if (!s.visitorName && !m.senderId && m.senderName) s.visitorName = m.senderName;
+    if (!s.visitorName && !m.senderId && m.senderName)
+      s.visitorName = m.senderName;
   }
   const sessions = [...map.values()];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-[27px] font-extrabold tracking-tight">Vitrin Sohbetleri</h1>
+        <h1 className="font-display text-[27px] font-extrabold tracking-tight">
+          Vitrin Sohbetleri
+        </h1>
         <p className="mt-1 text-sm text-ink/55">
-          Vitrininizi gezen ziyaretçilerden gelen canlı destek mesajları — {sessions.length} oturum.
+          Vitrininizi gezen ziyaretçilerden gelen canlı destek mesajları —{" "}
+          {sessions.length} oturum.
         </p>
       </div>
       <VitrinInbox

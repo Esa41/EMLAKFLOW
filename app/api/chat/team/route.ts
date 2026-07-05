@@ -11,10 +11,13 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // En eski 200 yerine en yeni 200 mesajı al: desc çekip sonra tekrar
+  // sohbet sırasına (asc) çevir, aksi halde uzun sohbetlerde son mesajlar kaybolur.
   const messages = await prisma.message.findMany({
     where: { tenantId: session.tenantId, sessionId: "TEAM" },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: "desc" },
+    take: 200,
   });
 
-  return NextResponse.json(messages);
+  return NextResponse.json(messages.reverse());
 }

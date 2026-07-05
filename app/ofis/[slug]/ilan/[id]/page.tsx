@@ -1,20 +1,38 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Phone, Building2, ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { InfoForm } from "@/components/showcase-forms";
 import { ShowcaseMap } from "@/components/showcase-map";
 import { TrackListingView } from "@/components/vitrin-tracking";
-import { seoTitle, seoDescription, mediaAltText, listingJsonLd } from "@/lib/seo";
+import {
+  seoTitle,
+  seoDescription,
+  mediaAltText,
+  listingJsonLd,
+  breadcrumbJsonLd,
+} from "@/lib/seo";
 import { trMoney, TYPE_TR } from "@/lib/labels";
+
+const BASE_URL = (process.env.AUTH_URL ?? "http://localhost:3000").replace(
+  /\/$/,
+  "",
+);
 
 type Params = Promise<{ slug: string; id: string }>;
 
 async function getData(slug: string, id: string) {
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
-    select: { id: true, name: true, phone: true, whatsapp: true, showcaseEnabled: true },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      whatsapp: true,
+      showcaseEnabled: true,
+    },
   });
   if (!tenant || !tenant.showcaseEnabled) return null;
   const listing = await prisma.listing.findUnique({
@@ -29,7 +47,11 @@ async function getData(slug: string, id: string) {
   return { tenant, listing };
 }
 
-export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Params;
+}): Promise<Metadata> {
   const { slug, id } = await params;
   const data = await getData(slug, id);
   if (!data) return {};
@@ -40,15 +62,23 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return {
     title,
     description: desc,
+    alternates: { canonical: `${BASE_URL}/ofis/${slug}/ilan/${id}` },
     openGraph: {
       title,
       description: desc,
+      type: "website",
+      url: `${BASE_URL}/ofis/${slug}/ilan/${id}`,
       images: listing.media[0] ? [{ url: listing.media[0].url }] : [],
     },
+    twitter: { card: "summary_large_image", title, description: desc },
   };
 }
 
-export default async function ListingShowcasePage({ params }: { params: Params }) {
+export default async function ListingShowcasePage({
+  params,
+}: {
+  params: Params;
+}) {
   const { slug, id } = await params;
   const data = await getData(slug, id);
   if (!data) notFound();
@@ -74,8 +104,20 @@ export default async function ListingShowcasePage({ params }: { params: Params }
     ["Oda", l.rooms],
     ["Brüt m²", l.grossArea?.toString() ?? null],
     ["Net m²", l.netArea?.toString() ?? null],
-    ["Kat", l.floor != null ? `${l.floor}${l.totalFloors ? ` / ${l.totalFloors}` : ""}` : null],
-    ["Bina yaşı", l.buildingAge != null ? (l.buildingAge === 0 ? "Sıfır" : String(l.buildingAge)) : null],
+    [
+      "Kat",
+      l.floor != null
+        ? `${l.floor}${l.totalFloors ? ` / ${l.totalFloors}` : ""}`
+        : null,
+    ],
+    [
+      "Bina yaşı",
+      l.buildingAge != null
+        ? l.buildingAge === 0
+          ? "Sıfır"
+          : String(l.buildingAge)
+        : null,
+    ],
     ["Isıtma", l.heating],
     ["Aidat", l.dues != null ? trMoney.format(Number(l.dues)) : null],
     ["Tapu", l.deedStatus],
@@ -85,22 +127,31 @@ export default async function ListingShowcasePage({ params }: { params: Params }
   ];
   const filled = specs.filter(([, v]) => v);
 
-  const telHref = (p: string | null) => (p ? `tel:${p.replace(/\s/g, "")}` : null);
+  const telHref = (p: string | null) =>
+    p ? `tel:${p.replace(/\s/g, "")}` : null;
   const phone = l.agent?.phone ?? tenant.phone;
   const waNumber = tenant.whatsapp ?? phone;
 
-  const baseUrl = process.env.AUTH_URL?.replace(/\/$/, "") ?? "";
+  const baseUrl = BASE_URL;
   const jsonLd = listingJsonLd(
     { ...l, description: l.description, media: l.media },
     { name: tenant.name, slug },
-    baseUrl
+    baseUrl,
   );
+  const breadcrumb = breadcrumbJsonLd([
+    { name: tenant.name, url: `${baseUrl}/ofis/${slug}` },
+    { name: l.title, url: `${baseUrl}/ofis/${slug}/ilan/${l.id}` },
+  ]);
 
   return (
     <div className="space-y-8">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
       />
       <TrackListingView tenantId={tenant.id} listingId={l.id} />
       <Link
@@ -112,29 +163,41 @@ export default async function ListingShowcasePage({ params }: { params: Params }
 
       {/* Galeri */}
       <div>
-        <div className="relative overflow-hidden rounded-[10px] border border-ink/15 bg-brand-50">
+        <div className="relative h-64 overflow-hidden rounded-[10px] border border-ink/15 bg-brand-50 sm:h-96">
           {l.media[0] ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={l.media[0].url} alt={mediaAltText(l, 0)} className="h-64 w-full object-cover sm:h-96" />
+            <Image
+              src={l.media[0].url}
+              alt={mediaAltText(l, 0)}
+              fill
+              priority
+              sizes="(min-width: 1024px) 683px, 100vw"
+              className="object-cover"
+            />
           ) : (
             <div className="flex h-64 items-center justify-center text-ink/20 sm:h-96">
               <Building2 size={40} />
             </div>
           )}
           <span className="kunye absolute -bottom-3 left-4 shadow-sm">
-            {kod} — {(l.neighborhood ?? l.district).toUpperCase()} / {l.city.toUpperCase()}
+            {kod} — {(l.neighborhood ?? l.district).toUpperCase()} /{" "}
+            {l.city.toUpperCase()}
           </span>
         </div>
         {l.media.length > 1 && (
           <div className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-6">
             {l.media.slice(1, 7).map((m, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <div
                 key={m.id}
-                src={m.url}
-                alt={mediaAltText(l, i + 1)}
-                className="aspect-[4/3] w-full rounded-md border border-ink/10 object-cover"
-              />
+                className="relative aspect-[4/3] w-full overflow-hidden rounded-md border border-ink/10"
+              >
+                <Image
+                  src={m.url}
+                  alt={mediaAltText(l, i + 1)}
+                  fill
+                  sizes="(min-width: 640px) 16vw, 25vw"
+                  className="object-cover"
+                />
+              </div>
             ))}
           </div>
         )}
@@ -167,10 +230,16 @@ export default async function ListingShowcasePage({ params }: { params: Params }
                   slug={slug}
                   mode="single"
                   height={200}
-                  listings={[{
-                    id: l.id, lat: l.lat, lng: l.lng,
-                    price: Number(l.price), purpose: l.purpose, refCode: kod,
-                  }]}
+                  listings={[
+                    {
+                      id: l.id,
+                      lat: l.lat,
+                      lng: l.lng,
+                      price: Number(l.price),
+                      purpose: l.purpose,
+                      refCode: kod,
+                    },
+                  ]}
                 />
               </div>
             </>
@@ -203,31 +272,32 @@ export default async function ListingShowcasePage({ params }: { params: Params }
             {(phone || waNumber) && (
               <div className="mt-4 space-y-2">
                 {phone && (
-                <a
-                  href={telHref(phone)!}
-                  data-track="CLICK"
-                  className="btn-selvi flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700"
-                >
-                  <Phone size={15} /> Hemen ara
-                </a>
+                  <a
+                    href={telHref(phone)!}
+                    data-track="CLICK"
+                    className="btn-selvi flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700"
+                  >
+                    <Phone size={15} /> Hemen ara
+                  </a>
                 )}
                 {waNumber && (
-                <a
-                  href={`https://wa.me/${(waNumber ?? "").replace(/\D/g, "")}?text=${encodeURIComponent(
-                    `Merhaba, ${kod} künyeli "${l.title}" ilanı hakkında bilgi almak istiyorum.`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-track="CLICK"
-                  className="flex items-center justify-center gap-2 rounded-lg border border-ink/20 bg-white px-4 py-2.5 text-sm font-bold text-ink hover:border-ink/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
-                >
-                  WhatsApp'tan yaz
-                </a>
+                  <a
+                    href={`https://wa.me/${(waNumber ?? "").replace(/\D/g, "")}?text=${encodeURIComponent(
+                      `Merhaba, ${kod} künyeli "${l.title}" ilanı hakkında bilgi almak istiyorum.`,
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-track="CLICK"
+                    className="flex items-center justify-center gap-2 rounded-lg border border-ink/20 bg-white px-4 py-2.5 text-sm font-bold text-ink hover:border-ink/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+                  >
+                    WhatsApp'tan yaz
+                  </a>
                 )}
               </div>
             )}
             <p className="mt-4 border-t border-ink/10 pt-3 font-mono text-[9.5px] leading-relaxed text-ink/45">
-              Görüşmede <b className="text-ink/70">{kod}</b> künyesini söylemeniz yeterli.
+              Görüşmede <b className="text-ink/70">{kod}</b> künyesini
+              söylemeniz yeterli.
             </p>
           </div>
 
@@ -248,10 +318,15 @@ export default async function ListingShowcasePage({ params }: { params: Params }
                 href={`/ofis/${slug}/ilan/${s.id}`}
                 className="overflow-hidden rounded-[10px] border border-ink/15 bg-white hover:border-ink/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
               >
-                <div className="h-32 bg-brand-50">
+                <div className="relative h-32 bg-brand-50">
                   {s.media[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={s.media[0].url} alt={s.title} className="h-full w-full object-cover" />
+                    <Image
+                      src={s.media[0].url}
+                      alt={s.title}
+                      fill
+                      sizes="(min-width: 640px) 33vw, 100vw"
+                      className="object-cover"
+                    />
                   ) : (
                     <div className="flex h-full items-center justify-center text-ink/20">
                       <Building2 size={24} />

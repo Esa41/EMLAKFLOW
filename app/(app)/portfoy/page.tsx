@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Plus, Building2 } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
@@ -50,10 +51,26 @@ export default async function PortfolioPage({
 
   const filters = [
     { href: "/portfoy", label: "Tümü", active: !sp.status && !sp.purpose },
-    { href: "/portfoy?purpose=SALE", label: "Satılık", active: sp.purpose === "SALE" },
-    { href: "/portfoy?purpose=RENT", label: "Kiralık", active: sp.purpose === "RENT" },
-    { href: "/portfoy?status=SOLD", label: "Satılan", active: sp.status === "SOLD" },
-    { href: "/portfoy?status=PASSIVE", label: "Pasif", active: sp.status === "PASSIVE" },
+    {
+      href: "/portfoy?purpose=SALE",
+      label: "Satılık",
+      active: sp.purpose === "SALE",
+    },
+    {
+      href: "/portfoy?purpose=RENT",
+      label: "Kiralık",
+      active: sp.purpose === "RENT",
+    },
+    {
+      href: "/portfoy?status=SOLD",
+      label: "Satılan",
+      active: sp.status === "SOLD",
+    },
+    {
+      href: "/portfoy?status=PASSIVE",
+      label: "Pasif",
+      active: sp.status === "PASSIVE",
+    },
   ];
 
   return (
@@ -116,13 +133,14 @@ export default async function PortfolioPage({
                 className="group overflow-hidden rounded-[10px] border border-ink/15 bg-white transition-colors hover:border-ink/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
               >
                 <div className="relative">
-                  <div className="h-44 overflow-hidden bg-brand-50">
+                  <div className="relative h-44 overflow-hidden bg-brand-50">
                     {l.media[0] ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={l.media[0].url}
                         alt={l.title}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                        fill
+                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center text-ink/20">
@@ -130,22 +148,30 @@ export default async function PortfolioPage({
                       </div>
                     )}
                   </div>
-                  <span className={`kunye absolute -bottom-3 left-3 ${KUNYE_CLS[l.status] ?? ""}`}>
+                  <span
+                    className={`kunye absolute -bottom-3 left-3 ${KUNYE_CLS[l.status] ?? ""}`}
+                  >
                     {plaka}
                   </span>
                 </div>
                 <div className="px-4 pb-4 pt-6">
-                  <h3 className="line-clamp-1 text-[15px] font-bold">{l.title}</h3>
+                  <h3 className="line-clamp-1 text-[15px] font-bold">
+                    {l.title}
+                  </h3>
                   <p className="mt-1.5 font-display text-lg font-extrabold tracking-tight">
                     {trMoney.format(Number(l.price))}
                     {l.purpose === "RENT" && (
-                      <span className="text-sm font-medium text-ink/45"> /ay</span>
+                      <span className="text-sm font-medium text-ink/45">
+                        {" "}
+                        /ay
+                      </span>
                     )}
                   </p>
                   <div className="olcu mt-2.5">
                     <span className="olcu-cizgi" />
                     <span>
-                      {l.rooms ?? l.grossArea + " m²"} · net {l.netArea ?? "—"} m²
+                      {l.rooms ?? l.grossArea + " m²"} · net {l.netArea ?? "—"}{" "}
+                      m²
                     </span>
                     <span className="olcu-cizgi" />
                   </div>
