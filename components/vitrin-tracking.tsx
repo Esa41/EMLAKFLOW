@@ -14,8 +14,19 @@ function vid(): string {
   return v;
 }
 
-function send(tenantId: string, type: string, listingId?: string | null) {
-  const payload = JSON.stringify({ t: tenantId, l: listingId ?? undefined, e: type, s: vid() });
+function send(
+  tenantId: string,
+  type: string,
+  listingId?: string | null,
+  extra?: { d?: number; u?: 1 }
+) {
+  const payload = JSON.stringify({
+    t: tenantId,
+    l: listingId ?? undefined,
+    e: type,
+    s: vid(),
+    ...extra,
+  });
   if (navigator.sendBeacon) {
     navigator.sendBeacon("/api/e", new Blob([payload], { type: "application/json" }));
   } else {
@@ -39,12 +50,33 @@ export function TrackListingView({ tenantId, listingId }: { tenantId: string; li
   useEffect(() => {
     sendOnce(tenantId, "VIEW", listingId);
 
+    // Kalma süresi: sayfa gizlenirken/kapanırken son VIEW'ın durationMs'i
+    // beacon ile güncellenir (u:1 → update işareti). Sekmeye dönüşte sayaç sürer.
+    const start = Date.now();
+    let reported = 0;
+    const flush = () => {
+      const total = Date.now() - start;
+      if (total - reported < 1000) return; // 1 sn altını raporlama
+      reported = total;
+      send(tenantId, "VIEW", listingId, { d: total, u: 1 });
+    };
+    const onVis = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pagehide", flush);
+
     const onClick = (ev: MouseEvent) => {
       const el = (ev.target as HTMLElement).closest?.("[data-track='CLICK']");
       if (el) send(tenantId, "CLICK", listingId);
     };
     document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
+    return () => {
+      flush(); // SPA içi navigasyonda da süreyi yaz
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("click", onClick);
+    };
   }, [tenantId, listingId]);
 
   return null;

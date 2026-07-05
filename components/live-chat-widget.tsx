@@ -14,10 +14,13 @@ export function LiveChatWidget({ tenantId }: { tenantId: string }) {
   const [sessionId, setSessionId] = useState<string>("");
 
   useEffect(() => {
-    let sid = sessionStorage.getItem("emlakflow_chat_sid");
+    // Ziyaretçi kimliği vitrin analitiğiyle (emlakflow_vid) ORTAK — böylece
+    // danışman, sohbetteki ziyaretçinin hangi ilanlara baktığını görebilir.
+    // Eski anahtar (emlakflow_chat_sid) süren sohbetler için korunur.
+    let sid = sessionStorage.getItem("emlakflow_chat_sid") ?? sessionStorage.getItem("emlakflow_vid");
     if (!sid) {
       sid = "v_" + Math.random().toString(36).substring(2, 11);
-      sessionStorage.setItem("emlakflow_chat_sid", sid);
+      sessionStorage.setItem("emlakflow_vid", sid);
     }
     setSessionId(sid);
   }, []);

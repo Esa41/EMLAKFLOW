@@ -15,6 +15,7 @@ const TENANT_MODELS = new Set([
   "Notification",
   "ListingEvent",
   "ListingDailyStat",
+  "Insight",
 ]);
 
 /**

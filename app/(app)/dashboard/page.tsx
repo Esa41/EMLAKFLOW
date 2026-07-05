@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
 import { ParselMap, type ParselDeal } from "@/components/parsel-map";
+import { InsightList, type InsightItem } from "@/components/insight-list";
 import { STAGE_TR, STAGE_COLOR, trMoney } from "@/lib/labels";
 import { Building2 } from "lucide-react";
 
@@ -14,7 +15,7 @@ export default async function DashboardPage() {
   const endOfDay = new Date(startOfDay);
   endOfDay.setDate(endOfDay.getDate() + 1);
 
-  const [openDeals, activeListings, openLeads, latestListings, todaysAppointments] =
+  const [openDeals, activeListings, openLeads, latestListings, todaysAppointments, insights] =
     await Promise.all([
       db.deal.findMany({
         where: { stage: { notIn: ["CLOSED_WON", "CLOSED_LOST"] }, value: { not: null } },
@@ -36,6 +37,12 @@ export default async function DashboardPage() {
         where: { startsAt: { gte: startOfDay, lt: endOfDay } },
         orderBy: { startsAt: "asc" },
         include: { contact: true, listing: true, agent: { select: { name: true } } },
+      }),
+      db.insight.findMany({
+        where: { dismissedAt: null },
+        orderBy: [{ severity: "desc" }, { createdAt: "desc" }],
+        take: 8,
+        select: { id: true, rule: true, severity: true, title: true, body: true, listingId: true },
       }),
     ]);
 
@@ -87,6 +94,9 @@ export default async function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Eylem odaklı öneriler (Insight motoru — gecelik üretilir) */}
+      <InsightList insights={insights as InsightItem[]} />
 
       {/* Bugünün rotası — saat rayı */}
       <section>

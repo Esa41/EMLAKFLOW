@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, MessageSquare, User } from "lucide-react";
+import Link from "next/link";
+import { Send, MessageSquare, User, Eye } from "lucide-react";
 import { sendAgentReply } from "@/app/actions/chat";
 
 type SessionRow = {
@@ -10,6 +11,21 @@ type SessionRow = {
   lastBody: string;
   lastAt: string | Date;
 };
+
+type TrailItem = {
+  listingId: string;
+  refCode: string;
+  title: string;
+  durationMs: number;
+  at: string | Date;
+};
+
+function fmtDur(ms: number): string {
+  if (ms < 1000) return "—";
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s} sn`;
+  return `${Math.floor(s / 60)} dk ${s % 60 ? `${s % 60} sn` : ""}`.trim();
+}
 
 type Msg = {
   id: string | number;
@@ -29,7 +45,15 @@ function timeAgo(d: string | Date) {
   return `${Math.floor(h / 24)} gün`;
 }
 
-export function VitrinInbox({ tenantId, sessions }: { tenantId: string; sessions: SessionRow[] }) {
+export function VitrinInbox({
+  tenantId,
+  sessions,
+  trails = {},
+}: {
+  tenantId: string;
+  sessions: SessionRow[];
+  trails?: Record<string, TrailItem[]>;
+}) {
   const [activeId, setActiveId] = useState<string | null>(sessions[0]?.sessionId ?? null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [body, setBody] = useState("");
@@ -111,6 +135,30 @@ export function VitrinInbox({ tenantId, sessions }: { tenantId: string; sessions
         <div className="border-b border-ink/15 bg-brand-600 px-4 py-3 text-white">
           <h2 className="text-sm font-bold">{active?.visitorName || "Ziyaretçi"}</h2>
         </div>
+
+        {/* Ziyaretçi izi: vitrinde baktığı ilanlar + kalma süresi */}
+        {activeId && (trails[activeId]?.length ?? 0) > 0 && (
+          <div className="border-b border-ink/10 bg-brand-50/60 px-4 py-2.5">
+            <p className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-ink/50">
+              <Eye size={12} /> Baktığı ilanlar
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {trails[activeId].slice(0, 6).map((t) => (
+                <Link
+                  key={t.listingId}
+                  href={`/portfoy/${t.listingId}`}
+                  title={t.title}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-brand-800 transition-colors hover:border-brand-500"
+                >
+                  {t.refCode.replace(/^EF-\d{4}-0*/, "EF·")}
+                  <span className="font-mono text-[10px] font-normal text-ink/45">
+                    {fmtDur(t.durationMs)}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-4">
           {messages.map((m) => {

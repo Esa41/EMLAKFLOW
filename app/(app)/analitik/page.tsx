@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
+import { getMarketStats } from "@/lib/market";
 import { ConversionFunnel, TrafficTrend } from "@/components/funnel-charts";
+import { TYPE_TR } from "@/lib/labels";
 import { Eye, MousePointerClick, PhoneCall, MessageSquare, TrendingDown } from "lucide-react";
 
 // Vitrin dönüşüm analitiği (Faz 1): son 30 günün ham eventleri üzerinden.
@@ -17,7 +19,7 @@ export default async function AnalitikPage() {
 
   const since = new Date(Date.now() - DAYS * 86400000);
 
-  const [byType, byListing, listings, trendRaw] = await Promise.all([
+  const [byType, byListing, listings, trendRaw, market] = await Promise.all([
     db.listingEvent.groupBy({
       by: ["type"],
       where: { createdAt: { gte: since } },
@@ -36,6 +38,7 @@ export default async function AnalitikPage() {
       where: { createdAt: { gte: since }, type: { in: ["IMPRESSION", "VIEW"] } },
       select: { type: true, createdAt: true },
     }),
+    getMarketStats(session.tenantId), // mv_market_stats — gecelik yenilenir
   ]);
 
   const total = (t: string) => byType.find((r) => r.type === t)?._count._all ?? 0;
@@ -154,6 +157,53 @@ export default async function AnalitikPage() {
           <TrafficTrend data={trend} />
         </section>
       </div>
+
+      {/* Pazar istihbaratı — bölge/tip bazında DOM ve m² medyanı */}
+      {market.length > 0 && (
+        <section className="rounded-xl border border-ink/15 bg-white shadow-sm overflow-hidden">
+          <h2 className="bolum border-b border-ink/10 px-5 py-4">
+            Pazar Durumu <span className="font-mono text-[10px] normal-case text-ink/40">(gecelik güncellenir)</span>
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-ink/10 text-left font-mono text-[10px] uppercase tracking-wider text-ink/45">
+                  <th className="px-5 py-2.5">Bölge / Tip</th>
+                  <th className="px-3 py-2.5 text-right">Aktif İlan</th>
+                  <th className="px-3 py-2.5 text-right">Medyan m² Fiyatı</th>
+                  <th className="px-3 py-2.5 text-right">Ort. Yayın Süresi</th>
+                  <th className="px-5 py-2.5 text-right">Ort. Kapanış Süresi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {market
+                  .filter((m) => m.activeCount > 0)
+                  .sort((a, b) => b.activeCount - a.activeCount)
+                  .map((m) => (
+                    <tr key={`${m.district}-${m.type}-${m.purpose}`} className="border-b border-ink/5">
+                      <td className="px-5 py-3">
+                        <span className="font-semibold">{m.district}</span>
+                        <span className="ml-2 text-xs text-ink/50">
+                          {TYPE_TR[m.type as keyof typeof TYPE_TR] ?? m.type} · {m.purpose === "SALE" ? "Satılık" : "Kiralık"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-right font-mono">{m.activeCount}</td>
+                      <td className="px-3 py-3 text-right font-mono">
+                        {m.medianSqmPrice ? `${Math.round(m.medianSqmPrice).toLocaleString("tr-TR")} ₺` : "—"}
+                      </td>
+                      <td className="px-3 py-3 text-right font-mono">
+                        {m.avgDomActive != null ? `${Math.round(m.avgDomActive)} gün` : "—"}
+                      </td>
+                      <td className="px-5 py-3 text-right font-mono">
+                        {m.avgDomClosed != null ? `${Math.round(m.avgDomClosed)} gün` : "—"}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {/* İlan bazlı performans */}
       <section className="rounded-xl border border-ink/15 bg-white shadow-sm overflow-hidden">

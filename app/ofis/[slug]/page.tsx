@@ -3,13 +3,23 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Building2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { trMoney, ROOM_OPTIONS } from "@/lib/labels";
+import { trMoney, ROOM_OPTIONS, TYPE_TR } from "@/lib/labels";
 import { RequestForm } from "@/components/showcase-forms";
 import { ShowcaseMap, type MapListing } from "@/components/showcase-map";
 import { TrackImpressions } from "@/components/vitrin-tracking";
 
 type Params = Promise<{ slug: string }>;
-type Search = Promise<{ purpose?: string; district?: string; rooms?: string }>;
+type Search = Promise<{
+  purpose?: string;
+  district?: string;
+  rooms?: string;
+  type?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  minArea?: string;
+}>;
+
+const LISTING_TYPES = ["APARTMENT", "HOUSE", "VILLA", "LAND", "COMMERCIAL", "OFFICE"] as const;
 
 export async function generateMetadata({
   params,
@@ -48,6 +58,18 @@ export default async function ShowcasePage({
   });
   if (!tenant || !tenant.showcaseEnabled) notFound();
 
+  // Detaylı arama parametreleri (sayısal alanlar doğrulanır)
+  const num = (v?: string) => {
+    const n = Number(v);
+    return v && !isNaN(n) && n > 0 ? n : null;
+  };
+  const minPrice = num(sp.minPrice);
+  const maxPrice = num(sp.maxPrice);
+  const minArea = num(sp.minArea);
+  const typeFilter = LISTING_TYPES.includes(sp.type as (typeof LISTING_TYPES)[number])
+    ? (sp.type as (typeof LISTING_TYPES)[number])
+    : null;
+
   const [listings, districts, team] = await Promise.all([
     prisma.listing.findMany({
       where: {
@@ -56,6 +78,11 @@ export default async function ShowcasePage({
         ...(sp.purpose === "SALE" || sp.purpose === "RENT" ? { purpose: sp.purpose } : {}),
         ...(sp.district ? { district: sp.district } : {}),
         ...(sp.rooms ? { rooms: sp.rooms } : {}),
+        ...(typeFilter ? { type: typeFilter } : {}),
+        ...(minPrice || maxPrice
+          ? { price: { ...(minPrice ? { gte: minPrice } : {}), ...(maxPrice ? { lte: maxPrice } : {}) } }
+          : {}),
+        ...(minArea ? { netArea: { gte: minArea } } : {}),
       },
       orderBy: { createdAt: "desc" },
       include: { media: { orderBy: { order: "asc" }, take: 1 } },
@@ -98,11 +125,17 @@ export default async function ShowcasePage({
 
   const qs = (patch: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
-    const merged = { purpose: sp.purpose, district: sp.district, rooms: sp.rooms, ...patch };
+    const merged = {
+      purpose: sp.purpose, district: sp.district, rooms: sp.rooms,
+      type: sp.type, minPrice: sp.minPrice, maxPrice: sp.maxPrice, minArea: sp.minArea,
+      ...patch,
+    };
     for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v);
     const s = p.toString();
     return `/ofis/${slug}${s ? `?${s}` : ""}`;
   };
+
+  const hasAdvanced = !!(typeFilter || minPrice || maxPrice || minArea);
 
   return (
     <div className="space-y-8">
@@ -171,6 +204,80 @@ export default async function ShowcasePage({
             </Link>
           ))}
         </div>
+
+        {/* Detaylı arama — JS gerektirmez (GET formu) */}
+        <details open={hasAdvanced} className="rounded-[10px] border border-ink/15 bg-white">
+          <summary className="cursor-pointer select-none px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-ink/60 hover:text-ink">
+            Detaylı Arama {hasAdvanced && <span className="text-brand-600">· aktif</span>}
+          </summary>
+          <form method="GET" className="grid grid-cols-2 gap-3 border-t border-ink/10 p-4 sm:grid-cols-5">
+            {/* Aktif çip filtrelerini koru */}
+            {sp.purpose && <input type="hidden" name="purpose" value={sp.purpose} />}
+            {sp.district && <input type="hidden" name="district" value={sp.district} />}
+            {sp.rooms && <input type="hidden" name="rooms" value={sp.rooms} />}
+            <div>
+              <label className="mb-1 block font-mono text-[9.5px] uppercase tracking-wider text-ink/50">
+                Tip
+              </label>
+              <select
+                name="type"
+                defaultValue={sp.type ?? ""}
+                className="w-full rounded-lg border border-ink/20 px-2.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
+              >
+                <option value="">Tümü</option>
+                {LISTING_TYPES.map((t) => (
+                  <option key={t} value={t}>{TYPE_TR[t]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block font-mono text-[9.5px] uppercase tracking-wider text-ink/50">
+                Min Fiyat (₺)
+              </label>
+              <input
+                type="number" name="minPrice" min={0} defaultValue={sp.minPrice ?? ""}
+                placeholder="0"
+                className="w-full rounded-lg border border-ink/20 px-2.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block font-mono text-[9.5px] uppercase tracking-wider text-ink/50">
+                Max Fiyat (₺)
+              </label>
+              <input
+                type="number" name="maxPrice" min={0} defaultValue={sp.maxPrice ?? ""}
+                placeholder="∞"
+                className="w-full rounded-lg border border-ink/20 px-2.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block font-mono text-[9.5px] uppercase tracking-wider text-ink/50">
+                Min Net m²
+              </label>
+              <input
+                type="number" name="minArea" min={0} defaultValue={sp.minArea ?? ""}
+                placeholder="0"
+                className="w-full rounded-lg border border-ink/20 px-2.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
+              />
+            </div>
+            <div className="col-span-2 flex items-end gap-2 sm:col-span-1">
+              <button
+                type="submit"
+                className="btn-selvi flex-1 rounded-lg px-4 py-2 text-sm font-bold text-white"
+              >
+                Ara
+              </button>
+              {hasAdvanced && (
+                <Link
+                  href={qs({ type: undefined, minPrice: undefined, maxPrice: undefined, minArea: undefined })}
+                  className="rounded-lg border border-ink/20 px-3 py-2 text-sm font-medium text-ink/60 hover:border-ink/50"
+                >
+                  Temizle
+                </Link>
+              )}
+            </div>
+          </form>
+        </details>
       </div>
 
       {/* Harita — tüm ilanlar fiyat plakasıyla */}

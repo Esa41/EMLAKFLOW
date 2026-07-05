@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { refreshMarketStats } from "@/lib/market";
+import { runInsightRules } from "@/lib/insights";
 
-// Gecelik özetleme (Vercel Cron → vercel.json: 03:00 UTC).
+// Gecelik bakım işi (Vercel Cron → vercel.json: 03:00 UTC).
 // 1) Son 3 günün ham ListingEvent kayıtlarını gün bazında ListingDailyStat'a
 //    MUTLAK sayılarla upsert eder → tekrar çalıştırmak güvenlidir (idempotent).
 // 2) 90 günden eski ham eventleri budar (özetler kalır).
-// Cross-tenant çalışır (cron) — sonuç tablosu yine tenantId taşır.
+// 3) mv_market_stats'ı yeniler (DOM / bölge medyanları).
+// 4) Tenant başına insight kurallarını koşturur.
+// Cross-tenant çalışır (cron) — sonuç tabloları yine tenantId taşır.
 
 export const maxDuration = 60;
 
@@ -70,5 +74,19 @@ export async function GET(req: NextRequest) {
     where: { createdAt: { lt: cutoff } },
   });
 
-  return NextResponse.json({ ok: true, upserted: rows.length, pruned: pruned.count });
+  // Pazar istatistiklerini yenile, sonra insight kurallarını koştur
+  await refreshMarketStats();
+
+  const tenants = await prisma.tenant.findMany({ select: { id: true } });
+  let insightsCreated = 0;
+  for (const t of tenants) {
+    insightsCreated += await runInsightRules(t.id).catch(() => 0);
+  }
+
+  return NextResponse.json({
+    ok: true,
+    upserted: rows.length,
+    pruned: pruned.count,
+    insights: insightsCreated,
+  });
 }

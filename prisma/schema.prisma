@@ -102,6 +102,12 @@ enum EventType {
   CHAT       // canlı sohbet başlatma
 }
 
+enum InsightSeverity {
+  INFO
+  ACTION
+  URGENT
+}
+
 // ── Modeller ──
 
 model Tenant {
@@ -149,6 +155,7 @@ model Tenant {
   messages     Message[]
   listingEvents ListingEvent[]
   dailyStats   ListingDailyStat[]
+  insights     Insight[]
 }
 
 model User {
@@ -274,6 +281,7 @@ model Listing {
   contracts    Contract[]
   events       ListingEvent[]
   dailyStats   ListingDailyStat[]
+  insights     Insight[]
 
   @@unique([tenantId, refCode])
   @@index([tenantId, status])
@@ -414,12 +422,33 @@ model ListingEvent {
   listingId String?   // CHAT gibi ilandan bağımsız olaylarda null
   listing   Listing?  @relation(fields: [listingId], references: [id], onDelete: Cascade)
   type      EventType
-  sessionId String?   // ziyaretçi oturumu (v_xxx)
+  sessionId String?   // ziyaretçi oturumu (v_xxx) — sohbet oturumuyla ortak anahtar
   source    String?   // "vitrin" | "feed:sahibinden" | "qr" …
+  durationMs Int?     // VIEW için sayfada kalma süresi (pagehide beacon'ı ile güncellenir)
   createdAt DateTime  @default(now())
 
   @@index([tenantId, listingId, type, createdAt])
+  @@index([tenantId, sessionId])
   @@index([createdAt], type: Brin)
+}
+
+// Emlakçıya eylem odaklı öneri (IF/THEN motoru — api/cron/rollup gecelik üretir).
+model Insight {
+  id          String          @id @default(cuid())
+  tenantId    String
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  listingId   String?
+  listing     Listing?        @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  rule        String          // "DOM_HIGH" | "PRICE_ABOVE_MARKET" | "STALE_LEAD" | "AUTH_EXPIRING" …
+  severity    InsightSeverity @default(ACTION)
+  title       String
+  body        String
+  data        Json?           // hesaplama kanıtı
+  dismissedAt DateTime?
+  createdAt   DateTime        @default(now())
+
+  @@index([tenantId, dismissedAt, createdAt])
+  @@index([tenantId, listingId, rule])
 }
 
 // Günlük özet — ham eventler budandıktan sonra kalıcı analitik kaynağı.

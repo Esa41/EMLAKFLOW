@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { InfoForm } from "@/components/showcase-forms";
 import { ShowcaseMap } from "@/components/showcase-map";
 import { TrackListingView } from "@/components/vitrin-tracking";
+import { seoTitle, seoDescription, mediaAltText, listingJsonLd } from "@/lib/seo";
 import { trMoney, TYPE_TR } from "@/lib/labels";
 
 type Params = Promise<{ slug: string; id: string }>;
@@ -33,14 +34,14 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const data = await getData(slug, id);
   if (!data) return {};
   const { listing, tenant } = data;
-  const desc = `${listing.purpose === "SALE" ? "Satılık" : "Kiralık"} · ${
-    listing.rooms ?? TYPE_TR[listing.type]
-  } · ${listing.neighborhood ?? listing.district} · ${trMoney.format(Number(listing.price))} — ${tenant.name}`;
+  // Şablon bazlı otomatik SEO (lib/seo.ts) — ilan alanlarından deterministik üretilir
+  const title = seoTitle(listing, tenant.name);
+  const desc = seoDescription(listing, tenant.name);
   return {
-    title: `${listing.title} · ${tenant.name}`,
+    title,
     description: desc,
     openGraph: {
-      title: listing.title,
+      title,
       description: desc,
       images: listing.media[0] ? [{ url: listing.media[0].url }] : [],
     },
@@ -88,8 +89,19 @@ export default async function ListingShowcasePage({ params }: { params: Params }
   const phone = l.agent?.phone ?? tenant.phone;
   const waNumber = tenant.whatsapp ?? phone;
 
+  const baseUrl = process.env.AUTH_URL?.replace(/\/$/, "") ?? "";
+  const jsonLd = listingJsonLd(
+    { ...l, description: l.description, media: l.media },
+    { name: tenant.name, slug },
+    baseUrl
+  );
+
   return (
     <div className="space-y-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <TrackListingView tenantId={tenant.id} listingId={l.id} />
       <Link
         href={`/ofis/${slug}`}
@@ -103,7 +115,7 @@ export default async function ListingShowcasePage({ params }: { params: Params }
         <div className="relative overflow-hidden rounded-[10px] border border-ink/15 bg-brand-50">
           {l.media[0] ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={l.media[0].url} alt={l.title} className="h-64 w-full object-cover sm:h-96" />
+            <img src={l.media[0].url} alt={mediaAltText(l, 0)} className="h-64 w-full object-cover sm:h-96" />
           ) : (
             <div className="flex h-64 items-center justify-center text-ink/20 sm:h-96">
               <Building2 size={40} />
@@ -115,12 +127,12 @@ export default async function ListingShowcasePage({ params }: { params: Params }
         </div>
         {l.media.length > 1 && (
           <div className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-6">
-            {l.media.slice(1, 7).map((m) => (
+            {l.media.slice(1, 7).map((m, i) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={m.id}
                 src={m.url}
-                alt=""
+                alt={mediaAltText(l, i + 1)}
                 className="aspect-[4/3] w-full rounded-md border border-ink/10 object-cover"
               />
             ))}
