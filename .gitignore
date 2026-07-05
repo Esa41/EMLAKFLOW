@@ -6,3 +6,6 @@ node_modules/
 .claude/
 dist/
 build/
+.vercel
+.env*.local
+*.tsbuildinfo
