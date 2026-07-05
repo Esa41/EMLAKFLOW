@@ -1,0 +1,454 @@
+// ─────────────────────────────────────────────────────────────
+// EmlakFlow · Prisma Schema (ESAPP Vertical)
+// Next.js + Prisma + Neon (PostgreSQL)
+// Çok kiracılı: satır bazlı izolasyon → her tablo `tenantId` taşır.
+// İzolasyon lib/tenant.ts içindeki forTenant() extension ile zorlanır.
+// ─────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ── Enums ──
+
+enum Role {
+  OWNER      // Ofis sahibi / broker yetkilisi
+  BROKER
+  AGENT      // Danışman
+  ASSISTANT
+}
+
+enum ContactType {
+  BUYER
+  SELLER
+  TENANT_C   // kiracı
+  LANDLORD   // mülk sahibi
+  OTHER
+}
+
+enum LeadStatus {
+  OPEN
+  MATCHED
+  CONVERTED
+  LOST
+}
+
+enum ListingPurpose {
+  SALE
+  RENT
+}
+
+enum ListingType {
+  APARTMENT
+  HOUSE
+  VILLA
+  LAND
+  COMMERCIAL
+  OFFICE
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  PASSIVE
+  SOLD
+  RENTED
+}
+
+enum DealStage {
+  NEW
+  CONTACTED
+  VIEWING     // yer gösterme
+  OFFER
+  CONTRACT
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  DONE
+  CANCELLED
+  NO_SHOW
+}
+
+enum ContractType {
+  AUTHORIZATION   // yetki belgesi
+  VIEWING_FORM    // yer gösterme formu
+  SALE_CONTRACT
+  RENT_CONTRACT
+}
+
+enum ActivityType {
+  CALL
+  MEETING
+  NOTE
+  EMAIL
+  WHATSAPP
+  STATUS_CHANGE
+}
+
+enum EventType {
+  IMPRESSION // vitrin listesinde karta görünüm
+  VIEW       // ilan detay sayfası açılışı
+  CLICK      // telefon / WhatsApp tıklaması
+  CONTACT    // lead formu gönderimi
+  CHAT       // canlı sohbet başlatma
+}
+
+// ── Modeller ──
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String   // Ofis / acente adı
+  slug      String   @unique
+  phone     String?
+  city      String?
+  district  String?
+  plan      String   @default("trial") // trial | starter | pro
+
+  // Komisyon ayarları (Ayarlar sayfasından düzenlenecek)
+  commissionRate Decimal @default(4.0) @db.Decimal(5, 2) // satışta % oran
+  agentSharePct  Int     @default(50)                    // danışman payı %
+
+  // Portal / XML yayın ayarları (Ayarlar sayfasından)
+  portalSahibinden Boolean @default(false)
+  portalHepsiemlak Boolean @default(false)
+  portalEmlakjet   Boolean @default(false)
+  feedToken        String? @unique // public feed URL anahtarı (lazy üretilir)
+
+  // Vitrin (public ofis sayfası) ayarları
+  showcaseEnabled Boolean @default(true)
+  showcaseTagline String? // kahraman başlığın altındaki tanıtım cümlesi
+  whatsapp        String? // vitrin WhatsApp hattı (boşsa telefon kullanılır)
+  aboutTitle      String? // Hakkımızda başlığı
+  aboutText       String? // Hakkımızda metni
+  visionText      String? // Vizyon alıntısı
+  aboutStats      Json?   // [{value,label}] x3 — istatistik plakaları
+  showTeam        Boolean @default(true) // ekip şeridi görünür mü
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users        User[]
+  contacts     Contact[]
+  leads        Lead[]
+  listings     Listing[]
+  deals        Deal[]
+  appointments Appointment[]
+  contracts    Contract[]
+  commissions  Commission[]
+  activities   Activity[]
+  notifications Notification[]
+  messages     Message[]
+  listingEvents ListingEvent[]
+  dailyStats   ListingDailyStat[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name         String
+  email        String   @unique
+  passwordHash String
+  phone        String?
+  role         Role     @default(AGENT)
+  avatarUrl    String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  listings     Listing[]
+  deals        Deal[]
+  appointments Appointment[]
+  commissions  Commission[]
+  activities   Activity[]
+  notifications Notification[]
+
+  @@index([tenantId])
+}
+
+model Contact {
+  id        String      @id @default(cuid())
+  tenantId  String
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type      ContactType @default(BUYER)
+  fullName  String
+  phone     String?
+  email     String?
+  note      String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  leads        Lead[]
+  deals        Deal[]
+  appointments Appointment[]
+  contracts    Contract[]
+
+  @@index([tenantId])
+  @@index([tenantId, phone])
+}
+
+model Lead {
+  id        String     @id @default(cuid())
+  tenantId  String
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contactId String?
+  contact   Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  status    LeadStatus @default(OPEN)
+  source    String?    // sahibinden, referans, tabela, instagram…
+
+  // Arama kriterleri (eşleştirme motoru girdisi)
+  purpose   ListingPurpose @default(SALE)
+  type      ListingType?
+  city      String?
+  district  String?
+  neighborhoods String[]   @default([])
+  rooms     String?        // "3+1" formatı
+  minArea   Int?           // net m²
+  maxArea   Int?
+  minPrice  Decimal?       @db.Decimal(14, 2)
+  maxPrice  Decimal?       @db.Decimal(14, 2)
+  needsCredit Boolean      @default(false) // krediye uygunluk şartı
+  note      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deals Deal[]
+
+  @@index([tenantId, status])
+}
+
+model Listing {
+  id        String         @id @default(cuid())
+  tenantId  String
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  agentId   String?
+  agent     User?          @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  refCode   String         // EF-2026-0001 — ofis içi referans
+  title     String
+  purpose   ListingPurpose @default(SALE)
+  type      ListingType    @default(APARTMENT)
+  status    ListingStatus  @default(ACTIVE)
+
+  price     Decimal  @db.Decimal(14, 2)
+  currency  String   @default("TRY")
+
+  // Lokasyon
+  city         String
+  district     String
+  neighborhood String?
+  address      String?
+  lat          Float?
+  lng          Float?
+
+  // Türkiye'ye özgü fiziksel özellikler
+  rooms        String?  // "3+1"
+  grossArea    Int?     // brüt m²
+  netArea      Int?     // net m²
+  floor        Int?
+  totalFloors  Int?
+  buildingAge  Int?
+  heating      String?  // kombi, merkezi, yerden…
+  dues         Decimal? @db.Decimal(10, 2) // aidat
+  deedStatus   String?  // tapu durumu: kat mülkiyeti, kat irtifakı, arsa…
+  creditEligible Boolean @default(true)    // krediye uygun
+  furnished    Boolean  @default(false)
+  inSite       Boolean  @default(false)    // site içinde
+  description  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  media        ListingMedia[]
+  deals        Deal[]
+  appointments Appointment[]
+  contracts    Contract[]
+  events       ListingEvent[]
+  dailyStats   ListingDailyStat[]
+
+  @@unique([tenantId, refCode])
+  @@index([tenantId, status])
+  @@index([tenantId, city, district])
+}
+
+model ListingMedia {
+  id        String  @id @default(cuid())
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url       String  // R2 public URL
+  key       String  // R2 object key
+  kind      String  @default("photo") // photo | video | tour360 | floorplan
+  order     Int     @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([listingId])
+}
+
+model Deal {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  stage     DealStage @default(NEW)
+  listingId String?
+  listing   Listing?  @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  leadId    String?
+  lead      Lead?     @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  contactId String?
+  contact   Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  agentId   String?
+  agent     User?     @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  value     Decimal?  @db.Decimal(14, 2) // beklenen işlem bedeli
+  closedAt  DateTime?
+  lostReason String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  commissions Commission[]
+
+  @@index([tenantId, stage])
+}
+
+model Appointment {
+  id        String            @id @default(cuid())
+  tenantId  String
+  tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title     String
+  status    AppointmentStatus @default(SCHEDULED)
+  startsAt  DateTime
+  endsAt    DateTime?
+  listingId String?
+  listing   Listing?          @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  contactId String?
+  contact   Contact?          @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  agentId   String?
+  agent     User?             @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  note      String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([tenantId, startsAt])
+}
+
+model Contract {
+  id        String       @id @default(cuid())
+  tenantId  String
+  tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type      ContractType
+  listingId String?
+  listing   Listing?     @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  contactId String?
+  contact   Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  fileUrl   String?      // R2'deki imzalı PDF
+  signedAt  DateTime?
+  expiresAt DateTime?    // yetki belgesi bitişi
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([tenantId, type])
+}
+
+model Commission {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dealId    String
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  agentId   String?
+  agent     User?    @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  gross     Decimal  @db.Decimal(14, 2) // toplam komisyon
+  agentShare  Decimal @db.Decimal(14, 2) // danışman payı
+  officeShare Decimal @db.Decimal(14, 2) // ofis payı
+  paidAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model Activity {
+  id        String       @id @default(cuid())
+  tenantId  String
+  tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type      ActivityType
+  userId    String?
+  user      User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  entity    String?      // "listing" | "deal" | "lead" | "contact"
+  entityId  String?
+  body      String
+  createdAt DateTime     @default(now())
+
+  @@index([tenantId, createdAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String?
+  href      String?   // tıklanınca gidilecek sayfa
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([tenantId, userId, readAt])
+}
+
+// Vitrin funnel olayları (Impression → View → Click → Contact).
+// Yüksek hacim beklenir: id bigserial (cuid string indeksinden ~%70 küçük),
+// zaman-serisi taramaları için BRIN. Ham kayıt 90 gün tutulur, gecelik cron
+// ListingDailyStat'a özetler (bkz. api/cron/rollup).
+model ListingEvent {
+  id        BigInt    @id @default(autoincrement())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  listingId String?   // CHAT gibi ilandan bağımsız olaylarda null
+  listing   Listing?  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  type      EventType
+  sessionId String?   // ziyaretçi oturumu (v_xxx)
+  source    String?   // "vitrin" | "feed:sahibinden" | "qr" …
+  createdAt DateTime  @default(now())
+
+  @@index([tenantId, listingId, type, createdAt])
+  @@index([createdAt], type: Brin)
+}
+
+// Günlük özet — ham eventler budandıktan sonra kalıcı analitik kaynağı.
+model ListingDailyStat {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  day         DateTime @db.Date
+  impressions Int      @default(0)
+  views       Int      @default(0)
+  clicks      Int      @default(0)
+  contacts    Int      @default(0)
+  chats       Int      @default(0)
+
+  @@unique([tenantId, listingId, day])
+  @@index([tenantId, day])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  senderId  String?  // user.id if agent, null if visitor
+  senderName String? // name for visitor
+  sessionId String?  // grouping identifier for vitrin visitors, or "TEAM" for internal team chat
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, sessionId, createdAt])
+}

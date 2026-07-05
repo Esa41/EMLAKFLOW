@@ -1,0 +1,89 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
+import { LogOut, Store, ExternalLink } from "lucide-react";
+import { NAV } from "./nav-items";
+
+export function Sidebar({
+  tenantName,
+  userName,
+  showcaseSlug,
+}: {
+  tenantName: string;
+  userName: string;
+  showcaseSlug?: string | null;
+}) {
+  const pathname = usePathname();
+
+  return (
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-ink/90 bg-paper lg:flex">
+      {/* Antet */}
+      <div className="border-b border-ink/15 px-6 pb-5 pt-6">
+        <p className="font-display text-xl font-extrabold tracking-tight">
+          Emlak<span className="text-brand-600">Flow</span>
+        </p>
+        <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink/50">
+          {tenantName}
+        </p>
+      </div>
+
+      {/* Navigasyon */}
+      <nav className="flex-1 space-y-0.5 px-3 pt-4">
+        {NAV.map(({ href, label, icon: Icon }) => {
+          const active = pathname.startsWith(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500 ${
+                active
+                  ? "bg-brand-600 text-white"
+                  : "text-ink/65 hover:bg-white hover:text-ink"
+              }`}
+            >
+              <Icon size={17} strokeWidth={active ? 2.4 : 2} />
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Vitrin — ofisin public sayfası */}
+      {showcaseSlug && (
+        <div className="px-3 pb-2">
+          <a
+            href={`/ofis/${showcaseSlug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 rounded-lg border border-dashed border-brand-600/40 px-3 py-2.5 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+          >
+            <Store size={17} />
+            Vitrini Gör
+            <ExternalLink size={13} className="ml-auto text-brand-600/60" />
+          </a>
+        </div>
+      )}
+
+      {/* Kullanıcı */}
+      <div className="border-t border-ink/15 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-bold">{userName}</p>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-ink/40">
+              Oturum açık
+            </p>
+          </div>
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="rounded-lg p-2 text-ink/40 transition-colors hover:bg-white hover:text-[#c13515] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#c13515]"
+            aria-label="Çıkış yap"
+          >
+            <LogOut size={17} />
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}
