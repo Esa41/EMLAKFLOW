@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check } from "lucide-react";
+import { FUEL_OPTIONS, TRANSMISSION_OPTIONS } from "@/lib/verticals";
 
 const input =
   "w-full rounded-lg border border-ink/20 bg-white px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/35 focus:border-brand-600 focus:ring-2 focus:ring-brand-500/25";
@@ -117,24 +118,43 @@ export function RequestForm({
   slug,
   districts,
   rooms,
+  isAuto = false,
 }: {
   slug: string;
   districts: string[];
   rooms: string[];
+  /** AUTO_DEALER dikeyi → emlak kriterleri yerine araç kriterleri gösterilir. */
+  isAuto?: boolean;
 }) {
   const { busy, done, error, submit } = useSubmit(slug);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [purpose, setPurpose] = useState("SALE");
-  const [district, setDistrict] = useState("");
-  const [room, setRoom] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [note, setNote] = useState("");
   const [website, setWebsite] = useState(""); // honeypot
 
+  // Emlak kriterleri
+  const [district, setDistrict] = useState("");
+  const [room, setRoom] = useState("");
+
+  // Araç kriterleri
+  const [vehicleBrand, setVehicleBrand] = useState("");
+  const [vehicleModel, setVehicleModel] = useState("");
+  const [minYear, setMinYear] = useState("");
+  const [maxKm, setMaxKm] = useState("");
+  const [fuel, setFuel] = useState("");
+  const [transmission, setTransmission] = useState("");
+
   if (done)
     return (
-      <Success text="Talebiniz kaydedildi — kriterlerinize uyan ilan portföye girdiğinde sizi arayacağız." />
+      <Success
+        text={
+          isAuto
+            ? "Talebiniz kaydedildi — kriterlerinize uyan araç geldiğinde sizi arayacağız."
+            : "Talebiniz kaydedildi — kriterlerinize uyan ilan portföye girdiğinde sizi arayacağız."
+        }
+      />
     );
 
   return (
@@ -159,33 +179,99 @@ export function RequestForm({
         value={purpose}
         onChange={(e) => setPurpose(e.target.value)}
       >
-        <option value="SALE">Satılık arıyorum</option>
-        <option value="RENT">Kiralık arıyorum</option>
+        <option value="SALE">
+          {isAuto ? "Satılık araç arıyorum" : "Satılık arıyorum"}
+        </option>
+        <option value="RENT">
+          {isAuto ? "Kiralık araç arıyorum" : "Kiralık arıyorum"}
+        </option>
       </select>
-      <select
-        className={input}
-        value={district}
-        onChange={(e) => setDistrict(e.target.value)}
-      >
-        <option value="">İlçe farketmez</option>
-        {districts.map((d) => (
-          <option key={d} value={d}>
-            {d}
-          </option>
-        ))}
-      </select>
-      <select
-        className={input}
-        value={room}
-        onChange={(e) => setRoom(e.target.value)}
-      >
-        <option value="">Oda farketmez</option>
-        {rooms.map((r) => (
-          <option key={r} value={r}>
-            {r}
-          </option>
-        ))}
-      </select>
+
+      {isAuto ? (
+        <>
+          <input
+            className={input}
+            placeholder="Marka (örn. Volkswagen)"
+            value={vehicleBrand}
+            onChange={(e) => setVehicleBrand(e.target.value)}
+          />
+          <input
+            className={input}
+            placeholder="Model (örn. Passat)"
+            value={vehicleModel}
+            onChange={(e) => setVehicleModel(e.target.value)}
+          />
+          <input
+            className={input}
+            type="number"
+            min={1980}
+            max={2100}
+            placeholder="En düşük model yılı"
+            value={minYear}
+            onChange={(e) => setMinYear(e.target.value)}
+          />
+          <input
+            className={input}
+            type="number"
+            min={0}
+            placeholder="En fazla kilometre (km)"
+            value={maxKm}
+            onChange={(e) => setMaxKm(e.target.value)}
+          />
+          <select
+            className={input}
+            value={fuel}
+            onChange={(e) => setFuel(e.target.value)}
+          >
+            <option value="">Yakıt farketmez</option>
+            {FUEL_OPTIONS.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </select>
+          <select
+            className={input}
+            value={transmission}
+            onChange={(e) => setTransmission(e.target.value)}
+          >
+            <option value="">Vites farketmez</option>
+            {TRANSMISSION_OPTIONS.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </>
+      ) : (
+        <>
+          <select
+            className={input}
+            value={district}
+            onChange={(e) => setDistrict(e.target.value)}
+          >
+            <option value="">İlçe farketmez</option>
+            {districts.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+          <select
+            className={input}
+            value={room}
+            onChange={(e) => setRoom(e.target.value)}
+          >
+            <option value="">Oda farketmez</option>
+            {rooms.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
+
       <input
         className={input}
         type="number"
@@ -215,17 +301,35 @@ export function RequestForm({
       )}
       <button
         onClick={() =>
-          submit({
-            kind: "search",
-            name,
-            phone,
-            purpose,
-            district,
-            rooms: room,
-            maxPrice,
-            note,
-            website,
-          })
+          submit(
+            isAuto
+              ? {
+                  kind: "search",
+                  name,
+                  phone,
+                  purpose,
+                  vehicleBrand,
+                  vehicleModel,
+                  minYear,
+                  maxKm,
+                  fuel,
+                  transmission,
+                  maxPrice,
+                  note,
+                  website,
+                }
+              : {
+                  kind: "search",
+                  name,
+                  phone,
+                  purpose,
+                  district,
+                  rooms: room,
+                  maxPrice,
+                  note,
+                  website,
+                },
+          )
         }
         disabled={busy || !name || !phone}
         className="btn-selvi rounded-lg py-2.5 text-sm font-bold text-white disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700 sm:col-span-2"

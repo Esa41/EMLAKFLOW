@@ -27,7 +27,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string }
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
-    select: { id: true },
+    select: { id: true, vertical: true },
   });
   if (!tenant) return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
 
@@ -116,17 +116,52 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string }
   // kind: "search" — kriterli talep
   const purpose = body.purpose === "RENT" ? "RENT" : "SALE";
   const maxPrice = body.maxPrice ? Number(body.maxPrice) : null;
+  const validMaxPrice =
+    maxPrice && !isNaN(maxPrice) && maxPrice > 0 ? maxPrice : null;
+  const isAuto = tenant.vertical === "AUTO_DEALER";
+
+  // Araç kriterleri (yalnız galeri dikeyinde) — güvenli sayısal parse
+  const posInt = (v: unknown) => {
+    const n = Number(v);
+    return v && !isNaN(n) && n > 0 ? Math.round(n) : null;
+  };
+  const vehicleBrand = isAuto && body.vehicleBrand
+    ? String(body.vehicleBrand).trim().slice(0, 40)
+    : null;
+  const vehicleModel = isAuto && body.vehicleModel
+    ? String(body.vehicleModel).trim().slice(0, 40)
+    : null;
+  const minYear = isAuto ? posInt(body.minYear) : null;
+  const maxKm = isAuto ? posInt(body.maxKm) : null;
+  const fuel = isAuto && body.fuel ? String(body.fuel).slice(0, 20) : null;
+  const transmission =
+    isAuto && body.transmission ? String(body.transmission).slice(0, 20) : null;
+
+  const searchSummary = isAuto
+    ? [vehicleBrand, vehicleModel, minYear ? `${minYear}+ model` : null, fuel, transmission]
+        .filter(Boolean)
+        .join(" ")
+    : "";
+
   const lead = await prisma.lead.create({
     data: {
       tenantId: tenant.id,
       contactId: contact.id,
       source: "vitrin",
       purpose,
-      type: "APARTMENT",
-      district: body.district ? String(body.district).slice(0, 60) : null,
-      rooms: body.rooms ? String(body.rooms).slice(0, 10) : null,
-      maxPrice: maxPrice && !isNaN(maxPrice) && maxPrice > 0 ? maxPrice : null,
-      note: `[Vitrin · genel talep]${body.note ? ` "${String(body.note).slice(0, 500)}"` : ""}`,
+      type: isAuto ? null : "APARTMENT",
+      district: !isAuto && body.district ? String(body.district).slice(0, 60) : null,
+      rooms: !isAuto && body.rooms ? String(body.rooms).slice(0, 10) : null,
+      maxPrice: validMaxPrice,
+      vehicleBrand,
+      vehicleModel,
+      minYear,
+      maxKm,
+      fuel,
+      transmission,
+      note: `[Vitrin · ${isAuto ? "araç talebi" : "genel talep"}${
+        searchSummary ? ` · ${searchSummary}` : ""
+      }]${body.note ? ` "${String(body.note).slice(0, 500)}"` : ""}`,
     },
   });
   
@@ -137,7 +172,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string }
       leadId: lead.id,
       contactId: contact.id,
       agentId: owner?.id,
-      value: maxPrice && !isNaN(maxPrice) && maxPrice > 0 ? maxPrice : null,
+      value: validMaxPrice,
     },
   });
 
@@ -158,9 +193,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string }
         userId: owner.id,
         title: "Vitrinden yeni arama talebi",
         body: `${name} (${phone}) — ${purpose === "SALE" ? "satılık" : "kiralık"}${
-          body.district ? `, ${body.district}` : ""
-        }${body.rooms ? `, ${body.rooms}` : ""} arıyor.${
-          matchCount > 0 ? ` Portföyde ${matchCount} uygun ilan var.` : ""
+          isAuto
+            ? searchSummary
+              ? `, ${searchSummary}`
+              : " araç"
+            : `${body.district ? `, ${body.district}` : ""}${
+                body.rooms ? `, ${body.rooms}` : ""
+              }`
+        } arıyor.${
+          matchCount > 0
+            ? ` Portföyde ${matchCount} uygun ${isAuto ? "araç" : "ilan"} var.`
+            : ""
         }`,
         href: `/kisiler/${contact.id}`,
       },

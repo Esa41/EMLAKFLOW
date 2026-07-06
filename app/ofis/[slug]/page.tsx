@@ -12,6 +12,7 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { getSiteUser } from "@/lib/site-auth";
 import { officeJsonLd } from "@/lib/seo";
 import { getBaseUrl } from "@/lib/url";
+import { isAutoVertical } from "@/lib/verticals";
 
 const BASE_URL = getBaseUrl();
 
@@ -98,6 +99,7 @@ export default async function ShowcasePage({
       visionText: true,
       aboutStats: true,
       showTeam: true,
+      vertical: true,
     },
   });
   if (!tenant || !tenant.showcaseEnabled) notFound();
@@ -655,6 +657,7 @@ export default async function ShowcasePage({
             slug={slug}
             districts={districts.map((d) => d.district)}
             rooms={[...ROOM_OPTIONS]}
+            isAuto={isAutoVertical(tenant.vertical)}
           />
         </div>
       </section>
