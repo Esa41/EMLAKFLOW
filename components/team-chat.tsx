@@ -30,6 +30,16 @@ export function TeamChat({ currentUserId }: { currentUserId: string }) {
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lastMarkedRef = useRef<string | number | null>(null);
+
+  // Yeni mesaj göründükçe ekip sohbetini "okundu" işaretle (sidebar rozeti düşer)
+  useEffect(() => {
+    if (document.hidden || messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (last.id === lastMarkedRef.current) return;
+    lastMarkedRef.current = last.id;
+    fetch("/api/chat/team/unread", { method: "POST" }).catch(() => {});
+  }, [messages]);
 
   const load = useCallback(() => {
     fetch(`/api/chat/team`)

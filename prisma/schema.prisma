@@ -234,6 +234,7 @@ model Tenant {
   tasks        Task[]
   socialAccounts SocialAccount[]
   socialPosts    SocialPost[]
+  teamChatReads  TeamChatRead[]
 }
 
 model User {
@@ -257,6 +258,7 @@ model User {
   activities   Activity[]
   notifications Notification[]
   tasks        Task[]
+  teamChatReads TeamChatRead[]
 
   @@index([tenantId])
 }
@@ -555,6 +557,19 @@ model Notification {
 
   @@index([tenantId, userId, readAt])
   @@index([tenantId, userId, category])
+}
+
+// Kullanıcı başına ekip sohbeti okuma imleci — okunmamış mesaj sayacı için.
+model TeamChatRead {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tenantId, userId])
 }
 
 // Vitrin funnel olayları (Impression → View → Click → Contact).
