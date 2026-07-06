@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
+import { getBaseUrl } from "@/lib/url";
 
 /** Vitrin (/ofis/**) taranabilir; CRM/auth rotaları ve API dışarıda tutulur. */
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = (process.env.AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const baseUrl = getBaseUrl();
 
   return {
     rules: {

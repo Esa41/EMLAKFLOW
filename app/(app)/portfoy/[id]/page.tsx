@@ -5,6 +5,7 @@ import { forTenant } from "@/lib/tenant";
 import { findMatchingLeads } from "@/lib/matching";
 import { ListingForm } from "@/components/listing-form";
 import { DeleteListingButton } from "@/components/delete-listing-button";
+import { ContractPanel } from "@/components/contract-panel";
 import { STATUS_TR, STATUS_BADGE } from "@/lib/labels";
 import { Eye } from "lucide-react";
 
@@ -17,7 +18,7 @@ export default async function ListingDetailPage({
   const db = forTenant(session.tenantId);
   const { id } = await params;
 
-  const [listing, tenant] = await Promise.all([
+  const [listing, tenant, contacts] = await Promise.all([
     db.listing.findUnique({
       where: { id },
       include: { media: { orderBy: { order: "asc" } } },
@@ -26,6 +27,10 @@ export default async function ListingDetailPage({
       where: { id: session.tenantId },
       select: { slug: true, showcaseEnabled: true },
     }),
+    db.contact.findMany({
+      orderBy: { fullName: "asc" },
+      select: { id: true, fullName: true, phone: true },
+    }),
   ]);
   if (!listing) notFound();
 
@@ -33,7 +38,13 @@ export default async function ListingDetailPage({
     listing.status === "ACTIVE" ? await findMatchingLeads(db, listing) : [];
   const matchContacts = matches.length
     ? await db.contact.findMany({
-        where: { id: { in: matches.map((m) => m.lead.contactId).filter(Boolean) as string[] } },
+        where: {
+          id: {
+            in: matches
+              .map((m) => m.lead.contactId)
+              .filter(Boolean) as string[],
+          },
+        },
         select: { id: true, fullName: true, phone: true },
       })
     : [];
@@ -47,7 +58,9 @@ export default async function ListingDetailPage({
           <p className="font-mono text-xs uppercase tracking-widest text-ink/45">
             {listing.refCode}
           </p>
-          <h1 className="font-display text-[27px] font-extrabold tracking-tight">{listing.title}</h1>
+          <h1 className="font-display text-[27px] font-extrabold tracking-tight">
+            {listing.title}
+          </h1>
           <span
             className={`mt-2 inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_BADGE[listing.status]}`}
           >
@@ -85,8 +98,12 @@ export default async function ListingDetailPage({
                   className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white px-4 py-3 text-sm ring-1 ring-emerald-100"
                 >
                   <div>
-                    <p className="font-semibold">{c?.fullName ?? "İsimsiz talep"}</p>
-                    <p className="text-xs text-ink/55">{m.reasons.join(" · ")}</p>
+                    <p className="font-semibold">
+                      {c?.fullName ?? "İsimsiz talep"}
+                    </p>
+                    <p className="text-xs text-ink/55">
+                      {m.reasons.join(" · ")}
+                    </p>
                   </div>
                   <div className="flex items-center gap-3">
                     {c?.phone && (
@@ -108,9 +125,19 @@ export default async function ListingDetailPage({
         </section>
       )}
 
+      <ContractPanel
+        scope={{ listingId: listing.id }}
+        contactOptions={contacts}
+        listingLabel={`${listing.refCode} — ${listing.title}`}
+      />
+
       <ListingForm
         listingId={listing.id}
-        initialMedia={listing.media.map((m) => ({ id: m.id, url: m.url, key: m.key }))}
+        initialMedia={listing.media.map((m) => ({
+          id: m.id,
+          url: m.url,
+          key: m.key,
+        }))}
         initial={{
           title: listing.title,
           purpose: listing.purpose,
@@ -136,6 +163,7 @@ export default async function ListingDetailPage({
           furnished: listing.furnished,
           inSite: listing.inSite,
           description: listing.description ?? "",
+          parcelGeo: listing.parcelGeo ? JSON.stringify(listing.parcelGeo) : "",
         }}
       />
     </div>

@@ -2,6 +2,8 @@ import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
 import { trMoney } from "@/lib/labels";
 import { MarkPaidButton } from "@/components/mark-paid-button";
+import { FinansTabs } from "@/components/finans-tabs";
+import { ContractPanel } from "@/components/contract-panel";
 import { Wallet, Hourglass, CheckCircle2 } from "lucide-react";
 
 export default async function FinancePage() {
@@ -9,19 +11,25 @@ export default async function FinancePage() {
   const db = forTenant(session.tenantId);
   const canManage = ["OWNER", "BROKER"].includes(session.role);
 
-  const commissions = await db.commission.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      agent: { select: { name: true } },
-      deal: {
-        select: {
-          value: true,
-          contact: { select: { fullName: true } },
-          listing: { select: { refCode: true, title: true, purpose: true } },
+  const [commissions, contacts] = await Promise.all([
+    db.commission.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        agent: { select: { name: true } },
+        deal: {
+          select: {
+            value: true,
+            contact: { select: { fullName: true } },
+            listing: { select: { refCode: true, title: true, purpose: true } },
+          },
         },
       },
-    },
-  });
+    }),
+    db.contact.findMany({
+      orderBy: { fullName: "asc" },
+      select: { id: true, fullName: true, phone: true },
+    }),
+  ]);
 
   const sum = (rows: typeof commissions) =>
     rows.reduce((s, c) => s + Number(c.gross), 0);
@@ -29,26 +37,32 @@ export default async function FinancePage() {
   const paid = commissions.filter((c) => c.paidAt);
 
   const stats = [
-    { label: "Toplam Komisyon", value: trMoney.format(sum(commissions)), icon: Wallet },
+    {
+      label: "Toplam Komisyon",
+      value: trMoney.format(sum(commissions)),
+      icon: Wallet,
+    },
     { label: "Bekleyen", value: trMoney.format(sum(pending)), icon: Hourglass },
     { label: "Ödenen", value: trMoney.format(sum(paid)), icon: CheckCircle2 },
   ];
 
-  return (
+  const commissionsTab = (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-[27px] font-extrabold tracking-tight">Kasa · Hak Ediş Defteri</h1>
-        <p className="mt-1 text-sm text-ink/55">
-          Kanban'da "Kazanıldı"ya taşınan her fırsat için otomatik oluşur.
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {stats.map(({ label, value, icon: Icon }, i) => (
-          <div key={label} className="relative overflow-hidden rounded-[10px] border border-ink bg-white p-5">
+          <div
+            key={label}
+            className="relative overflow-hidden rounded-[10px] border border-ink bg-white p-5"
+          >
             <Icon className="absolute -right-3 -top-3 h-16 w-16 text-ink opacity-[0.06]" />
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">{label}</p>
-            <p className={`mt-2 font-display text-xl font-extrabold tracking-tight ${i === 0 ? "text-copper" : ""}`}>{value}</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">
+              {label}
+            </p>
+            <p
+              className={`mt-2 font-display text-xl font-extrabold tracking-tight ${i === 0 ? "text-copper" : ""}`}
+            >
+              {value}
+            </p>
           </div>
         ))}
       </div>
@@ -87,7 +101,9 @@ export default async function FinancePage() {
                           </span>{" "}
                           {c.deal.listing.title}
                           {" · "}
-                          {c.deal.listing.purpose === "SALE" ? "Satış" : "Kiralama"}
+                          {c.deal.listing.purpose === "SALE"
+                            ? "Satış"
+                            : "Kiralama"}
                         </>
                       ) : (
                         "İlansız işlem"
@@ -97,7 +113,9 @@ export default async function FinancePage() {
                       )}
                     </p>
                   </td>
-                  <td className="px-4 py-3 text-ink/65">{c.agent?.name ?? "—"}</td>
+                  <td className="px-4 py-3 text-ink/65">
+                    {c.agent?.name ?? "—"}
+                  </td>
                   <td className="px-4 py-3 text-right font-display font-extrabold text-copper">
                     {trMoney.format(Number(c.gross))}
                   </td>
@@ -129,6 +147,23 @@ export default async function FinancePage() {
           </table>
         </div>
       )}
+    </div>
+  );
+
+  const contractsTab = <ContractPanel scope={{}} contactOptions={contacts} />;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-[27px] font-extrabold tracking-tight">
+          Kasa
+        </h1>
+        <p className="mt-1 text-sm text-ink/55">
+          Hak ediş defteri ve sözleşme arşivi.
+        </p>
+      </div>
+
+      <FinansTabs commissionsTab={commissionsTab} contractsTab={contractsTab} />
     </div>
   );
 }

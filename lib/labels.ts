@@ -41,6 +41,13 @@ export const ROOM_OPTIONS = [
   "6+",
 ];
 
+export const CONTRACT_TYPE_TR: Record<string, string> = {
+  AUTHORIZATION: "Yetki Belgesi",
+  VIEWING_FORM: "Yer Gösterme Formu",
+  SALE_CONTRACT: "Satış Sözleşmesi",
+  RENT_CONTRACT: "Kira Sözleşmesi",
+};
+
 export const trMoney = new Intl.NumberFormat("tr-TR", {
   style: "currency",
   currency: "TRY",

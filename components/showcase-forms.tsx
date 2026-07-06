@@ -43,11 +43,11 @@ function Success({ text }: { text: string }) {
 export function InfoForm({
   slug,
   listingId,
-  refCode,
+  listingTitle,
 }: {
   slug: string;
   listingId: string;
-  refCode: string;
+  listingTitle: string;
 }) {
   const { busy, done, error, submit } = useSubmit(slug);
   const [name, setName] = useState("");
@@ -82,7 +82,7 @@ export function InfoForm({
       />
       <textarea
         className={`${input} min-h-16`}
-        placeholder={`Mesajınız (opsiyonel) — örn. hafta sonu ${refCode} için yer görmek isterim`}
+        placeholder={`Mesajınız (opsiyonel) — örn. "${listingTitle}" için hafta sonu yer görmek isterim`}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
       />
@@ -95,10 +95,14 @@ export function InfoForm({
         aria-hidden
       />
       {error && (
-        <p className="rounded-lg bg-[#c13515]/10 px-3.5 py-2 text-sm text-[#c13515]">{error}</p>
+        <p className="rounded-lg bg-[#c13515]/10 px-3.5 py-2 text-sm text-[#c13515]">
+          {error}
+        </p>
       )}
       <button
-        onClick={() => submit({ kind: "listing", listingId, name, phone, message, website })}
+        onClick={() =>
+          submit({ kind: "listing", listingId, name, phone, message, website })
+        }
         disabled={busy || !name || !phone}
         className="btn-selvi w-full rounded-lg py-2.5 text-sm font-bold text-white disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700"
       >
@@ -135,33 +139,75 @@ export function RequestForm({
 
   return (
     <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-      <input className={input} placeholder="Adınız Soyadınız" value={name}
-        onChange={(e) => setName(e.target.value)} autoComplete="name" />
-      <input className={input} type="tel" placeholder="Telefonunuz" value={phone}
-        onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
-      <select className={input} value={purpose} onChange={(e) => setPurpose(e.target.value)}>
+      <input
+        className={input}
+        placeholder="Adınız Soyadınız"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        autoComplete="name"
+      />
+      <input
+        className={input}
+        type="tel"
+        placeholder="Telefonunuz"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        autoComplete="tel"
+      />
+      <select
+        className={input}
+        value={purpose}
+        onChange={(e) => setPurpose(e.target.value)}
+      >
         <option value="SALE">Satılık arıyorum</option>
         <option value="RENT">Kiralık arıyorum</option>
       </select>
-      <select className={input} value={district} onChange={(e) => setDistrict(e.target.value)}>
+      <select
+        className={input}
+        value={district}
+        onChange={(e) => setDistrict(e.target.value)}
+      >
         <option value="">İlçe farketmez</option>
         {districts.map((d) => (
-          <option key={d} value={d}>{d}</option>
+          <option key={d} value={d}>
+            {d}
+          </option>
         ))}
       </select>
-      <select className={input} value={room} onChange={(e) => setRoom(e.target.value)}>
+      <select
+        className={input}
+        value={room}
+        onChange={(e) => setRoom(e.target.value)}
+      >
         <option value="">Oda farketmez</option>
         {rooms.map((r) => (
-          <option key={r} value={r}>{r}</option>
+          <option key={r} value={r}>
+            {r}
+          </option>
         ))}
       </select>
-      <input className={input} type="number" min={0} placeholder="Bütçe üst sınırı (₺)"
-        value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
-      <textarea className={`${input} min-h-16 sm:col-span-2`}
+      <input
+        className={input}
+        type="number"
+        min={0}
+        placeholder="Bütçe üst sınırı (₺)"
+        value={maxPrice}
+        onChange={(e) => setMaxPrice(e.target.value)}
+      />
+      <textarea
+        className={`${input} min-h-16 sm:col-span-2`}
         placeholder="Eklemek istedikleriniz (opsiyonel)"
-        value={note} onChange={(e) => setNote(e.target.value)} />
-      <input className="hidden" tabIndex={-1} autoComplete="off" value={website}
-        onChange={(e) => setWebsite(e.target.value)} aria-hidden />
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+      />
+      <input
+        className="hidden"
+        tabIndex={-1}
+        autoComplete="off"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
+        aria-hidden
+      />
       {error && (
         <p className="rounded-lg bg-[#c13515]/10 px-3.5 py-2 text-sm text-[#c13515] sm:col-span-2">
           {error}
@@ -169,7 +215,17 @@ export function RequestForm({
       )}
       <button
         onClick={() =>
-          submit({ kind: "search", name, phone, purpose, district, rooms: room, maxPrice, note, website })
+          submit({
+            kind: "search",
+            name,
+            phone,
+            purpose,
+            district,
+            rooms: room,
+            maxPrice,
+            note,
+            website,
+          })
         }
         disabled={busy || !name || !phone}
         className="btn-selvi rounded-lg py-2.5 text-sm font-bold text-white disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700 sm:col-span-2"

@@ -121,11 +121,10 @@ export default async function PortfolioPage({
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {listings.map((l) => {
-            const kod = l.refCode.replace(/^EF-\d{4}-0*/, "EF·");
             const plaka =
               l.status === "ACTIVE"
-                ? `${kod} — ${(l.neighborhood ?? l.district).toUpperCase()}`
-                : `${kod} — ${KUNYE_TXT[l.status] ?? l.status}`;
+                ? l.title
+                : `${l.title} — ${KUNYE_TXT[l.status] ?? l.status}`;
             return (
               <Link
                 key={l.id}
@@ -149,7 +148,7 @@ export default async function PortfolioPage({
                     )}
                   </div>
                   <span
-                    className={`kunye absolute -bottom-3 left-3 ${KUNYE_CLS[l.status] ?? ""}`}
+                    className={`kunye absolute -bottom-3 left-3 max-w-[85%] truncate ${KUNYE_CLS[l.status] ?? ""}`}
                   >
                     {plaka}
                   </span>

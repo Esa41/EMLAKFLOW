@@ -57,6 +57,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
         ...(body.furnished !== undefined && { furnished: !!body.furnished }),
         ...(body.inSite !== undefined && { inSite: !!body.inSite }),
         ...(body.description !== undefined && { description: body.description || null }),
+        ...(body.parcelGeo !== undefined && { parcelGeo: body.parcelGeo ?? null }),
       },
     });
     return NextResponse.json({ listing });

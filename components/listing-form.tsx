@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PURPOSE_TR, TYPE_TR, STATUS_TR, ROOM_OPTIONS } from "@/lib/labels";
 import { PhotoUploader, type MediaItem } from "./photo-uploader";
+import { LocationPicker } from "./location-picker";
 
 export interface ListingFormValues {
   title: string;
@@ -30,6 +31,7 @@ export interface ListingFormValues {
   furnished: boolean;
   inSite: boolean;
   description: string;
+  parcelGeo: string; // harita ile çizilen alan sınırı (GeoJSON string, "" = yok)
 }
 
 const EMPTY: ListingFormValues = {
@@ -57,6 +59,7 @@ const EMPTY: ListingFormValues = {
   furnished: false,
   inSite: false,
   description: "",
+  parcelGeo: "",
 };
 
 const inputCls =
@@ -77,9 +80,58 @@ export function ListingForm({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [matched, setMatched] = useState<number | null>(null);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
-  const set = <K extends keyof ListingFormValues>(k: K, val: ListingFormValues[K]) =>
-    setV((s) => ({ ...s, [k]: val }));
+  const set = <K extends keyof ListingFormValues>(
+    k: K,
+    val: ListingFormValues[K],
+  ) => setV((s) => ({ ...s, [k]: val }));
+
+  async function generateWithAI() {
+    if (!aiPrompt.trim() || aiPrompt.trim().length < 5) {
+      setAiError(
+        "En az 5 karakter girin. Örn: 'Kadıköy Moda 3+1 deniz manzaralı'",
+      );
+      return;
+    }
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const res = await fetch("/api/ai/generate-listing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: aiPrompt.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Bir hata oluştu.");
+      const l = data.listing;
+      setV((prev) => ({
+        ...prev,
+        title: l.title ?? prev.title,
+        description: l.description ?? prev.description,
+        purpose: l.purpose ?? prev.purpose,
+        type: l.type ?? prev.type,
+        city: l.city ?? prev.city,
+        district: l.district ?? prev.district,
+        neighborhood: l.neighborhood ?? prev.neighborhood,
+        rooms: l.rooms ?? prev.rooms,
+        grossArea: l.grossArea?.toString() ?? prev.grossArea,
+        netArea: l.netArea?.toString() ?? prev.netArea,
+        price: l.price?.toString() ?? prev.price,
+        heating: l.heating ?? prev.heating,
+        buildingAge: l.buildingAge?.toString() ?? prev.buildingAge,
+        creditEligible: l.creditEligible ?? prev.creditEligible,
+        furnished: l.furnished ?? prev.furnished,
+        inSite: l.inSite ?? prev.inSite,
+      }));
+    } catch (err: unknown) {
+      setAiError(err instanceof Error ? err.message : "AI hatası.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   async function handleSubmit() {
     if (!v.title || !v.price || !v.district) {
@@ -89,11 +141,18 @@ export function ListingForm({
     setSaving(true);
     setError(null);
 
-    const res = await fetch(listingId ? `/api/listings/${listingId}` : "/api/listings", {
-      method: listingId ? "PATCH" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...v, price: Number(v.price) }),
-    });
+    const res = await fetch(
+      listingId ? `/api/listings/${listingId}` : "/api/listings",
+      {
+        method: listingId ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...v,
+          price: Number(v.price),
+          parcelGeo: v.parcelGeo ? JSON.parse(v.parcelGeo) : null,
+        }),
+      },
+    );
     const data = await res.json().catch(() => ({}));
     setSaving(false);
 
@@ -111,17 +170,67 @@ export function ListingForm({
       }, 1600);
       return;
     }
-    router.push(listingId ? `/portfoy/${listingId}` : `/portfoy/${data.listing.id}`);
+    router.push(
+      listingId ? `/portfoy/${listingId}` : `/portfoy/${data.listing.id}`,
+    );
     router.refresh();
   }
 
   return (
     <div className="max-w-3xl space-y-6">
+      {/* ✨ Yapay Zeka Sihirli Ekleme */}
+      <section className="overflow-hidden rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 via-white to-indigo-50 p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-indigo-500 text-white text-sm">
+            ✦
+          </span>
+          <h2 className="text-sm font-bold text-ink/80">
+            Yapay Zeka ile Sihirli Ekleme
+          </h2>
+          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-600">
+            Beta
+          </span>
+        </div>
+        <p className="mb-3 text-xs text-ink/50">
+          Kısa bir açıklama yaz, AI tüm formu otomatik doldursun. Örn:
+          &quot;Kadıköy Moda 3+1 deniz manzaralı daire 150m2&quot;
+        </p>
+        <div className="flex gap-2">
+          <input
+            className="flex-1 rounded-xl border border-brand-200 bg-white px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/35 focus:ring-2 focus:ring-brand-500/40"
+            placeholder="İlanı birkaç kelimeyle anlat..."
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !aiLoading) generateWithAI();
+            }}
+            disabled={aiLoading}
+          />
+          <button
+            onClick={generateWithAI}
+            disabled={aiLoading}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 disabled:opacity-60"
+          >
+            {aiLoading ? (
+              <>
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                Üretiliyor…
+              </>
+            ) : (
+              <>✦ Oluştur</>
+            )}
+          </button>
+        </div>
+        {aiError && (
+          <p className="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">
+            {aiError}
+          </p>
+        )}
+      </section>
+
       {/* Temel bilgiler */}
       <section className="rounded-2xl bg-white p-5 border border-ink/15">
-        <h2 className="bolum mb-4">
-          Temel Bilgiler
-        </h2>
+        <h2 className="bolum mb-4">Temel Bilgiler</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className={labelCls}>İlan başlığı *</label>
@@ -140,7 +249,9 @@ export function ListingForm({
               onChange={(e) => set("purpose", e.target.value)}
             >
               {Object.entries(PURPOSE_TR).map(([k, l]) => (
-                <option key={k} value={k}>{l}</option>
+                <option key={k} value={k}>
+                  {l}
+                </option>
               ))}
             </select>
           </div>
@@ -152,7 +263,9 @@ export function ListingForm({
               onChange={(e) => set("type", e.target.value)}
             >
               {Object.entries(TYPE_TR).map(([k, l]) => (
-                <option key={k} value={k}>{l}</option>
+                <option key={k} value={k}>
+                  {l}
+                </option>
               ))}
             </select>
           </div>
@@ -177,7 +290,9 @@ export function ListingForm({
               onChange={(e) => set("status", e.target.value)}
             >
               {Object.entries(STATUS_TR).map(([k, l]) => (
-                <option key={k} value={k}>{l}</option>
+                <option key={k} value={k}>
+                  {l}
+                </option>
               ))}
             </select>
           </div>
@@ -186,13 +301,15 @@ export function ListingForm({
 
       {/* Lokasyon */}
       <section className="rounded-2xl bg-white p-5 border border-ink/15">
-        <h2 className="bolum mb-4">
-          Lokasyon
-        </h2>
+        <h2 className="bolum mb-4">Lokasyon</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className={labelCls}>İl</label>
-            <input className={inputCls} value={v.city} onChange={(e) => set("city", e.target.value)} />
+            <input
+              className={inputCls}
+              value={v.city}
+              onChange={(e) => set("city", e.target.value)}
+            />
           </div>
           <div>
             <label className={labelCls}>İlçe *</label>
@@ -214,73 +331,158 @@ export function ListingForm({
           </div>
           <div className="sm:col-span-3">
             <label className={labelCls}>Açık adres</label>
-            <input className={inputCls} value={v.address} onChange={(e) => set("address", e.target.value)} />
-          </div>
-          <div>
-            <label className={labelCls}>Enlem (lat)</label>
-            <input type="number" step="any" className={inputCls} value={v.lat}
-              onChange={(e) => set("lat", e.target.value)} placeholder="40.7663" />
-          </div>
-          <div>
-            <label className={labelCls}>Boylam (lng)</label>
-            <input type="number" step="any" className={inputCls} value={v.lng}
-              onChange={(e) => set("lng", e.target.value)} placeholder="29.9167" />
-          </div>
-          <div className="flex items-end pb-1">
-            <p className="text-xs text-ink/45">
-              Koordinat girilen ilan vitrindeki haritada fiyat plakasıyla görünür.
-              Google Maps'te konuma sağ tıkla → kopyala.
-            </p>
+            <input
+              className={inputCls}
+              value={v.address}
+              onChange={(e) => set("address", e.target.value)}
+            />
           </div>
         </div>
+
+        {/* Harita ile konum / alan seçimi */}
+        <div className="mt-4">
+          <label className={labelCls}>
+            Harita üzerinde konum işaretle
+            {v.type === "LAND" || v.type === "COMMERCIAL"
+              ? " (arsa/tarla için “Alan çiz” ile sınırı çizebilirsiniz)"
+              : ""}
+          </label>
+          <LocationPicker
+            lat={v.lat}
+            lng={v.lng}
+            parcelGeo={v.parcelGeo}
+            isLand={v.type === "LAND"}
+            onChange={(patch) => setV((s) => ({ ...s, ...patch }))}
+          />
+        </div>
+
+        {/* Elle koordinat (gelişmiş / yedek) */}
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs font-medium text-ink/50 hover:text-ink/75">
+            Koordinatı elle gir (gelişmiş)
+          </summary>
+          <div className="mt-2 grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Enlem (lat)</label>
+              <input
+                type="number"
+                step="any"
+                className={inputCls}
+                value={v.lat}
+                onChange={(e) => set("lat", e.target.value)}
+                placeholder="40.7663"
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Boylam (lng)</label>
+              <input
+                type="number"
+                step="any"
+                className={inputCls}
+                value={v.lng}
+                onChange={(e) => set("lng", e.target.value)}
+                placeholder="29.9167"
+              />
+            </div>
+          </div>
+        </details>
       </section>
 
       {/* Özellikler */}
       <section className="rounded-2xl bg-white p-5 border border-ink/15">
-        <h2 className="bolum mb-4">
-          Özellikler
-        </h2>
+        <h2 className="bolum mb-4">Özellikler</h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
             <label className={labelCls}>Oda</label>
-            <select className={inputCls} value={v.rooms} onChange={(e) => set("rooms", e.target.value)}>
+            <select
+              className={inputCls}
+              value={v.rooms}
+              onChange={(e) => set("rooms", e.target.value)}
+            >
               <option value="">—</option>
               {ROOM_OPTIONS.map((r) => (
-                <option key={r} value={r}>{r}</option>
+                <option key={r} value={r}>
+                  {r}
+                </option>
               ))}
             </select>
           </div>
           <div>
             <label className={labelCls}>Brüt m²</label>
-            <input type="number" className={inputCls} value={v.grossArea} onChange={(e) => set("grossArea", e.target.value)} min={0} />
+            <input
+              type="number"
+              className={inputCls}
+              value={v.grossArea}
+              onChange={(e) => set("grossArea", e.target.value)}
+              min={0}
+            />
           </div>
           <div>
             <label className={labelCls}>Net m²</label>
-            <input type="number" className={inputCls} value={v.netArea} onChange={(e) => set("netArea", e.target.value)} min={0} />
+            <input
+              type="number"
+              className={inputCls}
+              value={v.netArea}
+              onChange={(e) => set("netArea", e.target.value)}
+              min={0}
+            />
           </div>
           <div>
             <label className={labelCls}>Bina yaşı</label>
-            <input type="number" className={inputCls} value={v.buildingAge} onChange={(e) => set("buildingAge", e.target.value)} min={0} />
+            <input
+              type="number"
+              className={inputCls}
+              value={v.buildingAge}
+              onChange={(e) => set("buildingAge", e.target.value)}
+              min={0}
+            />
           </div>
           <div>
             <label className={labelCls}>Bulunduğu kat</label>
-            <input type="number" className={inputCls} value={v.floor} onChange={(e) => set("floor", e.target.value)} />
+            <input
+              type="number"
+              className={inputCls}
+              value={v.floor}
+              onChange={(e) => set("floor", e.target.value)}
+            />
           </div>
           <div>
             <label className={labelCls}>Toplam kat</label>
-            <input type="number" className={inputCls} value={v.totalFloors} onChange={(e) => set("totalFloors", e.target.value)} min={0} />
+            <input
+              type="number"
+              className={inputCls}
+              value={v.totalFloors}
+              onChange={(e) => set("totalFloors", e.target.value)}
+              min={0}
+            />
           </div>
           <div>
             <label className={labelCls}>Isıtma</label>
-            <input className={inputCls} value={v.heating} onChange={(e) => set("heating", e.target.value)} placeholder="Kombi (Doğalgaz)" />
+            <input
+              className={inputCls}
+              value={v.heating}
+              onChange={(e) => set("heating", e.target.value)}
+              placeholder="Kombi (Doğalgaz)"
+            />
           </div>
           <div>
             <label className={labelCls}>Aidat (₺)</label>
-            <input type="number" className={inputCls} value={v.dues} onChange={(e) => set("dues", e.target.value)} min={0} />
+            <input
+              type="number"
+              className={inputCls}
+              value={v.dues}
+              onChange={(e) => set("dues", e.target.value)}
+              min={0}
+            />
           </div>
           <div className="col-span-2">
             <label className={labelCls}>Tapu durumu</label>
-            <input className={inputCls} value={v.deedStatus} onChange={(e) => set("deedStatus", e.target.value)} placeholder="Kat Mülkiyeti" />
+            <input
+              className={inputCls}
+              value={v.deedStatus}
+              onChange={(e) => set("deedStatus", e.target.value)}
+              placeholder="Kat Mülkiyeti"
+            />
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
@@ -291,7 +493,10 @@ export function ListingForm({
               ["inSite", "Site içinde"],
             ] as const
           ).map(([key, label]) => (
-            <label key={key} className="flex items-center gap-2 text-sm text-ink/80">
+            <label
+              key={key}
+              className="flex items-center gap-2 text-sm text-ink/80"
+            >
               <input
                 type="checkbox"
                 checked={v[key]}
@@ -315,9 +520,7 @@ export function ListingForm({
       {/* Fotoğraflar — düzenleme modunda */}
       {listingId && (
         <section className="rounded-2xl bg-white p-5 border border-ink/15">
-          <h2 className="bolum mb-4">
-            Fotoğraflar
-          </h2>
+          <h2 className="bolum mb-4">Fotoğraflar</h2>
           <PhotoUploader listingId={listingId} initialMedia={initialMedia} />
         </section>
       )}
@@ -328,11 +531,14 @@ export function ListingForm({
       )}
 
       {error && (
-        <p className="rounded-xl bg-rose-50 px-4 py-2.5 text-sm text-rose-600">{error}</p>
+        <p className="rounded-xl bg-rose-50 px-4 py-2.5 text-sm text-rose-600">
+          {error}
+        </p>
       )}
       {matched !== null && (
         <p className="rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">
-          ✓ İlan kaydedildi — {matched} açık taleple eşleşti! Detaya yönlendiriliyorsun…
+          ✓ İlan kaydedildi — {matched} açık taleple eşleşti! Detaya
+          yönlendiriliyorsun…
         </p>
       )}
 
@@ -342,7 +548,11 @@ export function ListingForm({
           disabled={saving}
           className="btn-selvi rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700"
         >
-          {saving ? "Kaydediliyor…" : listingId ? "Değişiklikleri kaydet" : "İlanı kaydet"}
+          {saving
+            ? "Kaydediliyor…"
+            : listingId
+              ? "Değişiklikleri kaydet"
+              : "İlanı kaydet"}
         </button>
         <button
           onClick={() => router.back()}

@@ -34,6 +34,8 @@ export function LiveChatWidget({ tenantId }: { tenantId: string }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [sessionId, setSessionId] = useState<string>("");
+  // İsim bir kez alınıp kalıcı saklanır (localStorage) → tekrar sorulmaz.
+  const [nameLocked, setNameLocked] = useState(false);
 
   useEffect(() => {
     // Ziyaretçi kimliği vitrin analitiğiyle (emlakflow_vid) ORTAK — böylece
@@ -47,6 +49,13 @@ export function LiveChatWidget({ tenantId }: { tenantId: string }) {
       sessionStorage.setItem("emlakflow_vid", sid);
     }
     setSessionId(sid);
+
+    // Önceki oturumdan kalan isim → doğrudan yükle, isim sorma
+    const savedName = localStorage.getItem("emlakflow_chat_name");
+    if (savedName) {
+      setName(savedName);
+      setNameLocked(true);
+    }
   }, []);
 
   const load = useCallback(() => {
@@ -126,6 +135,12 @@ export function LiveChatWidget({ tenantId }: { tenantId: string }) {
     const textToSend = body;
     setBody("");
 
+    // İsmi kalıcı sakla — bir daha sorma
+    if (!nameLocked) {
+      localStorage.setItem("emlakflow_chat_name", name.trim());
+      setNameLocked(true);
+    }
+
     const result = await sendVitrinMessage(
       tenantId,
       sessionId,
@@ -193,14 +208,33 @@ export function LiveChatWidget({ tenantId }: { tenantId: string }) {
           <div className="border-t border-ink/10 bg-white p-3">
             {error && <p className="mb-2 text-[11px] text-rose-600">{error}</p>}
             <form onSubmit={handleSend} className="space-y-2">
-              <input
-                type="text"
-                placeholder="Adınız Soyadınız"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-lg border border-ink/20 px-3 py-2 text-xs focus:border-brand-600 focus:ring-1 focus:outline-none"
-              />
+              {nameLocked ? (
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[11px] text-ink/55">
+                    Sohbet eden: <b className="text-ink/75">{name}</b>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.removeItem("emlakflow_chat_name");
+                      setName("");
+                      setNameLocked(false);
+                    }}
+                    className="text-[11px] text-brand-600 hover:underline"
+                  >
+                    değiştir
+                  </button>
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="Adınız Soyadınız"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full rounded-lg border border-ink/20 px-3 py-2 text-xs focus:border-brand-600 focus:ring-1 focus:outline-none"
+                />
+              )}
               <div className="flex gap-2">
                 <textarea
                   ref={textareaRef}

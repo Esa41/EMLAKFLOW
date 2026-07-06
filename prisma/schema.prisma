@@ -56,6 +56,7 @@ enum ListingType {
 enum ListingStatus {
   DRAFT
   ACTIVE
+  OPTIONED   // opsiyonlandı — fırsat "Sözleşme" aşamasına girince otomatik geçer
   PASSIVE
   SOLD
   RENTED
@@ -128,6 +129,13 @@ model Tenant {
   portalHepsiemlak Boolean @default(false)
   portalEmlakjet   Boolean @default(false)
   feedToken        String? @unique // public feed URL anahtarı (lazy üretilir)
+
+  // Sözleşme şablonu (Ayarlar > Sözleşme Şablonu — otomatik taslak üretiminde kullanılır)
+  contractCompanyTitle   String? // resmi unvan (boşsa `name` kullanılır)
+  contractRepresentative String? // yetkili temsilci adı
+  contractAddress        String? // sözleşme başlığındaki açık adres
+  contractTaxNo          String? // vergi no / ticaret sicil no
+  contractExtraClauses   String? // sözleşme sonuna eklenen ek madde metni
 
   // Vitrin (public ofis sayfası) ayarları
   showcaseEnabled Boolean @default(true)
@@ -271,6 +279,9 @@ model Listing {
   furnished    Boolean  @default(false)
   inSite       Boolean  @default(false)    // site içinde
   description  String?
+  // Harita üzerinde işaretlenen alan sınırı (tarla/arsa için poligon).
+  // GeoJSON Polygon coordinates: [[[lng,lat],...]]. Daire/dükkan için null (nokta lat/lng yeterli).
+  parcelGeo    Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -321,6 +332,7 @@ model Deal {
   updatedAt DateTime  @updatedAt
 
   commissions Commission[]
+  contracts   Contract[]
 
   @@index([tenantId, stage])
 }
@@ -355,13 +367,17 @@ model Contract {
   listing   Listing?     @relation(fields: [listingId], references: [id], onDelete: SetNull)
   contactId String?
   contact   Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  fileUrl   String?      // R2'deki imzalı PDF
+  dealId    String?      // hangi fırsata (Deal) bağlı — anlaşılan bedeli buradan alır
+  deal      Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  fileUrl   String?      // R2'deki taranmış/imzalı belge (PDF ya da fotoğraf)
+  fileKey   String?      // R2 object key — silme için
   signedAt  DateTime?
   expiresAt DateTime?    // yetki belgesi bitişi
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
   @@index([tenantId, type])
+  @@index([tenantId, dealId])
 }
 
 model Commission {
@@ -477,6 +493,15 @@ model Message {
   senderName String? // name for visitor
   sessionId String?  // grouping identifier for vitrin visitors, or "TEAM" for internal team chat
   body      String
+
+  // Ek (fotoğraf/video) — R2'ye doğrudan yüklenir, mesaja bağlanır
+  attachmentUrl  String?
+  attachmentType String? // "image" | "video"
+
+  // Konum paylaşımı — tarayıcı Geolocation API'siyle alınır
+  lat Float?
+  lng Float?
+
   createdAt DateTime @default(now())
 
   @@index([tenantId, sessionId, createdAt])

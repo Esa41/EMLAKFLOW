@@ -9,14 +9,13 @@ import { RequestForm } from "@/components/showcase-forms";
 import { ShowcaseMap, type MapListing } from "@/components/showcase-map";
 import { TrackImpressions } from "@/components/vitrin-tracking";
 import { officeJsonLd } from "@/lib/seo";
+import { getBaseUrl } from "@/lib/url";
 
-const BASE_URL = (process.env.AUTH_URL ?? "http://localhost:3000").replace(
-  /\/$/,
-  "",
-);
+const BASE_URL = getBaseUrl();
 
 type Params = Promise<{ slug: string }>;
 type Search = Promise<{
+  q?: string;
   purpose?: string;
   district?: string;
   rooms?: string;
@@ -109,6 +108,7 @@ export default async function ShowcasePage({
   const minPrice = num(sp.minPrice);
   const maxPrice = num(sp.maxPrice);
   const minArea = num(sp.minArea);
+  const q = sp.q?.trim() || null; // serbest metin: başlık / mahalle / ilçe / adres
   const typeFilter = LISTING_TYPES.includes(
     sp.type as (typeof LISTING_TYPES)[number],
   )
@@ -126,6 +126,17 @@ export default async function ShowcasePage({
         ...(sp.district ? { district: sp.district } : {}),
         ...(sp.rooms ? { rooms: sp.rooms } : {}),
         ...(typeFilter ? { type: typeFilter } : {}),
+        ...(q
+          ? {
+              OR: [
+                { title: { contains: q, mode: "insensitive" as const } },
+                { neighborhood: { contains: q, mode: "insensitive" as const } },
+                { district: { contains: q, mode: "insensitive" as const } },
+                { address: { contains: q, mode: "insensitive" as const } },
+                { refCode: { contains: q, mode: "insensitive" as const } },
+              ],
+            }
+          : {}),
         ...(minPrice || maxPrice
           ? {
               price: {
@@ -162,7 +173,10 @@ export default async function ShowcasePage({
       lng: l.lng!,
       price: Number(l.price),
       purpose: l.purpose,
-      refCode: l.refCode.replace(/^EF-\d{4}-0*/, "EF·"),
+      title: l.title,
+      image: l.media[0]?.url ?? null,
+      rooms: l.rooms,
+      area: l.netArea ?? l.grossArea ?? null,
     }));
 
   const stats = Array.isArray(tenant.aboutStats)
@@ -181,6 +195,7 @@ export default async function ShowcasePage({
   const qs = (patch: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
     const merged = {
+      q: sp.q,
       purpose: sp.purpose,
       district: sp.district,
       rooms: sp.rooms,
@@ -231,6 +246,65 @@ export default async function ShowcasePage({
 
       {/* Filtreler */}
       <div className="space-y-3">
+        {/* Kelime / ilçe / mahalle araması */}
+        <form method="GET" className="flex gap-2">
+          {sp.purpose && (
+            <input type="hidden" name="purpose" value={sp.purpose} />
+          )}
+          {sp.type && <input type="hidden" name="type" value={sp.type} />}
+          {sp.minPrice && (
+            <input type="hidden" name="minPrice" value={sp.minPrice} />
+          )}
+          {sp.maxPrice && (
+            <input type="hidden" name="maxPrice" value={sp.maxPrice} />
+          )}
+          {sp.minArea && (
+            <input type="hidden" name="minArea" value={sp.minArea} />
+          )}
+          <div className="relative flex-1">
+            <svg
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/35"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              type="search"
+              name="q"
+              defaultValue={sp.q ?? ""}
+              placeholder="Kelime, mahalle veya ilçe ara — ör. Moda, deniz manzaralı, 3+1"
+              className="w-full rounded-full border border-ink/20 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+            />
+          </div>
+          <button
+            type="submit"
+            className="btn-selvi shrink-0 rounded-full px-5 py-2.5 text-sm font-bold text-white"
+          >
+            Ara
+          </button>
+          {q && (
+            <Link
+              href={qs({ q: undefined })}
+              className="flex shrink-0 items-center rounded-full border border-ink/20 px-4 py-2.5 text-sm font-medium text-ink/60 hover:border-ink/50"
+            >
+              Temizle
+            </Link>
+          )}
+        </form>
+
+        {q && (
+          <p className="font-mono text-[11px] text-ink/50">
+            &ldquo;{q}&rdquo; için {listings.length} sonuç
+          </p>
+        )}
+
         <div className="flex flex-wrap gap-2">
           {[
             {
@@ -307,6 +381,7 @@ export default async function ShowcasePage({
             className="grid grid-cols-2 gap-3 border-t border-ink/10 p-4 sm:grid-cols-5"
           >
             {/* Aktif çip filtrelerini koru */}
+            {sp.q && <input type="hidden" name="q" value={sp.q} />}
             {sp.purpose && (
               <input type="hidden" name="purpose" value={sp.purpose} />
             )}
@@ -421,7 +496,6 @@ export default async function ShowcasePage({
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {listings.map((l) => {
-            const kod = l.refCode.replace(/^EF-\d{4}-0*/, "EF·");
             return (
               <Link
                 key={l.id}
@@ -445,8 +519,8 @@ export default async function ShowcasePage({
                       </div>
                     )}
                   </div>
-                  <span className="kunye absolute -bottom-3 left-3 shadow-sm">
-                    {kod} — {(l.neighborhood ?? l.district).toUpperCase()}
+                  <span className="kunye absolute -bottom-3 left-3 max-w-[85%] truncate shadow-sm">
+                    {l.title}
                   </span>
                   <span className="absolute right-3 top-3 rounded-md border border-ink bg-paper px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider">
                     {l.purpose === "SALE" ? "Satılık" : "Kiralık"}

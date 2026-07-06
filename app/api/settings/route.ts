@@ -5,17 +5,36 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
 
   let tenant = await prisma.tenant.findUnique({
     where: { id: session.tenantId },
     select: {
-      name: true, phone: true, city: true, district: true, plan: true,
-      commissionRate: true, agentSharePct: true,
-      portalSahibinden: true, portalHepsiemlak: true, portalEmlakjet: true,
+      name: true,
+      phone: true,
+      city: true,
+      district: true,
+      plan: true,
+      commissionRate: true,
+      agentSharePct: true,
+      portalSahibinden: true,
+      portalHepsiemlak: true,
+      portalEmlakjet: true,
       feedToken: true,
-      showcaseEnabled: true, showcaseTagline: true, whatsapp: true,
-      aboutTitle: true, aboutText: true, visionText: true, aboutStats: true, showTeam: true,
+      showcaseEnabled: true,
+      showcaseTagline: true,
+      whatsapp: true,
+      aboutTitle: true,
+      aboutText: true,
+      visionText: true,
+      aboutStats: true,
+      showTeam: true,
+      contractCompanyTitle: true,
+      contractRepresentative: true,
+      contractAddress: true,
+      contractTaxNo: true,
+      contractExtraClauses: true,
     },
   });
 
@@ -35,23 +54,32 @@ export async function GET() {
 /** Yalnız OWNER güncelleyebilir */
 export async function PATCH(req: Request) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
   if (session.role !== "OWNER") {
     return NextResponse.json(
       { error: "Ayarları yalnız ofis sahibi değiştirebilir." },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
   const body = await req.json().catch(() => ({}));
 
-  const rate = body.commissionRate !== undefined ? Number(body.commissionRate) : undefined;
-  const share = body.agentSharePct !== undefined ? Number(body.agentSharePct) : undefined;
+  const rate =
+    body.commissionRate !== undefined ? Number(body.commissionRate) : undefined;
+  const share =
+    body.agentSharePct !== undefined ? Number(body.agentSharePct) : undefined;
   if (rate !== undefined && (isNaN(rate) || rate < 0 || rate > 20)) {
-    return NextResponse.json({ error: "Komisyon oranı 0-20 arası olmalı." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Komisyon oranı 0-20 arası olmalı." },
+      { status: 400 },
+    );
   }
   if (share !== undefined && (isNaN(share) || share < 0 || share > 100)) {
-    return NextResponse.json({ error: "Danışman payı 0-100 arası olmalı." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Danışman payı 0-100 arası olmalı." },
+      { status: 400 },
+    );
   }
 
   const tenant = await prisma.tenant.update({
@@ -63,15 +91,37 @@ export async function PATCH(req: Request) {
       ...(body.district !== undefined && { district: body.district || null }),
       ...(rate !== undefined && { commissionRate: rate }),
       ...(share !== undefined && { agentSharePct: share }),
-      ...(body.portalSahibinden !== undefined && { portalSahibinden: !!body.portalSahibinden }),
-      ...(body.portalHepsiemlak !== undefined && { portalHepsiemlak: !!body.portalHepsiemlak }),
-      ...(body.portalEmlakjet !== undefined && { portalEmlakjet: !!body.portalEmlakjet }),
-      ...(body.showcaseEnabled !== undefined && { showcaseEnabled: !!body.showcaseEnabled }),
-      ...(body.showcaseTagline !== undefined && { showcaseTagline: body.showcaseTagline ? String(body.showcaseTagline).slice(0, 160) : null }),
+      ...(body.portalSahibinden !== undefined && {
+        portalSahibinden: !!body.portalSahibinden,
+      }),
+      ...(body.portalHepsiemlak !== undefined && {
+        portalHepsiemlak: !!body.portalHepsiemlak,
+      }),
+      ...(body.portalEmlakjet !== undefined && {
+        portalEmlakjet: !!body.portalEmlakjet,
+      }),
+      ...(body.showcaseEnabled !== undefined && {
+        showcaseEnabled: !!body.showcaseEnabled,
+      }),
+      ...(body.showcaseTagline !== undefined && {
+        showcaseTagline: body.showcaseTagline
+          ? String(body.showcaseTagline).slice(0, 160)
+          : null,
+      }),
       ...(body.whatsapp !== undefined && { whatsapp: body.whatsapp || null }),
-      ...(body.aboutTitle !== undefined && { aboutTitle: body.aboutTitle ? String(body.aboutTitle).slice(0, 90) : null }),
-      ...(body.aboutText !== undefined && { aboutText: body.aboutText ? String(body.aboutText).slice(0, 800) : null }),
-      ...(body.visionText !== undefined && { visionText: body.visionText ? String(body.visionText).slice(0, 200) : null }),
+      ...(body.aboutTitle !== undefined && {
+        aboutTitle: body.aboutTitle
+          ? String(body.aboutTitle).slice(0, 90)
+          : null,
+      }),
+      ...(body.aboutText !== undefined && {
+        aboutText: body.aboutText ? String(body.aboutText).slice(0, 800) : null,
+      }),
+      ...(body.visionText !== undefined && {
+        visionText: body.visionText
+          ? String(body.visionText).slice(0, 200)
+          : null,
+      }),
       ...(body.aboutStats !== undefined && {
         aboutStats: Array.isArray(body.aboutStats)
           ? body.aboutStats
@@ -83,6 +133,31 @@ export async function PATCH(req: Request) {
           : [],
       }),
       ...(body.showTeam !== undefined && { showTeam: !!body.showTeam }),
+      ...(body.contractCompanyTitle !== undefined && {
+        contractCompanyTitle: body.contractCompanyTitle
+          ? String(body.contractCompanyTitle).slice(0, 120)
+          : null,
+      }),
+      ...(body.contractRepresentative !== undefined && {
+        contractRepresentative: body.contractRepresentative
+          ? String(body.contractRepresentative).slice(0, 80)
+          : null,
+      }),
+      ...(body.contractAddress !== undefined && {
+        contractAddress: body.contractAddress
+          ? String(body.contractAddress).slice(0, 200)
+          : null,
+      }),
+      ...(body.contractTaxNo !== undefined && {
+        contractTaxNo: body.contractTaxNo
+          ? String(body.contractTaxNo).slice(0, 40)
+          : null,
+      }),
+      ...(body.contractExtraClauses !== undefined && {
+        contractExtraClauses: body.contractExtraClauses
+          ? String(body.contractExtraClauses).slice(0, 1000)
+          : null,
+      }),
     },
   });
 

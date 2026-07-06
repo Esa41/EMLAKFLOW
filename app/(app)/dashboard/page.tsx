@@ -200,11 +200,8 @@ export default async function DashboardPage() {
                       </div>
                     )}
                   </div>
-                  <span className="kunye absolute -bottom-3 left-3 shadow-sm">
-                    {l.refCode
-                      .replace("EF-2026-0", "EF·0")
-                      .replace("EF-", "EF·")}{" "}
-                    — {(l.neighborhood ?? l.district).toUpperCase()}
+                  <span className="kunye absolute -bottom-3 left-3 max-w-[85%] truncate shadow-sm">
+                    {l.title}
                   </span>
                 </div>
                 <div className="px-4 pb-4 pt-6">

@@ -53,18 +53,37 @@ export function forTenant(tenantId: string) {
             a.where = { ...(a.where as object), tenantId };
           }
 
-          // Tekil bulma → sonucu tenant'a göre doğrula
+          // Tekil bulma → sonucu tenant'a göre doğrula.
+          // `select` kullanılıp `tenantId` istenmemişse doğrulama için zorla ekleriz,
+          // yoksa sonuçta `tenantId` alanı bulunmadığından kontrol her zaman başarısız olur.
           if (["findUnique", "findUniqueOrThrow"].includes(operation)) {
+            const originalSelect = a.select as
+              Record<string, unknown> | undefined;
+            const injectedTenantId =
+              !!originalSelect && !originalSelect.tenantId;
+            if (injectedTenantId) {
+              a.select = { ...originalSelect, tenantId: true };
+            }
             const result = await query(args);
-            if (result && (result as { tenantId?: string }).tenantId !== tenantId) {
+            if (
+              result &&
+              (result as { tenantId?: string }).tenantId !== tenantId
+            ) {
               return operation === "findUniqueOrThrow"
                 ? Promise.reject(
                     new Prisma.PrismaClientKnownRequestError("Not found", {
                       code: "P2025",
                       clientVersion: Prisma.prismaVersion.client,
-                    })
+                    }),
                   )
                 : null;
+            }
+            if (result && injectedTenantId) {
+              const { tenantId: _drop, ...rest } = result as Record<
+                string,
+                unknown
+              >;
+              return rest;
             }
             return result;
           }
@@ -88,9 +107,14 @@ export function forTenant(tenantId: string) {
                 model.slice(1)) as keyof typeof prisma;
               const existing = await (
                 prisma[modelKey] as unknown as {
-                  findUnique: (q: object) => Promise<{ tenantId?: string } | null>;
+                  findUnique: (
+                    q: object,
+                  ) => Promise<{ tenantId?: string } | null>;
                 }
-              ).findUnique({ where: { id: where.id }, select: { tenantId: true } });
+              ).findUnique({
+                where: { id: where.id },
+                select: { tenantId: true },
+              });
               if (!existing || existing.tenantId !== tenantId) {
                 throw new Prisma.PrismaClientKnownRequestError("Not found", {
                   code: "P2025",

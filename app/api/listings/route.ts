@@ -83,6 +83,7 @@ export async function POST(req: Request) {
       furnished: body.furnished ?? false,
       inSite: body.inSite ?? false,
       description: body.description || null,
+      parcelGeo: body.parcelGeo ?? undefined,
       agentId: session.userId,
     },
   });

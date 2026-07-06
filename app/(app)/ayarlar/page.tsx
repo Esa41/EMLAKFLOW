@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SettingsForm } from "@/components/settings-form";
+import { getBaseUrl } from "@/lib/url";
 
 export default async function SettingsPage() {
   const session = (await getSession())!;
@@ -19,12 +20,14 @@ export default async function SettingsPage() {
     });
   }
 
-  const appUrl = process.env.AUTH_URL ?? "http://localhost:3000";
+  const appUrl = getBaseUrl();
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-[27px] font-extrabold tracking-tight">Ayarlar</h1>
+        <h1 className="font-display text-[27px] font-extrabold tracking-tight">
+          Ayarlar
+        </h1>
         <p className="mt-1 text-sm text-ink/55">
           Ofis profili, komisyon oranları ve portal yayın ayarları.
         </p>
@@ -60,6 +63,11 @@ export default async function SettingsPage() {
                   { value: "", label: "" },
                 ],
           showTeam: tenant.showTeam,
+          contractCompanyTitle: tenant.contractCompanyTitle ?? "",
+          contractRepresentative: tenant.contractRepresentative ?? "",
+          contractAddress: tenant.contractAddress ?? "",
+          contractTaxNo: tenant.contractTaxNo ?? "",
+          contractExtraClauses: tenant.contractExtraClauses ?? "",
         }}
       />
     </div>

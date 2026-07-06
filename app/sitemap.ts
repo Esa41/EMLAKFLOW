@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+import { getBaseUrl } from "@/lib/url";
 
 /**
  * Dinamik sitemap — yalnızca public/indekslenebilir sayfalar:
@@ -7,7 +8,7 @@ import { prisma } from "@/lib/prisma";
  * CRM (app) rotaları auth arkasında olduğundan burada yer almaz (bkz. robots.ts).
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = (process.env.AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const baseUrl = getBaseUrl();
 
   const tenants = await prisma.tenant.findMany({
     where: { showcaseEnabled: true },

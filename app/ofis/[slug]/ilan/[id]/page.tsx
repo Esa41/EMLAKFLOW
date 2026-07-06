@@ -6,6 +6,7 @@ import { Phone, Building2, ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { InfoForm } from "@/components/showcase-forms";
 import { ShowcaseMap } from "@/components/showcase-map";
+import { DroneMapFlyover } from "@/components/drone-map-flyover";
 import { TrackListingView } from "@/components/vitrin-tracking";
 import {
   seoTitle,
@@ -15,11 +16,9 @@ import {
   breadcrumbJsonLd,
 } from "@/lib/seo";
 import { trMoney, TYPE_TR } from "@/lib/labels";
+import { getBaseUrl } from "@/lib/url";
 
-const BASE_URL = (process.env.AUTH_URL ?? "http://localhost:3000").replace(
-  /\/$/,
-  "",
-);
+const BASE_URL = getBaseUrl();
 
 type Params = Promise<{ slug: string; id: string }>;
 
@@ -97,7 +96,6 @@ export default async function ListingShowcasePage({
     include: { media: { orderBy: { order: "asc" }, take: 1 } },
   });
 
-  const kod = l.refCode.replace(/^EF-\d{4}-0*/, "EF·");
   const specs: Array<[string, string | null]> = [
     ["İşlem", l.purpose === "SALE" ? "Satılık" : "Kiralık"],
     ["Tip", TYPE_TR[l.type]],
@@ -178,9 +176,8 @@ export default async function ListingShowcasePage({
               <Building2 size={40} />
             </div>
           )}
-          <span className="kunye absolute -bottom-3 left-4 shadow-sm">
-            {kod} — {(l.neighborhood ?? l.district).toUpperCase()} /{" "}
-            {l.city.toUpperCase()}
+          <span className="kunye absolute -bottom-3 left-4 max-w-[85%] truncate shadow-sm">
+            {l.title}
           </span>
         </div>
         {l.media.length > 1 && (
@@ -221,15 +218,28 @@ export default async function ListingShowcasePage({
             </p>
           )}
 
-          {/* Konum */}
+          {/* 3D Drone Görünümü + Konum */}
           {l.lat != null && l.lng != null && (
             <>
+              <h2 className="bolum mt-8">3D Drone Görünümü</h2>
+              <p className="mt-1 mb-3 text-xs text-ink/45">
+                Binanın etrafında sanal drone uçuşu — sürükleyerek kontrol
+                edebilirsiniz.
+              </p>
+              <DroneMapFlyover
+                lat={l.lat}
+                lng={l.lng}
+                parcelGeo={l.parcelGeo ?? undefined}
+                height={340}
+              />
+
               <h2 className="bolum mt-8">Konum</h2>
               <div className="mt-4">
                 <ShowcaseMap
                   slug={slug}
                   mode="single"
                   height={200}
+                  parcelGeo={l.parcelGeo ?? undefined}
                   listings={[
                     {
                       id: l.id,
@@ -237,7 +247,6 @@ export default async function ListingShowcasePage({
                       lng: l.lng,
                       price: Number(l.price),
                       purpose: l.purpose,
-                      refCode: kod,
                     },
                   ]}
                 />
@@ -245,8 +254,8 @@ export default async function ListingShowcasePage({
             </>
           )}
 
-          {/* Künye tablosu */}
-          <h2 className="bolum mt-8">İlan Künyesi</h2>
+          {/* İlan detayları */}
+          <h2 className="bolum mt-8">İlan Detayları</h2>
           <dl className="mt-4 grid grid-cols-2 gap-x-6 sm:grid-cols-3">
             {filled.map(([k, v]) => (
               <div key={k} className="border-b border-ink/10 py-2.5">
@@ -283,7 +292,7 @@ export default async function ListingShowcasePage({
                 {waNumber && (
                   <a
                     href={`https://wa.me/${(waNumber ?? "").replace(/\D/g, "")}?text=${encodeURIComponent(
-                      `Merhaba, ${kod} künyeli "${l.title}" ilanı hakkında bilgi almak istiyorum.`,
+                      `Merhaba, "${l.title}" ilanı hakkında bilgi almak istiyorum.`,
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -296,13 +305,13 @@ export default async function ListingShowcasePage({
               </div>
             )}
             <p className="mt-4 border-t border-ink/10 pt-3 font-mono text-[9.5px] leading-relaxed text-ink/45">
-              Görüşmede <b className="text-ink/70">{kod}</b> künyesini
-              söylemeniz yeterli.
+              Görüşmede <b className="text-ink/70">"{l.title}"</b> ilanını
+              referans göstermeniz yeterli.
             </p>
           </div>
 
           <div className="mt-5 rounded-[10px] border border-ink/15 bg-white p-5">
-            <InfoForm slug={slug} listingId={l.id} refCode={kod} />
+            <InfoForm slug={slug} listingId={l.id} listingTitle={l.title} />
           </div>
         </aside>
       </div>
