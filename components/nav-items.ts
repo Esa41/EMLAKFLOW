@@ -9,6 +9,8 @@ import {
   Settings,
   MessagesSquare,
   BarChart3,
+  Bell,
+  Activity,
 } from "lucide-react";
 
 export const NAV = [
@@ -17,6 +19,8 @@ export const NAV = [
   { href: "/musteriler", label: "Satış Hattı", icon: Users },
   { href: "/kisiler", label: "Müşteriler", icon: Contact },
   { href: "/analitik", label: "Analitik", icon: BarChart3 },
+  { href: "/bildirimler", label: "Bildirimler", icon: Bell },
+  { href: "/faaliyet-gecmisi", label: "Faaliyet Geçmişi", icon: Activity },
   { href: "/sohbet", label: "Vitrin Sohbet", icon: MessagesSquare },
   { href: "/ajanda", label: "Ajanda", icon: CalendarDays },
   { href: "/finans", label: "Kasa", icon: Wallet },

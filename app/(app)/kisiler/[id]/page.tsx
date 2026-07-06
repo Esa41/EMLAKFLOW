@@ -6,6 +6,8 @@ import { ContactIcon, Phone, Mail, ArrowLeft, MessageCircle, FileText, CheckCirc
 import { STAGE_TR, STAGE_COLOR, trMoney } from "@/lib/labels";
 import { ActivityFeed } from "@/components/activity-feed";
 import { AddDealModal } from "@/components/add-deal-modal";
+import { findMatchingListings } from "@/lib/matching";
+import { createManualDeal } from "@/app/actions/deal";
 
 export default async function ContactDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -33,6 +35,18 @@ export default async function ContactDetailPage(props: { params: Promise<{ id: s
   ]);
 
   if (!contact) return notFound();
+
+  // Talebe uyan aktif ilanlar (ters eşleştirme) — en yeni talep baz alınır.
+  // Zaten fırsat açılmış ilanlar listeden çıkarılır.
+  const latestLead = contact.leads[0];
+  const dealtListingIds = new Set(
+    contact.deals.map((d) => d.listingId).filter(Boolean) as string[],
+  );
+  const matches = latestLead
+    ? (await findMatchingListings(db, latestLead, 55))
+        .filter((m) => !dealtListingIds.has(m.listing.id))
+        .slice(0, 5)
+    : [];
 
   // WhatsApp format: +90555... or remove spaces
   const waPhone = contact.phone ? contact.phone.replace(/[\s\(\)-]/g, "") : "";
@@ -129,7 +143,56 @@ export default async function ContactDetailPage(props: { params: Promise<{ id: s
               </div>
             )}
           </section>
-          
+
+          {/* Talebe uyan aktif ilanlar — tek tık fırsat aç */}
+          {matches.length > 0 && (
+            <section>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="bolum">Uygun İlanlar ({matches.length})</h2>
+                <span className="font-mono text-[10px] uppercase tracking-wider text-ink/40">
+                  Talep–portföy eşleştirmesi
+                </span>
+              </div>
+              <div className="space-y-3">
+                {matches.map((m) => (
+                  <div
+                    key={m.listing.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-ink/10 bg-white p-4 shadow-sm"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-700">
+                          %{m.score}
+                        </span>
+                        <Link
+                          href={`/portfoy/${m.listing.id}`}
+                          className="truncate text-sm font-bold hover:text-brand-700"
+                        >
+                          {m.listing.title}
+                        </Link>
+                      </div>
+                      <p className="mt-0.5 truncate font-mono text-[11px] text-ink/55">
+                        {m.listing.refCode} · {trMoney.format(Number(m.listing.price))}
+                        {m.reasons.length > 0 && ` · ${m.reasons.slice(0, 2).join(", ")}`}
+                      </p>
+                    </div>
+                    <form action={createManualDeal} className="shrink-0">
+                      <input type="hidden" name="contactId" value={contact.id} />
+                      <input type="hidden" name="listingId" value={m.listing.id} />
+                      <input type="hidden" name="value" value={Number(m.listing.price)} />
+                      <button
+                        type="submit"
+                        className="rounded-md bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100"
+                      >
+                        + Fırsat aç
+                      </button>
+                    </form>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           <section>
             <h2 className="bolum mb-4">Vitrin Talepleri ({contact.leads.length})</h2>
             {contact.leads.length === 0 ? (

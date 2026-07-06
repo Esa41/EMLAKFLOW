@@ -1,23 +1,25 @@
 /**
  * EmlakFlow · Demo Seed
  * Çalıştır: npx prisma db seed   (package.json → prisma.seed)
- * Tekrar çalıştırılabilir: "atlas-gayrimenkul" slug'lı demo ofisi silip yeniden kurar.
+ * Tekrar çalıştırılabilir: demo ofislerini silip yeniden kurar.
  *
  * Demo girişleri (şifre hepsi: demo1234)
  *   sahibi@atlasgayrimenkul.com   → OWNER  (Emre Atlas)
  *   zeynep@atlasgayrimenkul.com   → AGENT  (Zeynep Kaya)
  *   murat@atlasgayrimenkul.com    → AGENT  (Murat Demir)
+ *   enes@vipgayrimenkul.com       → OWNER  (Enes Yılmaz - Detaylı Test Data)
  */
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const SLUG = "atlas-gayrimenkul";
+const SLUG_ATLAS = "atlas-gayrimenkul";
+const SLUG_VIP = "vip-gayrimenkul";
 // Prisma, Decimal alanlara number kabul eder — P sadece okunabilirlik için
 const P = (n: number) => n;
 
-// Unsplash — konut iç/dış mekân görselleri
+// Unsplash — konut iç/dış mekân görselleri (genişletilmiş koleksiyon)
 const PHOTOS = [
   "photo-1560448204-e02f11c3d0e2",
   "photo-1512917774080-9991f1c4c750",
@@ -35,6 +37,26 @@ const PHOTOS = [
   "photo-1600566753086-00f18fb6b3ea",
   "photo-1600585154526-990dced4db0d",
   "photo-1600047509807-ba8f99d2cdde",
+  "photo-1568605114967-8130f3a36994",
+  "photo-1570129477492-45c003edd2be",
+  "photo-1582268611958-ebfd161ef9cf",
+  "photo-1580587771525-78b9dba3b914",
+  "photo-1564013799919-ab600027ffc6",
+  "photo-1449844908441-8829872d2607",
+  "photo-1505873242700-f289a29e1e0f",
+  "photo-1567767292278-a4f21aa2d36e",
+  "photo-1565182999561-18d7dc61c393",
+  "photo-1481277542470-605612bd2d61",
+  "photo-1494526585095-c41746248156",
+  "photo-1513584684374-8bab748fbf90",
+  "photo-1509644851169-2acc08aa25b5",
+  "photo-1616486338812-3dadae4b4ace",
+  "photo-1515263487990-61b07816b324",
+  "photo-1523217582562-09d0def993a6",
+  "photo-1484154218962-a197022b5858",
+  "photo-1556912173-46c336c7fd55",
+  "photo-1574643156929-51fa098b0394",
+  "photo-1617806118233-18e1de247200",
 ].map((id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=70`);
 
 function todayAt(h: number, m = 0) {
@@ -50,15 +72,19 @@ function daysFromNow(n: number, h = 10) {
 }
 
 async function main() {
-  // Önceki demo'yu temizle (cascade tüm alt kayıtları siler)
-  await prisma.tenant.deleteMany({ where: { slug: SLUG } });
+  // Önceki demo'ları temizle (cascade tüm alt kayıtları siler)
+  await prisma.tenant.deleteMany({ where: { slug: { in: [SLUG_ATLAS, SLUG_VIP] } } });
 
   const passwordHash = await hash("demo1234", 12);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ATLAS GAYRİMENKUL (Mevcut Seed)
+  // ═══════════════════════════════════════════════════════════════════
 
   const tenant = await prisma.tenant.create({
     data: {
       name: "Atlas Gayrimenkul",
-      slug: SLUG,
+      slug: SLUG_ATLAS,
       city: "Kocaeli",
       district: "İzmit",
       phone: "+90 262 000 00 00",
@@ -337,10 +363,1256 @@ async function main() {
     });
   }
 
-  console.log("✔ Seed tamam:");
-  console.log(`  Ofis: ${tenant.name} (${SLUG})`);
+  console.log("✔ Atlas Gayrimenkul seed tamam:");
+  console.log(`  Ofis: ${tenant.name} (${SLUG_ATLAS})`);
   console.log(`  Kullanıcı: 3 · İlan: ${listings.length} · Lead: ${leads.length} · Deal: ${dealSeed.length}`);
   console.log("  Giriş: sahibi@atlasgayrimenkul.com / demo1234");
+
+  // ═══════════════════════════════════════════════════════════════════
+  // VIP GAYRİMENKUL (ENES - DETAYLI TEST DATA)
+  // ═══════════════════════════════════════════════════════════════════
+  
+  const vipTenant = await prisma.tenant.create({
+    data: {
+      name: "VIP Gayrimenkul",
+      slug: SLUG_VIP,
+      city: "İstanbul",
+      district: "Kadıköy",
+      phone: "+90 216 555 00 00",
+      whatsapp: "+90 532 555 00 00",
+      plan: "pro",
+      proStartedAt: new Date("2024-01-01"),
+      proExpiresAt: new Date("2027-12-31"),
+      commissionRate: P(3.5),
+      agentSharePct: 60,
+      portalSahibinden: true,
+      portalHepsiemlak: true,
+      portalEmlakjet: true,
+      feedToken: "vip-feed-2026",
+      contractCompanyTitle: "VIP Gayrimenkul Danışmanlık Ltd. Şti.",
+      contractRepresentative: "Enes Yılmaz",
+      contractAddress: "Caferağa Mahallesi, Moda Caddesi No:123 Kadıköy/İstanbul",
+      contractTaxNo: "1234567890",
+      contractExtraClauses: "İşbu sözleşme 3 ay süreyle geçerlidir. Taraflar aralarında imzaladıkları bu sözleşmeye uyacaklarını kabul ve taahhüt ederler.",
+      showcaseEnabled: true,
+      showcaseTagline: "İstanbul'un en prestijli semtlerinde profesyonel emlak danışmanlığı",
+      aboutTitle: "15 Yıllık Tecrübe ile Yanınızdayız",
+      aboutText: "VIP Gayrimenkul olarak İstanbul'da emlak sektöründe 15 yıldır hizmet vermekteyiz. Kadıköy, Bostancı, Fenerbahçe ve çevresinde uzman kadromuzla müşterilerimize en iyi hizmeti sunuyoruz. Portföyümüzdeki her gayrimenkul detaylı bir şekilde incelenir ve size en uygun seçenekler sunulur.",
+      visionText: "Güvenilir, şeffaf ve müşteri odaklı hizmet anlayışıyla emlak sektörünün lideri olmak.",
+      aboutStats: [
+        { value: "15", label: "Yıl Tecrübe" },
+        { value: "850+", label: "Mutlu Müşteri" },
+        { value: "1200+", label: "Tamamlanan İşlem" },
+      ],
+      showTeam: true,
+    },
+  });
+  const vipT = vipTenant.id;
+
+  // Kullanıcılar
+  const [enes, ayse, mehmet, selin] = await Promise.all([
+    prisma.user.create({
+      data: {
+        tenantId: vipT,
+        name: "Enes Yılmaz",
+        email: "enes@vipgayrimenkul.com",
+        passwordHash,
+        role: "OWNER",
+        phone: "+90 532 555 00 01",
+        avatarUrl: "https://i.pravatar.cc/150?img=12",
+      },
+    }),
+    prisma.user.create({
+      data: {
+        tenantId: vipT,
+        name: "Ayşe Demir",
+        email: "ayse@vipgayrimenkul.com",
+        passwordHash,
+        role: "BROKER",
+        phone: "+90 532 555 00 02",
+        avatarUrl: "https://i.pravatar.cc/150?img=5",
+      },
+    }),
+    prisma.user.create({
+      data: {
+        tenantId: vipT,
+        name: "Mehmet Kaya",
+        email: "mehmet@vipgayrimenkul.com",
+        passwordHash,
+        role: "AGENT",
+        phone: "+90 532 555 00 03",
+        avatarUrl: "https://i.pravatar.cc/150?img=33",
+      },
+    }),
+    prisma.user.create({
+      data: {
+        tenantId: vipT,
+        name: "Selin Özkan",
+        email: "selin@vipgayrimenkul.com",
+        passwordHash,
+        role: "AGENT",
+        phone: "+90 532 555 00 04",
+        avatarUrl: "https://i.pravatar.cc/150?img=9",
+      },
+    }),
+  ]);
+  const vipAgents = [enes.id, ayse.id, mehmet.id, selin.id];
+
+  // Kişiler (25 adet - çeşitli tipler)
+  const vipContactData: Array<{
+    fullName: string;
+    type: "BUYER" | "SELLER" | "TENANT_C" | "LANDLORD" | "OTHER";
+    phone: string;
+    email?: string;
+    note?: string;
+  }> = [
+    { fullName: "Ahmet Yıldız", type: "BUYER", phone: "+90 555 100 01 01", email: "ahmet@example.com", note: "3+1 arıyor, kredisi hazır" },
+    { fullName: "Zeynep Arslan", type: "BUYER", phone: "+90 555 100 01 02", email: "zeynep@example.com" },
+    { fullName: "Can Özdemir", type: "SELLER", phone: "+90 555 100 01 03", note: "Caddebostan'da daire satacak" },
+    { fullName: "Elif Şahin", type: "BUYER", phone: "+90 555 100 01 04", email: "elif@example.com" },
+    { fullName: "Burak Çelik", type: "TENANT_C", phone: "+90 555 100 01 05", note: "Öğrenci, ebeveyn garantörü var" },
+    { fullName: "Deniz Aydın", type: "LANDLORD", phone: "+90 555 100 01 06", email: "deniz@example.com" },
+    { fullName: "Gizem Koç", type: "BUYER", phone: "+90 555 100 01 07" },
+    { fullName: "Hakan Yılmaz", type: "BUYER", phone: "+90 555 100 01 08", email: "hakan@example.com", note: "Yatırım amaçlı arıyor" },
+    { fullName: "İrem Doğan", type: "TENANT_C", phone: "+90 555 100 01 09" },
+    { fullName: "Kerem Polat", type: "SELLER", phone: "+90 555 100 01 10", note: "Acil satış, takas olabilir" },
+    { fullName: "Lale Kurt", type: "BUYER", phone: "+90 555 100 01 11", email: "lale@example.com" },
+    { fullName: "Murat Aksoy", type: "LANDLORD", phone: "+90 555 100 01 12" },
+    { fullName: "Nazlı Öztürk", type: "BUYER", phone: "+90 555 100 01 13", note: "Genç çift, ilk ev" },
+    { fullName: "Okan Demirci", type: "OTHER", phone: "+90 555 100 01 14", email: "okan@example.com", note: "Müteahhit, proje ortaklığı" },
+    { fullName: "Pınar Yıldırım", type: "TENANT_C", phone: "+90 555 100 01 15" },
+    { fullName: "Rasim Kılıç", type: "SELLER", phone: "+90 555 100 01 16" },
+    { fullName: "Seda Avcı", type: "BUYER", phone: "+90 555 100 01 17", email: "seda@example.com" },
+    { fullName: "Tolga Eren", type: "BUYER", phone: "+90 555 100 01 18", note: "Ofis arıyor, şirket adına" },
+    { fullName: "Ufuk Yaman", type: "LANDLORD", phone: "+90 555 100 01 19" },
+    { fullName: "Volkan Tekin", type: "TENANT_C", phone: "+90 555 100 01 20" },
+    { fullName: "Yelda Çakır", type: "BUYER", phone: "+90 555 100 01 21", email: "yelda@example.com" },
+    { fullName: "Zafer Uzun", type: "SELLER", phone: "+90 555 100 01 22", note: "Villa satacak, acele yok" },
+    { fullName: "Aylin Bayrak", type: "BUYER", phone: "+90 555 100 01 23" },
+    { fullName: "Bora Güneş", type: "OTHER", phone: "+90 555 100 01 24", note: "Arsa yatırımcısı" },
+    { fullName: "Canan Bulut", type: "TENANT_C", phone: "+90 555 100 01 25", email: "canan@example.com" },
+  ];
+
+  const vipContacts = await Promise.all(
+    vipContactData.map((c) => prisma.contact.create({ data: { tenantId: vipT, ...c } }))
+  );
+
+  // İlanlar (20 adet - her tür ve durumdan)
+  type VipListing = {
+    title: string;
+    purpose: "SALE" | "RENT";
+    type: "APARTMENT" | "VILLA" | "LAND" | "COMMERCIAL" | "OFFICE" | "HOUSE";
+    price: number;
+    district: string;
+    neighborhood: string;
+    address?: string;
+    rooms?: string;
+    gross?: number;
+    net?: number;
+    floor?: number;
+    totalFloors?: number;
+    age?: number;
+    status?: "ACTIVE" | "SOLD" | "RENTED" | "DRAFT" | "OPTIONED" | "PASSIVE";
+    lat?: number;
+    lng?: number;
+    heating?: string;
+    dues?: number;
+    deedStatus?: string;
+    creditEligible?: boolean;
+    furnished?: boolean;
+    inSite?: boolean;
+    description: string;
+    photoCount: number; // Her ilan için farklı fotoğraf sayısı
+    hasVideo?: boolean;
+    hasFloorplan?: boolean;
+    hasTour360?: boolean;
+  };
+
+  const vipListings: VipListing[] = [
+    {
+      title: "Kadıköy Moda'da Deniz Manzaralı Lüks 4+1 Daire",
+      purpose: "SALE",
+      type: "APARTMENT",
+      price: 18_500_000,
+      district: "Kadıköy",
+      neighborhood: "Moda",
+      address: "Caferağa Mahallesi, Moda Caddesi No:45 D:8",
+      rooms: "4+1",
+      gross: 220,
+      net: 185,
+      floor: 8,
+      totalFloors: 12,
+      age: 5,
+      status: "ACTIVE",
+      lat: 40.9886,
+      lng: 29.0253,
+      heating: "Kombi (Doğalgaz)",
+      dues: 3500,
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: true,
+      furnished: false,
+      inSite: true,
+      description: "Moda'nın kalbinde, denize sıfır konumda, her detayı düşünülmüş lüks bir yaşam alanı. Geniş terasından Adalar ve Marmara manzarası, yüksek tavanlar, akıllı ev sistemi. Site içinde kapalı otopark, 7/24 güvenlik, fitness center, çocuk oyun alanı.",
+      photoCount: 12,
+      hasVideo: true,
+      hasFloorplan: true,
+      hasTour360: true,
+    },
+    {
+      title: "Fenerbahçe'de Bahçeli Müstakil Villa",
+      purpose: "SALE",
+      type: "VILLA",
+      price: 45_000_000,
+      district: "Kadıköy",
+      neighborhood: "Fenerbahçe",
+      address: "Fenerbahçe Mahallesi, Fener Yolu Sokak No:12",
+      rooms: "6+2",
+      gross: 480,
+      net: 420,
+      age: 8,
+      status: "ACTIVE",
+      lat: 40.9644,
+      lng: 29.0372,
+      heating: "Yerden Isıtma",
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: false,
+      furnished: false,
+      inSite: false,
+      description: "Fenerbahçe'nin seçkin lokasyonunda, 650 m² özel bahçeli müstakil villa. Özel havuz, kamelya, BBQ alanı. 4 kat, akıllı ev sistemleri, jeneratör, özel güvenlik sistemi. Her katta WC, geniş mutfak ve teraslar.",
+      photoCount: 15,
+      hasVideo: true,
+      hasFloorplan: true,
+      hasTour360: false,
+    },
+    {
+      title: "Bostancı'da Yatırımlık 2+1 Sıfır Daire",
+      purpose: "SALE",
+      type: "APARTMENT",
+      price: 9_850_000,
+      district: "Kadıköy",
+      neighborhood: "Bostancı",
+      rooms: "2+1",
+      gross: 115,
+      net: 98,
+      floor: 6,
+      totalFloors: 10,
+      age: 0,
+      status: "ACTIVE",
+      lat: 40.9571,
+      lng: 29.0918,
+      heating: "Kombi (Doğalgaz)",
+      dues: 1800,
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: true,
+      furnished: false,
+      inSite: true,
+      description: "Sıfır bina, 2026 yapımı. Bostancı merkezde, metrobüs ve marmaray bağlantısına yürüme mesafesinde. Modern mimari, geniş balkon, ankastre mutfak. Yüksek kira getirisi potansiyeli.",
+      photoCount: 10,
+      hasVideo: false,
+      hasFloorplan: true,
+      hasTour360: true,
+    },
+    {
+      title: "Göztepe'de Satılık 3+1 Ferah Daire",
+      purpose: "SALE",
+      type: "APARTMENT",
+      price: 12_300_000,
+      district: "Kadıköy",
+      neighborhood: "Göztepe",
+      rooms: "3+1",
+      gross: 145,
+      net: 125,
+      floor: 4,
+      totalFloors: 8,
+      age: 12,
+      status: "SOLD",
+      lat: 40.9755,
+      lng: 29.0611,
+      heating: "Kombi (Doğalgaz)",
+      dues: 2200,
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: true,
+      furnished: false,
+      inSite: false,
+      description: "Göztepe'nin merkezinde, ulaşıma ve sosyal alanlara yakın. Ferah ve aydınlık, yeni tadilatlı. [SATILDI]",
+      photoCount: 8,
+      hasVideo: false,
+      hasFloorplan: false,
+    },
+    {
+      title: "Suadiye'de Lüks Rezidans 3+1",
+      purpose: "RENT",
+      type: "APARTMENT",
+      price: 95_000,
+      district: "Kadıköy",
+      neighborhood: "Suadiye",
+      rooms: "3+1",
+      gross: 165,
+      net: 140,
+      floor: 12,
+      totalFloors: 18,
+      age: 3,
+      status: "ACTIVE",
+      lat: 40.9496,
+      lng: 29.1086,
+      heating: "Merkezi Sistem",
+      dues: 4500,
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: true,
+      furnished: true,
+      inSite: true,
+      description: "A+ rezidans, tam eşyalı. Concierge, vale, kapalı havuz, spa, gym. Deniz manzarası, akıllı ev sistemi. Kısa dönem kiralamalara uygun değil, minimum 1 yıl.",
+      photoCount: 11,
+      hasVideo: true,
+      hasFloorplan: true,
+      hasTour360: true,
+    },
+    {
+      title: "Caddebostan'da Cadde Üzeri Dükkan",
+      purpose: "SALE",
+      type: "COMMERCIAL",
+      price: 8_500_000,
+      district: "Kadıköy",
+      neighborhood: "Caddebostan",
+      gross: 95,
+      net: 88,
+      floor: 0,
+      age: 25,
+      status: "ACTIVE",
+      lat: 40.9657,
+      lng: 29.0536,
+      heating: "Klima",
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: true,
+      furnished: false,
+      inSite: false,
+      description: "Ana cadde üzeri, yüksek yaya trafiği. Kiracılı satış, yıllık kira getirisi %7. Cafe, market veya butik için ideal. 4 metre cephe.",
+      photoCount: 7,
+      hasVideo: false,
+      hasFloorplan: true,
+    },
+    {
+      title: "Acıbadem'de Prestijli Ofis Katı",
+      purpose: "RENT",
+      type: "OFFICE",
+      price: 125_000,
+      district: "Kadıköy",
+      neighborhood: "Acıbadem",
+      gross: 280,
+      net: 240,
+      floor: 3,
+      totalFloors: 6,
+      age: 8,
+      status: "ACTIVE",
+      lat: 41.0015,
+      lng: 29.0541,
+      heating: "VRV Klima",
+      dues: 8500,
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: false,
+      furnished: false,
+      inSite: true,
+      description: "Modern iş merkezi, tam kat ofis. Open office düzenlenebilir veya 8 ayrı oda + toplantı odası. Yüksek tavan, merkezi klima, jeneratör, 7/24 güvenlik. 10 araçlık kapalı otopark.",
+      photoCount: 9,
+      hasVideo: true,
+      hasFloorplan: true,
+    },
+    {
+      title: "Kozyatağı'nda Satılık İmarlı Arsa",
+      purpose: "SALE",
+      type: "LAND",
+      price: 35_000_000,
+      district: "Kadıköy",
+      neighborhood: "Kozyatağı",
+      gross: 1200,
+      net: 1200,
+      age: 0,
+      status: "ACTIVE",
+      lat: 40.9831,
+      lng: 29.0952,
+      deedStatus: "Arsa",
+      creditEligible: false,
+      furnished: false,
+      inSite: false,
+      description: "E:2.00 imar, konut + ticaret. Ana yola cepheli, altyapı hazır. Proje için ideal konum. Otopark çözümü mevcut.",
+      photoCount: 6,
+      hasVideo: false,
+      hasFloorplan: true,
+    },
+    {
+      title: "Erenköy'de Kiralık Bahçeli Müstakil",
+      purpose: "RENT",
+      type: "HOUSE",
+      price: 75_000,
+      district: "Kadıköy",
+      neighborhood: "Erenköy",
+      rooms: "4+1",
+      gross: 210,
+      net: 180,
+      age: 15,
+      status: "RENTED",
+      lat: 40.9681,
+      lng: 29.0412,
+      heating: "Kombi (Doğalgaz)",
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: false,
+      furnished: false,
+      inSite: false,
+      description: "Sakin sokakta müstakil ev, 300 m² bahçe. Geniş aileler için ideal. [KİRALANDI]",
+      photoCount: 8,
+      hasVideo: false,
+      hasFloorplan: false,
+    },
+    {
+      title: "Fikirtepe'de Yeni Proje 1+1",
+      purpose: "SALE",
+      type: "APARTMENT",
+      price: 6_200_000,
+      district: "Kadıköy",
+      neighborhood: "Fikirtepe",
+      rooms: "1+1",
+      gross: 72,
+      net: 58,
+      floor: 5,
+      totalFloors: 15,
+      age: 0,
+      status: "ACTIVE",
+      lat: 40.9794,
+      lng: 29.0461,
+      heating: "Merkezi Sistem",
+      dues: 1200,
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: true,
+      furnished: false,
+      inSite: true,
+      description: "Kentsel dönüşüm projesi, sıfır. Marmaray istasyonuna 5 dk. Yatırım fırsatı, yüksek değer artış potansiyeli. Site içinde sosyal alan, güvenlik.",
+      photoCount: 10,
+      hasVideo: true,
+      hasFloorplan: true,
+      hasTour360: false,
+    },
+    {
+      title: "Koşuyolu'nda Kiralık 2+1 Eşyalı",
+      purpose: "RENT",
+      type: "APARTMENT",
+      price: 42_000,
+      district: "Kadıköy",
+      neighborhood: "Koşuyolu",
+      rooms: "2+1",
+      gross: 105,
+      net: 90,
+      floor: 3,
+      totalFloors: 5,
+      age: 18,
+      status: "ACTIVE",
+      lat: 40.9945,
+      lng: 29.0371,
+      heating: "Kombi (Doğalgaz)",
+      dues: 1500,
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: true,
+      furnished: true,
+      inSite: false,
+      description: "Parkın karşısında, sakin konum. Tam eşyalı, beyaz eşya ve mobilya dahil. Metrobüs, hastane ve alışveriş merkezine yakın.",
+      photoCount: 9,
+      hasVideo: false,
+      hasFloorplan: false,
+    },
+    {
+      title: "Hasanpaşa'da Satılık 3+1 Tadilatla",
+      purpose: "SALE",
+      type: "APARTMENT",
+      price: 11_800_000,
+      district: "Kadıköy",
+      neighborhood: "Hasanpaşa",
+      rooms: "3+1",
+      gross: 135,
+      net: 115,
+      floor: 2,
+      totalFloors: 6,
+      age: 35,
+      status: "OPTIONED",
+      lat: 40.9868,
+      lng: 29.0192,
+      heating: "Soba",
+      dues: 1200,
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: true,
+      furnished: false,
+      inSite: false,
+      description: "Merkezi konum, tadilat gerekli. Geniş oda düzeni, yüksek tavan. İhtiyaca göre şekillendirme imkanı. [OPSİYONLANDI]",
+      photoCount: 6,
+      hasVideo: false,
+      hasFloorplan: false,
+    },
+    {
+      title: "Feneryolu'nda Modern 2.5+1",
+      purpose: "SALE",
+      type: "APARTMENT",
+      price: 10_500_000,
+      district: "Kadıköy",
+      neighborhood: "Feneryolu",
+      rooms: "2.5+1",
+      gross: 122,
+      net: 105,
+      floor: 7,
+      totalFloors: 9,
+      age: 6,
+      status: "ACTIVE",
+      lat: 40.9652,
+      lng: 29.0481,
+      heating: "Kombi (Doğalgaz)",
+      dues: 1900,
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: true,
+      furnished: false,
+      inSite: true,
+      description: "Denize 200 metre, modern tasarım. Geniş balkon, açık mutfak, lamine zemin. Site içinde spor salonu, çocuk parkı.",
+      photoCount: 11,
+      hasVideo: true,
+      hasFloorplan: true,
+      hasTour360: true,
+    },
+    {
+      title: "Bahariye'de Kiralık Butik Ofis",
+      purpose: "RENT",
+      type: "OFFICE",
+      price: 38_000,
+      district: "Kadıköy",
+      neighborhood: "Caferağa",
+      gross: 85,
+      net: 72,
+      floor: 2,
+      totalFloors: 4,
+      age: 20,
+      status: "ACTIVE",
+      lat: 40.9858,
+      lng: 29.0295,
+      heating: "Klima",
+      dues: 1800,
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: false,
+      furnished: false,
+      inSite: false,
+      description: "Bahariye Caddesi'nde, 3 oda + salon. Ajans, danışmanlık, muhasebe ofisi için ideal. Yenilenmiş bina.",
+      photoCount: 7,
+      hasVideo: false,
+      hasFloorplan: true,
+    },
+    {
+      title: "Rasimpaşa'da Yatırımlık 1+1",
+      purpose: "SALE",
+      type: "APARTMENT",
+      price: 7_400_000,
+      district: "Kadıköy",
+      neighborhood: "Rasimpaşa",
+      rooms: "1+1",
+      gross: 68,
+      net: 55,
+      floor: 4,
+      totalFloors: 5,
+      age: 28,
+      status: "DRAFT",
+      lat: 40.9898,
+      lng: 29.0212,
+      heating: "Kombi (Doğalgaz)",
+      dues: 850,
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: true,
+      furnished: false,
+      inSite: false,
+      description: "Merkezi konum, yatırım için uygun. Kiralık talep yüksek. [TASLAK - Fotoğraflar çekilecek]",
+      photoCount: 4,
+      hasVideo: false,
+      hasFloorplan: false,
+    },
+    {
+      title: "Selamiçeşme'de Satılık Arsa",
+      purpose: "SALE",
+      type: "LAND",
+      price: 22_000_000,
+      district: "Kadıköy",
+      neighborhood: "Selamiçeşme",
+      gross: 850,
+      net: 850,
+      age: 0,
+      status: "PASSIVE",
+      lat: 40.9432,
+      lng: 29.1124,
+      deedStatus: "Arsa",
+      creditEligible: false,
+      furnished: false,
+      inSite: false,
+      description: "İmarlı arsa, konut projesi için uygun. E:1.75. [PASİF İLAN]",
+      photoCount: 5,
+      hasVideo: false,
+      hasFloorplan: true,
+    },
+    {
+      title: "Zühtüpaşa'da Satılık 4+1 Dubleks",
+      purpose: "SALE",
+      type: "APARTMENT",
+      price: 14_900_000,
+      district: "Kadıköy",
+      neighborhood: "Zühtüpaşa",
+      rooms: "4+1",
+      gross: 195,
+      net: 168,
+      floor: 5,
+      totalFloors: 6,
+      age: 10,
+      status: "ACTIVE",
+      lat: 40.9721,
+      lng: 29.0561,
+      heating: "Kombi (Doğalgaz)",
+      dues: 2800,
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: true,
+      furnished: false,
+      inSite: false,
+      description: "Dubleks çatı katı, geniş teras. Modern mutfak, ana yatak odası banyolu. Deniz manzarası, sessiz sokak.",
+      photoCount: 12,
+      hasVideo: true,
+      hasFloorplan: true,
+      hasTour360: false,
+    },
+    {
+      title: "Küçükyalı'da Denize Sıfır 5+1 Villa",
+      purpose: "SALE",
+      type: "VILLA",
+      price: 62_000_000,
+      district: "Maltepe",
+      neighborhood: "Küçükyalı",
+      rooms: "5+1",
+      gross: 520,
+      net: 460,
+      age: 12,
+      status: "ACTIVE",
+      lat: 40.9281,
+      lng: 29.1542,
+      heating: "Yerden Isıtma + VRV Klima",
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: false,
+      furnished: false,
+      inSite: false,
+      description: "Denize sıfır villa, özel plaj erişimi. 800 m² arsa, peyzajlı bahçe, havuz, jakuzi. Kapalı otopark 4 araç. Akıllı ev sistemi, jeneratör, güvenlik kamerası.",
+      photoCount: 18,
+      hasVideo: true,
+      hasFloorplan: true,
+      hasTour360: true,
+    },
+    {
+      title: "Caferağa'da Kiralık Bahçe Katı 3+1",
+      purpose: "RENT",
+      type: "APARTMENT",
+      price: 55_000,
+      district: "Kadıköy",
+      neighborhood: "Caferağa",
+      rooms: "3+1",
+      gross: 140,
+      net: 120,
+      floor: 0,
+      totalFloors: 4,
+      age: 40,
+      status: "ACTIVE",
+      lat: 40.9871,
+      lng: 29.0281,
+      heating: "Kombi (Doğalgaz)",
+      dues: 1600,
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: false,
+      furnished: false,
+      inSite: false,
+      description: "Bahçe katı, 60 m² özel bahçe kullanımlı. Moda'nın içinde, yürüyüş mesafesinde her şey. Nostaljik bina, yüksek tavan.",
+      photoCount: 9,
+      hasVideo: false,
+      hasFloorplan: false,
+    },
+    {
+      title: "19 Mayıs'ta Yeni Projede 3.5+1",
+      purpose: "SALE",
+      type: "APARTMENT",
+      price: 13_200_000,
+      district: "Kadıköy",
+      neighborhood: "19 Mayıs",
+      rooms: "3.5+1",
+      gross: 158,
+      net: 135,
+      floor: 9,
+      totalFloors: 14,
+      age: 1,
+      status: "ACTIVE",
+      lat: 40.9796,
+      lng: 29.0724,
+      heating: "Merkezi Sistem",
+      dues: 2600,
+      deedStatus: "Kat Mülkiyeti",
+      creditEligible: true,
+      furnished: false,
+      inSite: true,
+      description: "2025 teslim, A+ enerji sınıfı. Kapalı havuz, sauna, çocuk kulübü, jeneratör. Marmaray ve E-5'e yakın. Smart home altyapısı.",
+      photoCount: 13,
+      hasVideo: true,
+      hasFloorplan: true,
+      hasTour360: true,
+    },
+  ];
+
+  const vipListingRecords = [];
+  let photoIndex = 0;
+  
+  for (let i = 0; i < vipListings.length; i++) {
+    const x = vipListings[i];
+    
+    // Her ilan için medya oluştur
+    const mediaItems = [];
+    
+    // Fotoğraflar
+    for (let p = 0; p < x.photoCount; p++) {
+      mediaItems.push({
+        url: PHOTOS[(photoIndex + p) % PHOTOS.length],
+        key: `vip/listing-${i + 1}/photo-${p + 1}.jpg`,
+        kind: "photo",
+        order: p,
+      });
+    }
+    photoIndex += x.photoCount;
+    
+    // Video ekle
+    if (x.hasVideo) {
+      mediaItems.push({
+        url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        key: `vip/listing-${i + 1}/video.mp4`,
+        kind: "video",
+        order: x.photoCount,
+      });
+    }
+    
+    // Floor plan ekle
+    if (x.hasFloorplan) {
+      mediaItems.push({
+        url: PHOTOS[0], // Örnek floor plan
+        key: `vip/listing-${i + 1}/floorplan.jpg`,
+        kind: "floorplan",
+        order: x.photoCount + (x.hasVideo ? 1 : 0),
+      });
+    }
+    
+    // 360 Tour ekle
+    if (x.hasTour360) {
+      mediaItems.push({
+        url: "https://my.matterport.com/show/?m=SxQL3iGyoDo",
+        key: `vip/listing-${i + 1}/tour360`,
+        kind: "tour360",
+        order: x.photoCount + (x.hasVideo ? 1 : 0) + (x.hasFloorplan ? 1 : 0),
+      });
+    }
+
+    const listing = await prisma.listing.create({
+      data: {
+        tenantId: vipT,
+        agentId: vipAgents[i % 4],
+        refCode: `VIP-2026-${String(i + 1).padStart(4, "0")}`,
+        title: x.title,
+        purpose: x.purpose,
+        type: x.type,
+        status: x.status ?? "ACTIVE",
+        price: P(x.price),
+        city: "İstanbul",
+        district: x.district,
+        neighborhood: x.neighborhood,
+        address: x.address,
+        lat: x.lat,
+        lng: x.lng,
+        rooms: x.rooms,
+        grossArea: x.gross,
+        netArea: x.net,
+        floor: x.floor,
+        totalFloors: x.totalFloors,
+        buildingAge: x.age,
+        heating: x.heating || null,
+        dues: x.dues ? P(x.dues) : null,
+        deedStatus: x.deedStatus || "Kat Mülkiyeti",
+        creditEligible: x.creditEligible ?? true,
+        furnished: x.furnished ?? false,
+        inSite: x.inSite ?? false,
+        description: x.description,
+        media: {
+          create: mediaItems,
+        },
+      },
+    });
+    vipListingRecords.push(listing);
+  }
+
+  console.log("✔ VIP Gayrimenkul ilanlar oluşturuldu");
+  console.log(`  Toplam ilan: ${vipListingRecords.length}`);
+  console.log(`  Toplam medya: ${vipListingRecords.length * 10} (ortalama)`);
+
+  // Lead'ler (15 adet - çeşitli durumlar)
+  const vipLeadData = [
+    { contactIdx: 0, purpose: "SALE", type: "APARTMENT", district: "Kadıköy", neighborhoods: ["Moda", "Fenerbahçe"], rooms: "3+1", minPrice: 10_000_000, maxPrice: 15_000_000, needsCredit: true, source: "sahibinden", status: "MATCHED" },
+    { contactIdx: 1, purpose: "SALE", type: "APARTMENT", district: "Kadıköy", neighborhoods: ["Bostancı", "Suadiye"], rooms: "4+1", minPrice: 15_000_000, maxPrice: 20_000_000, source: "referans", status: "OPEN" },
+    { contactIdx: 3, purpose: "RENT", type: "APARTMENT", district: "Kadıköy", neighborhoods: ["Suadiye", "Caddebostan"], rooms: "3+1", maxPrice: 100_000, source: "hepsiemlak", status: "MATCHED" },
+    { contactIdx: 4, purpose: "RENT", type: "APARTMENT", district: "Kadıköy", neighborhoods: ["Moda", "Kadıköy"], rooms: "2+1", maxPrice: 45_000, source: "instagram", status: "CONVERTED" },
+    { contactIdx: 6, purpose: "SALE", type: "VILLA", district: "Kadıköy", neighborhoods: ["Fenerbahçe"], minPrice: 35_000_000, maxPrice: 50_000_000, source: "referans", status: "OPEN" },
+    { contactIdx: 7, purpose: "SALE", type: "APARTMENT", district: "Kadıköy", neighborhoods: ["Göztepe", "Feneryolu"], rooms: "3+1", minPrice: 8_000_000, maxPrice: 12_000_000, needsCredit: true, source: "web", status: "MATCHED" },
+    { contactIdx: 10, purpose: "RENT", type: "OFFICE", district: "Kadıköy", neighborhoods: ["Acıbadem", "Kozyatağı"], minPrice: 80_000, maxPrice: 150_000, source: "linkedin", status: "OPEN" },
+    { contactIdx: 12, purpose: "SALE", type: "APARTMENT", district: "Kadıköy", neighborhoods: ["Bostancı", "Erenköy"], rooms: "2+1", maxPrice: 10_000_000, needsCredit: true, source: "sahibinden", status: "OPEN" },
+    { contactIdx: 13, purpose: "SALE", type: "LAND", district: "Kadıköy", neighborhoods: ["Kozyatağı"], maxPrice: 40_000_000, source: "referans", status: "OPEN" },
+    { contactIdx: 16, purpose: "SALE", type: "COMMERCIAL", district: "Kadıköy", neighborhoods: ["Caddebostan", "Moda"], maxPrice: 10_000_000, source: "emlakjet", status: "OPEN" },
+    { contactIdx: 17, purpose: "RENT", type: "OFFICE", district: "Kadıköy", neighborhoods: ["Kadıköy", "Caferağa"], maxPrice: 50_000, source: "linkedin", status: "MATCHED" },
+    { contactIdx: 20, purpose: "SALE", type: "APARTMENT", district: "Kadıköy", neighborhoods: ["Fikirtepe", "Hasanpaşa"], rooms: "1+1", maxPrice: 7_000_000, needsCredit: true, source: "tabela", status: "OPEN" },
+    { contactIdx: 22, purpose: "SALE", type: "VILLA", district: "Maltepe", neighborhoods: ["Küçükyalı"], minPrice: 50_000_000, source: "referans", status: "OPEN" },
+    { contactIdx: 19, purpose: "RENT", type: "APARTMENT", district: "Kadıköy", neighborhoods: ["Koşuyolu"], rooms: "2+1", maxPrice: 45_000, source: "sahibinden", status: "CONVERTED" },
+    { contactIdx: 24, purpose: "RENT", type: "HOUSE", district: "Kadıköy", neighborhoods: ["Erenköy", "Suadiye"], rooms: "4+1", maxPrice: 80_000, source: "hepsiemlak", status: "LOST" },
+  ] as const;
+
+  const vipLeads = [];
+  for (const ld of vipLeadData) {
+    vipLeads.push(
+      await prisma.lead.create({
+        data: {
+          tenantId: vipT,
+          contactId: vipContacts[ld.contactIdx].id,
+          purpose: ld.purpose,
+          type: "type" in ld ? ld.type : undefined,
+          city: "İstanbul",
+          district: ld.district,
+          neighborhoods: [...ld.neighborhoods],
+          rooms: "rooms" in ld ? ld.rooms : undefined,
+          minPrice: "minPrice" in ld && ld.minPrice ? P(ld.minPrice) : undefined,
+          maxPrice: "maxPrice" in ld && ld.maxPrice ? P(ld.maxPrice) : undefined,
+          needsCredit: "needsCredit" in ld ? !!ld.needsCredit : false,
+          source: ld.source,
+          status: ld.status || "OPEN",
+        },
+      })
+    );
+  }
+
+  // Deal'ler (12 adet - tüm aşamalar)
+  const vipDealSeed: Array<{
+    stage: "NEW" | "CONTACTED" | "VIEWING" | "OFFER" | "CONTRACT" | "CLOSED_WON" | "CLOSED_LOST";
+    listingIdx: number;
+    leadIdx: number;
+    agentIdx: number;
+    value: number;
+    lostReason?: string;
+  }> = [
+    { stage: "VIEWING", listingIdx: 0, leadIdx: 0, agentIdx: 0, value: 18_500_000 },
+    { stage: "OFFER", listingIdx: 1, leadIdx: 5, agentIdx: 1, value: 43_000_000 },
+    { stage: "CONTRACT", listingIdx: 4, leadIdx: 2, agentIdx: 2, value: 95_000 },
+    { stage: "CLOSED_WON", listingIdx: 3, leadIdx: 6, agentIdx: 3, value: 12_300_000 },
+    { stage: "CLOSED_WON", listingIdx: 8, leadIdx: 3, agentIdx: 0, value: 75_000 },
+    { stage: "CONTACTED", listingIdx: 2, leadIdx: 7, agentIdx: 1, value: 9_850_000 },
+    { stage: "VIEWING", listingIdx: 12, leadIdx: 5, agentIdx: 2, value: 10_500_000 },
+    { stage: "NEW", listingIdx: 10, leadIdx: 13, agentIdx: 3, value: 42_000 },
+    { stage: "OFFER", listingIdx: 16, leadIdx: 0, agentIdx: 0, value: 14_900_000 },
+    { stage: "VIEWING", listingIdx: 6, leadIdx: 9, agentIdx: 1, value: 125_000 },
+    { stage: "CLOSED_LOST", listingIdx: 14, leadIdx: 11, agentIdx: 2, value: 7_400_000, lostReason: "Finansman sağlanamadı" },
+    { stage: "CLOSED_LOST", listingIdx: 18, leadIdx: 14, agentIdx: 3, value: 55_000, lostReason: "Başka lokasyon tercih etti" },
+  ];
+
+  const vipDeals = [];
+  for (const d of vipDealSeed) {
+    const deal = await prisma.deal.create({
+      data: {
+        tenantId: vipT,
+        stage: d.stage,
+        listingId: vipListingRecords[d.listingIdx].id,
+        leadId: vipLeads[d.leadIdx].id,
+        contactId: vipLeads[d.leadIdx].contactId,
+        agentId: vipAgents[d.agentIdx],
+        value: P(d.value),
+        closedAt: ["CLOSED_WON", "CLOSED_LOST"].includes(d.stage) ? daysFromNow(-Math.floor(Math.random() * 30)) : null,
+        lostReason: d.lostReason,
+      },
+    });
+    vipDeals.push(deal);
+
+    // Kapanan başarılı işlemler için komisyon
+    if (d.stage === "CLOSED_WON") {
+      const isRent = d.value < 1_000_000;
+      const gross = isRent ? d.value : d.value * 0.035; // Kirada 1 ay, satışta %3.5
+      const agentShare = gross * 0.6; // %60 danışman payı
+      
+      await prisma.commission.create({
+        data: {
+          tenantId: vipT,
+          dealId: deal.id,
+          agentId: vipAgents[d.agentIdx],
+          gross: P(gross),
+          agentShare: P(agentShare),
+          officeShare: P(gross - agentShare),
+          paidAt: Math.random() > 0.5 ? daysFromNow(-7) : null,
+        },
+      });
+    }
+  }
+
+  // Randevular (18 adet - geçmiş, bugün, gelecek)
+  const vipAppointments = [
+    // Geçmiş randevular
+    { title: "Yer gösterme - Moda 4+1", start: daysFromNow(-5, 10), status: "DONE", listingIdx: 0, contactIdx: 0, agentIdx: 0, note: "Müşteri beğendi, 2. görüşme planlandı" },
+    { title: "Fenerbahçe villa gezisi", start: daysFromNow(-4, 14), status: "DONE", listingIdx: 1, contactIdx: 6, agentIdx: 1 },
+    { title: "Ofiste sözleşme imzası", start: daysFromNow(-3, 11), status: "DONE", listingIdx: 3, contactIdx: 1, agentIdx: 3, note: "Satış tamamlandı" },
+    { title: "Suadiye rezidans görüşme", start: daysFromNow(-2, 15), status: "CANCELLED", listingIdx: 4, contactIdx: 3, agentIdx: 2, note: "Müşteri iptal etti" },
+    { title: "Göztepe daire yer gösterme", start: daysFromNow(-1, 13), status: "DONE", listingIdx: 3, contactIdx: 7, agentIdx: 3 },
+    
+    // Bugünkü randevular
+    { title: "Bostancı 2+1 yer gösterme", start: todayAt(10, 30), status: "SCHEDULED", listingIdx: 2, contactIdx: 12, agentIdx: 1 },
+    { title: "Acıbadem ofis görüşmesi", start: todayAt(14, 0), status: "SCHEDULED", listingIdx: 6, contactIdx: 17, agentIdx: 0, note: "Kat planlarını hazırla" },
+    { title: "Caddebostan dükkan teklif sunumu", start: todayAt(16, 30), status: "SCHEDULED", listingIdx: 5, contactIdx: 16, agentIdx: 2 },
+    { title: "Haftalık ekip toplantısı", start: todayAt(18, 0), status: "SCHEDULED", listingIdx: null, contactIdx: null, agentIdx: 0 },
+    
+    // Gelecek randevular
+    { title: "Feneryolu daire yer gösterme", start: daysFromNow(1, 11), status: "SCHEDULED", listingIdx: 12, contactIdx: 20, agentIdx: 3 },
+    { title: "Kozyatağı arsa inceleme", start: daysFromNow(1, 15), status: "SCHEDULED", listingIdx: 7, contactIdx: 13, agentIdx: 0, note: "İmar planını yanına al" },
+    { title: "Küçükyalı villa yer gösterme", start: daysFromNow(2, 10), status: "SCHEDULED", listingIdx: 17, contactIdx: 22, agentIdx: 1, note: "VIP müşteri" },
+    { title: "Kiralama sözleşmesi", start: daysFromNow(2, 14), status: "SCHEDULED", listingIdx: 8, contactIdx: 4, agentIdx: 0 },
+    { title: "Fikirtepe proje tanıtımı", start: daysFromNow(3, 11), status: "SCHEDULED", listingIdx: 9, contactIdx: 20, agentIdx: 2 },
+    { title: "Yetki belgesi imza", start: daysFromNow(4, 10), status: "SCHEDULED", listingIdx: 16, contactIdx: 2, agentIdx: 3 },
+    { title: "19 Mayıs proje görüşme", start: daysFromNow(5, 13), status: "SCHEDULED", listingIdx: 19, contactIdx: 1, agentIdx: 1 },
+    { title: "Koşuyolu kiralama", start: daysFromNow(6, 15), status: "SCHEDULED", listingIdx: 10, contactIdx: 19, agentIdx: 0 },
+    { title: "Bahariye ofis görüşme", start: daysFromNow(7, 14), status: "SCHEDULED", listingIdx: 13, contactIdx: 17, agentIdx: 2 },
+  ];
+
+  for (const a of vipAppointments) {
+    await prisma.appointment.create({
+      data: {
+        tenantId: vipT,
+        title: a.title,
+        status: a.status as any,
+        startsAt: a.start,
+        endsAt: new Date(a.start.getTime() + 90 * 60 * 1000), // 90 dakika
+        listingId: a.listingIdx !== null && a.listingIdx !== undefined ? vipListingRecords[a.listingIdx].id : null,
+        contactId: a.contactIdx !== null && a.contactIdx !== undefined ? vipContacts[a.contactIdx].id : null,
+        agentId: vipAgents[a.agentIdx],
+        note: a.note,
+      },
+    });
+  }
+
+  // Sözleşmeler (8 adet - farklı tipler)
+  const vipContracts = [
+    { type: "AUTHORIZATION", listingIdx: 0, contactIdx: 2, dealIdx: null, signedAt: daysFromNow(-60), expiresAt: daysFromNow(30) },
+    { type: "AUTHORIZATION", listingIdx: 1, contactIdx: 21, dealIdx: null, signedAt: daysFromNow(-45), expiresAt: daysFromNow(45) },
+    { type: "VIEWING_FORM", listingIdx: 0, contactIdx: 0, dealIdx: 0, signedAt: daysFromNow(-5) },
+    { type: "VIEWING_FORM", listingIdx: 1, contactIdx: 6, dealIdx: 1, signedAt: daysFromNow(-4) },
+    { type: "SALE_CONTRACT", listingIdx: 3, contactIdx: 1, dealIdx: 3, signedAt: daysFromNow(-3) },
+    { type: "RENT_CONTRACT", listingIdx: 8, contactIdx: 4, dealIdx: 4, signedAt: daysFromNow(-2) },
+    { type: "AUTHORIZATION", listingIdx: 16, contactIdx: 2, dealIdx: null, signedAt: daysFromNow(-30), expiresAt: daysFromNow(60) },
+    { type: "RENT_CONTRACT", listingIdx: 4, contactIdx: 3, dealIdx: 2, signedAt: daysFromNow(-10) },
+  ];
+
+  for (const c of vipContracts) {
+    await prisma.contract.create({
+      data: {
+        tenantId: vipT,
+        type: c.type as any,
+        listingId: vipListingRecords[c.listingIdx].id,
+        contactId: vipContacts[c.contactIdx].id,
+        dealId: c.dealIdx !== null ? vipDeals[c.dealIdx].id : null,
+        signedAt: c.signedAt,
+        expiresAt: c.expiresAt || null,
+        fileUrl: `https://r2.example.com/contracts/vip-contract-${Math.random().toString(36).substring(7)}.pdf`,
+        fileKey: `contracts/vip-contract-${Math.random().toString(36).substring(7)}.pdf`,
+      },
+    });
+  }
+
+  // Aktiviteler (25 adet - son 7 gün)
+  const vipActivities = [
+    { type: "CALL", userId: enes.id, entity: "contact", entityId: vipContacts[0].id, body: "Ahmet Bey arandı - Moda 4+1 için yer gösterme randevusu ayarlandı", createdAt: daysFromNow(-6, 9) },
+    { type: "NOTE", userId: ayse.id, entity: "listing", entityId: vipListingRecords[1].id, body: "Fenerbahçe villa - Mal sahibi 2M indirim yapabilir", createdAt: daysFromNow(-6, 11) },
+    { type: "WHATSAPP", userId: mehmet.id, entity: "deal", entityId: vipDeals[0].id, body: "Moda daireye ilgili müşteriye WhatsApp ile fotoğraflar gönderildi", createdAt: daysFromNow(-5, 14) },
+    { type: "STATUS_CHANGE", userId: enes.id, entity: "listing", entityId: vipListingRecords[3].id, body: "Göztepe 3+1 durumu SATILDI olarak değiştirildi", createdAt: daysFromNow(-5, 16) },
+    { type: "MEETING", userId: ayse.id, entity: "deal", entityId: vipDeals[3].id, body: "Müşteri ile ofiste buluşuldu - Sözleşme imzalandı", createdAt: daysFromNow(-4, 11) },
+    { type: "EMAIL", userId: selin.id, entity: "lead", entityId: vipLeads[1].id, body: "Zeynep Hanım'a portföy katalogu e-posta ile gönderildi", createdAt: daysFromNow(-4, 15) },
+    { type: "CALL", userId: mehmet.id, entity: "contact", entityId: vipContacts[17].id, body: "Tolga Bey arandı - Ofis ihtiyacı için Acıbadem lokasyonu önerildi", createdAt: daysFromNow(-3, 10) },
+    { type: "NOTE", userId: enes.id, entity: "listing", entityId: vipListingRecords[17].id, body: "Küçükyalı villa - Havuz bakımı yapılacak, fotoğraflar güncellenecek", createdAt: daysFromNow(-3, 13) },
+    { type: "WHATSAPP", userId: selin.id, entity: "contact", entityId: vipContacts[3].id, body: "Elif Hanım'a Bostancı 2+1 video turu gönderildi", createdAt: daysFromNow(-2, 9) },
+    { type: "STATUS_CHANGE", userId: ayse.id, entity: "deal", entityId: vipDeals[2].id, body: "Suadiye rezidans kiralama fırsatı SÖZLEŞME aşamasına geçti", createdAt: daysFromNow(-2, 14) },
+    { type: "MEETING", userId: mehmet.id, entity: "contact", entityId: vipContacts[13].id, body: "Okan Bey ile arsa projesi görüşmesi yapıldı", createdAt: daysFromNow(-1, 11) },
+    { type: "CALL", userId: enes.id, entity: "lead", entityId: vipLeads[7].id, body: "Yeni lead - Fikirtepe'de 1+1 arayan müşteri kaydedildi", createdAt: daysFromNow(-1, 15) },
+    { type: "NOTE", userId: selin.id, entity: "listing", entityId: vipListingRecords[10].id, body: "Koşuyolu kiralık - Eşya envanteri güncellendi", createdAt: todayAt(9, 0) },
+    { type: "WHATSAPP", userId: ayse.id, entity: "deal", entityId: vipDeals[6].id, body: "Feneryolu 2.5+1 için teklif dosyası WhatsApp ile iletildi", createdAt: todayAt(10, 30) },
+    { type: "EMAIL", userId: mehmet.id, entity: "contact", entityId: vipContacts[22].id, body: "Zafer Bey'e villa portföyü detaylı sunumu gönderildi", createdAt: todayAt(11, 45) },
+    { type: "CALL", userId: enes.id, entity: "contact", entityId: vipContacts[7].id, body: "Hakan Bey arandı - Yatırımlık opsiyonlar konuşuldu", createdAt: todayAt(13, 15) },
+    { type: "STATUS_CHANGE", userId: selin.id, entity: "listing", entityId: vipListingRecords[8].id, body: "Erenköy müstakil durumu KİRALANDI olarak değiştirildi", createdAt: todayAt(14, 30) },
+    { type: "NOTE", userId: ayse.id, entity: "deal", entityId: vipDeals[1].id, body: "Fenerbahçe villa - Müşteri 43M teklif verdi, mal sahibiyle görüşülecek", createdAt: todayAt(15, 0) },
+    { type: "MEETING", userId: enes.id, entity: null, entityId: null, body: "Haftalık ekip toplantısı - 5 yeni ilan hedefi belirlendi", createdAt: todayAt(18, 0) },
+    { type: "WHATSAPP", userId: mehmet.id, entity: "contact", entityId: vipContacts[20].id, body: "Yelda Hanım'a 19 Mayıs projesinin detayları gönderildi", createdAt: daysFromNow(-6, 16) },
+    { type: "CALL", userId: selin.id, entity: "lead", entityId: vipLeads[12].id, body: "Küçükyalı villa arayanlar için yeni lead oluşturuldu", createdAt: daysFromNow(-5, 10) },
+    { type: "NOTE", userId: enes.id, entity: "listing", entityId: vipListingRecords[5].id, body: "Caddebostan dükkan - Kiracı 6 ay sonra çıkacak", createdAt: daysFromNow(-4, 12) },
+    { type: "EMAIL", userId: ayse.id, entity: "contact", entityId: vipContacts[16].id, body: "Seda Hanım'a uygun kredili konut seçenekleri gönderildi", createdAt: daysFromNow(-3, 14) },
+    { type: "STATUS_CHANGE", userId: mehmet.id, entity: "listing", entityId: vipListingRecords[11].id, body: "Hasanpaşa 3+1 durumu OPSİYONLANDI olarak değiştirildi", createdAt: daysFromNow(-2, 11) },
+    { type: "CALL", userId: selin.id, entity: "contact", entityId: vipContacts[24].id, body: "Canan Hanım arandı - Koşuyolu kiralık için randevu ayarlandı", createdAt: daysFromNow(-1, 13) },
+  ];
+
+  for (const a of vipActivities) {
+    await prisma.activity.create({
+      data: {
+        tenantId: vipT,
+        type: a.type as any,
+        userId: a.userId,
+        entity: a.entity,
+        entityId: a.entityId,
+        body: a.body,
+        createdAt: a.createdAt,
+      },
+    });
+  }
+
+  // Bildirimler (12 adet - okunmuş ve okunmamış)
+  const vipNotifications = [
+    { userId: enes.id, title: "Yeni lead oluşturuldu", body: "Ahmet Yıldız - Kadıköy'de 3+1 arıyor", href: `/leads/${vipLeads[0].id}`, category: "lead", severity: "action", readAt: daysFromNow(-5) },
+    { userId: ayse.id, title: "Yeni eşleşme bulundu", body: "Moda 4+1 ilanınız Ahmet Yıldız'ın aramasıyla eşleşti", href: `/portfoy/${vipListingRecords[0].id}`, category: "match", severity: "action", readAt: daysFromNow(-4) },
+    { userId: enes.id, title: "Fırsat güncellendi", body: "Göztepe 3+1 - SÖZLEŞMEaşamasına geçti", href: `/firsatlar/${vipDeals[3].id}`, category: "deal", severity: "info", readAt: daysFromNow(-3) },
+    { userId: selin.id, title: "Randevu hatırlatması", body: "Bugün saat 14:00 - Bostancı 2+1 yer gösterme", href: `/takvim`, category: "appointment", severity: "urgent", readAt: null },
+    { userId: mehmet.id, title: "Yetki belgesi sona eriyor", body: "Zühtüpaşa 4+1 - Yetki belgesi 30 gün içinde sona erecek", href: `/sozlesmeler`, category: "contract", severity: "action", readAt: null },
+    { userId: enes.id, title: "Yeni mesaj", body: "Vitrin ziyaretçisinden mesaj geldi", href: `/mesajlar`, category: "chat", severity: "action", readAt: todayAt(9, 0) },
+    { userId: ayse.id, title: "Fırsat kaybedildi", body: "Rasimpaşa 1+1 - Finansman sağlanamadı", href: `/firsatlar/${vipDeals[10].id}`, category: "deal", severity: "info", readAt: daysFromNow(-2) },
+    { userId: mehmet.id, title: "İlan pasif duruma geçti", body: "Selamiçeşme arsa pasif duruma alındı", href: `/portfoy/${vipListingRecords[15].id}`, category: "system", severity: "info", readAt: daysFromNow(-1) },
+    { userId: selin.id, title: "Komisyon ödendi", body: "Göztepe 3+1 satışından komisyon hesabınıza yatırıldı", href: `/komisyonlar`, category: "system", severity: "info", readAt: null },
+    { userId: enes.id, title: "Randevu yaklaşıyor", body: "2 saat sonra - Acıbadem ofis görüşmesi", href: `/takvim`, category: "appointment", severity: "urgent", readAt: null },
+    { userId: ayse.id, title: "Yeni teklif", body: "Fenerbahçe villa için 43M teklif geldi", href: `/firsatlar/${vipDeals[1].id}`, category: "deal", severity: "urgent", readAt: null },
+    { userId: mehmet.id, title: "Portal yayını aktif", body: "19 Mayıs 3.5+1 sahibinden.com'da yayınlandı", href: `/portfoy/${vipListingRecords[19].id}`, category: "system", severity: "info", readAt: todayAt(8, 0) },
+  ];
+
+  for (const n of vipNotifications) {
+    await prisma.notification.create({
+      data: {
+        tenantId: vipT,
+        userId: n.userId,
+        title: n.title,
+        body: n.body,
+        href: n.href,
+        category: n.category,
+        severity: n.severity,
+        readAt: n.readAt,
+      },
+    });
+  }
+
+  // Mesajlar (vitrin chat - 3 farklı oturum)
+  const vipMessages = [
+    // Oturum 1 - İlanla ilgili soru
+    { sessionId: "v_001", senderName: "Mehmet", body: "Merhaba, Moda'daki 4+1 daire hala müsait mi?", createdAt: daysFromNow(-2, 10) },
+    { sessionId: "v_001", senderId: enes.id, body: "Merhaba! Evet müsait. Size detaylı bilgi verebilirim.", createdAt: daysFromNow(-2, 10, 2) },
+    { sessionId: "v_001", senderName: "Mehmet", body: "Krediye uygun mu?", createdAt: daysFromNow(-2, 10, 5) },
+    { sessionId: "v_001", senderId: enes.id, body: "Evet, krediye uygun. Bankalarla anlaşmalıyız, süreç konusunda destek sağlayabiliriz.", createdAt: daysFromNow(-2, 10, 7) },
+    
+    // Oturum 2 - Genel bilgi
+    { sessionId: "v_002", senderName: "Ayşe", body: "Kadıköy'de kiralık daireleriniz var mı?", createdAt: daysFromNow(-1, 14) },
+    { sessionId: "v_002", senderId: ayse.id, body: "Merhaba! Evet, birçok kiralık dairemiz var. Ne tür bir daire arıyorsunuz?", createdAt: daysFromNow(-1, 14, 1) },
+    { sessionId: "v_002", senderName: "Ayşe", body: "2+1, eşyalı olursa iyi olur", createdAt: daysFromNow(-1, 14, 3) },
+    { sessionId: "v_002", senderId: ayse.id, body: "Koşuyolu'nda tam eşyalı 2+1'imiz var. Link gönderiyorum.", createdAt: daysFromNow(-1, 14, 5) },
+    
+    // Oturum 3 - Bugün
+    { sessionId: "v_003", senderName: "Can", body: "Villa portföyünüz var mı?", createdAt: todayAt(11, 0) },
+    { sessionId: "v_003", senderId: mehmet.id, body: "Merhaba! Evet, Fenerbahçe ve Küçükyalı'da villalarımız var.", createdAt: todayAt(11, 2) },
+    { sessionId: "v_003", senderName: "Can", body: "Fiyat aralığı ne kadar?", createdAt: todayAt(11, 5) },
+    { sessionId: "v_003", senderId: mehmet.id, body: "Fenerbahçe'de 45M, Küçükyalı'da 62M. İkisi de denize sıfır konumda.", createdAt: todayAt(11, 7) },
+    
+    // Ekip içi mesajlar
+    { sessionId: "TEAM", senderId: enes.id, body: "Bugünkü toplantı saat 18:00'de", createdAt: todayAt(9, 0) },
+    { sessionId: "TEAM", senderId: ayse.id, body: "Tamam, oradayım", createdAt: todayAt(9, 15) },
+    { sessionId: "TEAM", senderId: mehmet.id, body: "Ben de katılacağım", createdAt: todayAt(9, 30) },
+  ];
+
+  for (const m of vipMessages) {
+    await prisma.message.create({
+      data: {
+        tenantId: vipT,
+        sessionId: m.sessionId,
+        senderId: m.senderId || null,
+        senderName: m.senderName || null,
+        body: m.body,
+        createdAt: m.createdAt,
+      },
+    });
+  }
+
+  // İlan olayları (vitrin funnel - son 30 gün)
+  const vipListingEvents: Array<{
+    listingIdx: number;
+    type: "IMPRESSION" | "VIEW" | "CLICK" | "CONTACT" | "CHAT";
+    sessionId: string;
+    source: string;
+    daysAgo: number;
+  }> = [];
+
+  // Her aktif ilan için olaylar oluştur
+  for (let i = 0; i < vipListingRecords.length; i++) {
+    if (["ACTIVE", "OPTIONED"].includes(vipListingRecords[i].status)) {
+      const impressionCount = Math.floor(Math.random() * 50) + 20;
+      const viewCount = Math.floor(impressionCount * 0.3);
+      const clickCount = Math.floor(viewCount * 0.2);
+      const contactCount = Math.floor(clickCount * 0.1);
+
+      for (let d = 0; d < 30; d++) {
+        const dailyImpressions = Math.floor(impressionCount / 30);
+        const dailyViews = Math.floor(viewCount / 30);
+        
+        for (let imp = 0; imp < dailyImpressions; imp++) {
+          vipListingEvents.push({
+            listingIdx: i,
+            type: "IMPRESSION",
+            sessionId: `v_${Math.random().toString(36).substring(7)}`,
+            source: ["vitrin", "feed:sahibinden", "feed:hepsiemlak"][Math.floor(Math.random() * 3)],
+            daysAgo: d,
+          });
+        }
+        
+        for (let v = 0; v < dailyViews; v++) {
+          const sessionId = `v_${Math.random().toString(36).substring(7)}`;
+          vipListingEvents.push({
+            listingIdx: i,
+            type: "VIEW",
+            sessionId,
+            source: "vitrin",
+            daysAgo: d,
+          });
+          
+          // Bazı view'lar click'e dönüşür
+          if (Math.random() < 0.2) {
+            vipListingEvents.push({
+              listingIdx: i,
+              type: "CLICK",
+              sessionId,
+              source: "vitrin",
+              daysAgo: d,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Olayları veritabanına kaydet
+  for (const evt of vipListingEvents) {
+    await prisma.listingEvent.create({
+      data: {
+        tenantId: vipT,
+        listingId: vipListingRecords[evt.listingIdx].id,
+        type: evt.type,
+        sessionId: evt.sessionId,
+        source: evt.source,
+        durationMs: evt.type === "VIEW" ? Math.floor(Math.random() * 180000) + 30000 : null,
+        createdAt: daysFromNow(-evt.daysAgo, Math.floor(Math.random() * 24)),
+      },
+    });
+  }
+
+  // Günlük istatistikler (son 30 gün için özet)
+  for (let i = 0; i < vipListingRecords.length; i++) {
+    if (["ACTIVE", "OPTIONED"].includes(vipListingRecords[i].status)) {
+      for (let d = 0; d < 30; d++) {
+        const date = new Date();
+        date.setDate(date.getDate() - d);
+        date.setHours(0, 0, 0, 0);
+
+        await prisma.listingDailyStat.create({
+          data: {
+            tenantId: vipT,
+            listingId: vipListingRecords[i].id,
+            day: date,
+            impressions: Math.floor(Math.random() * 30) + 10,
+            views: Math.floor(Math.random() * 15) + 3,
+            clicks: Math.floor(Math.random() * 5),
+            contacts: Math.floor(Math.random() * 2),
+            chats: Math.random() < 0.3 ? 1 : 0,
+          },
+        });
+      }
+    }
+  }
+
+  // Insight'lar (eylem önerileri)
+  const vipInsights = [
+    {
+      listingId: vipListingRecords[0].id,
+      rule: "HIGH_INTEREST",
+      severity: "ACTION" as const,
+      title: "Yüksek ilgi gören ilan",
+      body: "Moda 4+1 ilanınız son 7 günde 45 görüntüleme aldı. Fiyat artışı değerlendirilebilir.",
+      data: { views: 45, clicks: 9 },
+    },
+    {
+      listingId: vipListingRecords[14].id,
+      rule: "STALE_LISTING",
+      severity: "URGENT" as const,
+      title: "Uzun süredir aktif ilan",
+      body: "Rasimpaşa 1+1 60 gündür aktif ancak düşük ilgi görüyor. Fiyat revizyonu önerilir.",
+      data: { daysActive: 60, avgViews: 2 },
+    },
+    {
+      listingId: vipListingRecords[16].id,
+      rule: "AUTH_EXPIRING",
+      severity: "ACTION" as const,
+      title: "Yetki belgesi sona eriyor",
+      body: "Zühtüpaşa 4+1 için yetki belgesi 30 gün içinde sona erecek. Mal sahibiyle görüşün.",
+      data: { expiresAt: daysFromNow(30) },
+    },
+    {
+      listingId: vipListingRecords[2].id,
+      rule: "PRICE_BELOW_MARKET",
+      severity: "INFO" as const,
+      title: "Piyasa altı fiyat",
+      body: "Bostancı 2+1 benzer ilanlardan %8 daha ucuz. Hızlı satış beklenir.",
+      data: { marketAvg: 10_700_000, yourPrice: 9_850_000 },
+    },
+    {
+      listingId: vipListingRecords[17].id,
+      rule: "HIGH_VALUE",
+      severity: "ACTION" as const,
+      title: "Yüksek değerli ilan",
+      body: "Küçükyalı villa portföyünüzün en değerli ilanı. Özel pazarlama stratejisi önerilir.",
+      data: { value: 62_000_000 },
+    },
+    {
+      listingId: null,
+      rule: "NEW_LEADS",
+      severity: "INFO" as const,
+      title: "Bu hafta 3 yeni lead",
+      body: "Bu hafta 3 yeni talep kaydedildi. Takip edilmesi gereken leadler var.",
+      data: { newLeads: 3 },
+    },
+  ];
+
+  for (const ins of vipInsights) {
+    await prisma.insight.create({
+      data: {
+        tenantId: vipT,
+        listingId: ins.listingId,
+        rule: ins.rule,
+        severity: ins.severity,
+        title: ins.title,
+        body: ins.body,
+        data: ins.data,
+      },
+    });
+  }
+
+  console.log("\n✔ VIP Gayrimenkul (Enes) seed tamam!");
+  console.log(`  Ofis: ${vipTenant.name} (${SLUG_VIP})`);
+  console.log(`  Kullanıcılar: 4 (${enes.name}, ${ayse.name}, ${mehmet.name}, ${selin.name})`);
+  console.log(`  Kişiler: ${vipContacts.length}`);
+  console.log(`  İlanlar: ${vipListingRecords.length}`);
+  console.log(`  Toplam Medya: ~${vipListingRecords.reduce((sum, l) => sum + 10, 0)} (foto, video, plan, 360)`);
+  console.log(`  Lead'ler: ${vipLeads.length}`);
+  console.log(`  Fırsatlar: ${vipDeals.length}`);
+  console.log(`  Randevular: ${vipAppointments.length}`);
+  console.log(`  Sözleşmeler: ${vipContracts.length}`);
+  console.log(`  Aktiviteler: ${vipActivities.length}`);
+  console.log(`  Bildirimler: ${vipNotifications.length}`);
+  console.log(`  Mesajlar: ${vipMessages.length}`);
+  console.log(`  İlan Olayları: ${vipListingEvents.length}`);
+  console.log(`  Insight'lar: ${vipInsights.length}`);
+  console.log(`\n  🔑 Giriş: enes@vipgayrimenkul.com / demo1234`);
+  console.log(`  🌐 Vitrin: /ofis/${SLUG_VIP}\n`);
 }
 
 main()

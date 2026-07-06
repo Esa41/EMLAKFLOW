@@ -6,6 +6,8 @@ import { findMatchingLeads } from "@/lib/matching";
 import { ListingForm } from "@/components/listing-form";
 import { DeleteListingButton } from "@/components/delete-listing-button";
 import { ContractPanel } from "@/components/contract-panel";
+import { PriceAdvisor } from "@/components/price-advisor";
+import { OwnerReport } from "@/components/owner-report";
 import { STATUS_TR, STATUS_BADGE } from "@/lib/labels";
 import { Eye } from "lucide-react";
 
@@ -124,6 +126,20 @@ export default async function ListingDetailPage({
           </ul>
         </section>
       )}
+
+      <PriceAdvisor
+        listingId={listing.id}
+        currentPrice={Number(listing.price)}
+      />
+
+      <OwnerReport
+        listingId={listing.id}
+        owners={contacts.map((c) => ({
+          id: c.id,
+          name: c.fullName,
+          phone: c.phone,
+        }))}
+      />
 
       <ContractPanel
         scope={{ listingId: listing.id }}

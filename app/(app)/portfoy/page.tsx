@@ -1,9 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Building2 } from "lucide-react";
+import { Plus, Building2, Lock } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
 import { trMoney } from "@/lib/labels";
+import { getListingUsage, FREE_LISTING_LIMIT } from "@/lib/plans";
 
 const KUNYE_CLS: Record<string, string> = {
   ACTIVE: "",
@@ -27,6 +28,7 @@ export default async function PortfolioPage({
   const session = (await getSession())!;
   const db = forTenant(session.tenantId);
   const sp = await searchParams;
+  const usage = await getListingUsage(session.tenantId);
 
   const listings = await db.listing.findMany({
     where: {
@@ -79,18 +81,47 @@ export default async function PortfolioPage({
         <div>
           <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-600">
             {listings.length} kayıt
+            {!usage.isPro && (
+              <span className="ml-2 text-ink/40">
+                · {usage.count}/{FREE_LISTING_LIMIT} ilan
+              </span>
+            )}
           </p>
           <h1 className="mt-1 font-display text-[27px] font-extrabold tracking-tight">
             Portföy
           </h1>
         </div>
-        <Link
-          href="/portfoy/yeni"
-          className="btn-selvi flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700"
-        >
-          <Plus size={16} /> Yeni ilan
-        </Link>
+        {usage.canCreate ? (
+          <Link
+            href="/portfoy/yeni"
+            className="btn-selvi flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700"
+          >
+            <Plus size={16} /> Yeni ilan
+          </Link>
+        ) : (
+          <Link
+            href="/ayarlar"
+            title={`Ücretsiz planda en fazla ${FREE_LISTING_LIMIT} ilan. Pro'ya geç.`}
+            className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700 hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500"
+          >
+            <Lock size={15} /> Limit doldu · Pro&apos;ya geç
+          </Link>
+        )}
       </div>
+
+      {!usage.canCreate && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <Lock size={16} className="mt-0.5 shrink-0" />
+          <p>
+            Ücretsiz planın {FREE_LISTING_LIMIT} ilan limitine ulaştın. Yeni
+            ilan eklemek için mevcut bir ilanı sil ya da{" "}
+            <Link href="/ayarlar" className="font-semibold underline">
+              Pro&apos;ya geç
+            </Link>
+            .
+          </p>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {filters.map((f) => (

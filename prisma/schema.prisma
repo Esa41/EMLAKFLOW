@@ -119,6 +119,11 @@ model Tenant {
   city      String?
   district  String?
   plan      String   @default("trial") // trial | starter | pro
+  
+  // Pro plan yönetimi (Admin paneli)
+  proStartedAt  DateTime? // Pro plana geçiş tarihi
+  proExpiresAt  DateTime? // Pro planın bitiş tarihi (null = sınırsız)
+  adminNotes    String?   // Sadece admin panelinde görünen notlar
 
   // Komisyon ayarları (Ayarlar sayfasından düzenlenecek)
   commissionRate Decimal @default(4.0) @db.Decimal(5, 2) // satışta % oran
@@ -164,6 +169,7 @@ model Tenant {
   listingEvents ListingEvent[]
   dailyStats   ListingDailyStat[]
   insights     Insight[]
+  planChanges  PlanChangeLog[]
 }
 
 model User {
@@ -422,9 +428,12 @@ model Notification {
   body      String?
   href      String?   // tıklanınca gidilecek sayfa
   readAt    DateTime?
+  category  String    @default("system") // "lead" | "match" | "chat" | "deal" | "contract" | "appointment" | "system"
+  severity  String    @default("info")   // "info" | "action" | "urgent"
   createdAt DateTime  @default(now())
 
   @@index([tenantId, userId, readAt])
+  @@index([tenantId, userId, category])
 }
 
 // Vitrin funnel olayları (Impression → View → Click → Contact).
@@ -505,4 +514,19 @@ model Message {
   createdAt DateTime @default(now())
 
   @@index([tenantId, sessionId, createdAt])
+}
+
+// Plan değişiklik geçmişi (Admin panelinde görüntülenir)
+model PlanChangeLog {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  fromPlan    String   // Önceki plan
+  toPlan      String   // Yeni plan
+  changedBy   String?  // Admin kullanıcı e-postası (veya sistem)
+  reason      String?  // Değişiklik nedeni / admin notu
+  expiresAt   DateTime? // Pro ise bitiş tarihi
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, createdAt])
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
 import { findMatchingLeads } from "@/lib/matching";
+import { getListingUsage, FREE_LISTING_LIMIT } from "@/lib/plans";
 
 export async function GET(req: Request) {
   const session = await getSession();
@@ -44,6 +45,18 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: "title, price, city ve district zorunlu." },
       { status: 400 }
+    );
+  }
+
+  // Ücretsiz plan ilan limiti — Pro değilse en fazla FREE_LISTING_LIMIT ilan
+  const usage = await getListingUsage(session.tenantId);
+  if (!usage.canCreate) {
+    return NextResponse.json(
+      {
+        error: `Ücretsiz planda en fazla ${FREE_LISTING_LIMIT} ilan ekleyebilirsin. Sınırsız ilan için Pro'ya geç.`,
+        code: "LISTING_LIMIT",
+      },
+      { status: 403 }
     );
   }
 

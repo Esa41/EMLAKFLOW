@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { forTenant } from "@/lib/tenant";
+import { findMatchingListings } from "@/lib/matching";
 
 /**
  * Public vitrin formu → CRM.
@@ -144,6 +146,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string }
     data: { tenantId: tenant.id, type: "CONTACT", source: "vitrin" },
   });
 
+  // Ters eşleştirme: talebe uyan aktif ilanlar (danışmana ipucu)
+  const matchCount = await findMatchingListings(forTenant(tenant.id), lead, 55)
+    .then((m) => m.length)
+    .catch(() => 0);
+
   if (owner) {
     await prisma.notification.create({
       data: {
@@ -152,8 +159,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string }
         title: "Vitrinden yeni arama talebi",
         body: `${name} (${phone}) — ${purpose === "SALE" ? "satılık" : "kiralık"}${
           body.district ? `, ${body.district}` : ""
-        }${body.rooms ? `, ${body.rooms}` : ""} arıyor.`,
-        href: `/musteriler`,
+        }${body.rooms ? `, ${body.rooms}` : ""} arıyor.${
+          matchCount > 0 ? ` Portföyde ${matchCount} uygun ilan var.` : ""
+        }`,
+        href: `/kisiler/${contact.id}`,
       },
     });
   }
