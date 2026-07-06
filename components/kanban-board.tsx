@@ -19,6 +19,7 @@ import { trMoney, STAGE_COLOR } from "@/lib/labels";
 import { getVertical } from "@/lib/verticals";
 import { DealDrawer } from "./deal-drawer";
 import { DealListView } from "./deal-list-view";
+import { logActivity } from "@/app/actions/activity";
 
 export interface DealCard {
   id: string;
@@ -88,7 +89,7 @@ export function KanbanBoard({
   const [mineOnly, setMineOnly] = useState(false);
   const [drawerDeal, setDrawerDeal] = useState<DealCard | null>(null);
   const [drawerActivities, setDrawerActivities] = useState<
-    Array<{ id: string; body: string; createdAt: string }>
+    Array<{ id: string; body: string; createdAt: string; type?: string; author?: string | null }>
   >([]);
 
   const sensors = useSensors(
@@ -189,16 +190,42 @@ export function KanbanBoard({
       const data = await res.json();
       setDrawerActivities(
         (data.activities ?? []).map(
-          (a: { id: string; body: string; createdAt: string }) => ({
+          (a: {
+            id: string;
+            body: string;
+            createdAt: string;
+            type?: string;
+            user?: { name: string } | null;
+          }) => ({
             id: a.id,
             body: a.body,
             createdAt: a.createdAt,
+            type: a.type,
+            author: a.user?.name ?? null,
           }),
         ),
       );
     } else {
       setDrawerActivities([]);
     }
+  }
+
+  // Fırsat notu ekle (deal drawer'dan) — optimistic olarak listeye ekle
+  async function addDealNote(dealId: string, type: string, body: string) {
+    const res = await logActivity({ entity: "deal", entityId: dealId, type, body });
+    if (res.ok) {
+      setDrawerActivities((prev) => [
+        ...prev,
+        {
+          id: res.activity.id,
+          body: res.activity.body,
+          createdAt: res.activity.createdAt,
+          type: res.activity.type,
+          author: "Siz",
+        },
+      ]);
+    }
+    return res;
   }
 
   function handleDragStart(e: DragStartEvent) {
@@ -381,6 +408,7 @@ export function KanbanBoard({
           }
         }}
         activities={drawerActivities}
+        onAddNote={addDealNote}
       />
     </div>
   );

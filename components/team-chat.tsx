@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Send } from "lucide-react";
 import { sendTeamMessage } from "@/app/actions/chat";
+import { ConversationPanel, type PanelEntry } from "./conversation-panel";
 
 type Msg = {
   id: string | number;
@@ -12,25 +12,16 @@ type Msg = {
   createdAt: string;
 };
 
-const timeFmt = new Intl.DateTimeFormat("tr-TR", {
-  hour: "2-digit",
-  minute: "2-digit",
-});
-function fmtTime(d: string) {
-  try {
-    return timeFmt.format(new Date(d));
-  } catch {
-    return "";
-  }
-}
-
 export function TeamChat({ currentUserId }: { currentUserId: string }) {
   const [messages, setMessages] = useState<Msg[]>([]);
-  const [body, setBody] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastMarkedRef = useRef<string | number | null>(null);
+
+  const load = useCallback(() => {
+    fetch(`/api/chat/team`)
+      .then((res) => res.json())
+      .then((data) => Array.isArray(data) && setMessages(data))
+      .catch((err) => console.error(err));
+  }, []);
 
   // Yeni mesaj göründükçe ekip sohbetini "okundu" işaretle (sidebar rozeti düşer)
   useEffect(() => {
@@ -40,13 +31,6 @@ export function TeamChat({ currentUserId }: { currentUserId: string }) {
     lastMarkedRef.current = last.id;
     fetch("/api/chat/team/unread", { method: "POST" }).catch(() => {});
   }, [messages]);
-
-  const load = useCallback(() => {
-    fetch(`/api/chat/team`)
-      .then((res) => res.json())
-      .then((data) => Array.isArray(data) && setMessages(data))
-      .catch((err) => console.error(err));
-  }, []);
 
   useEffect(() => {
     // 5 saniyede bir polling; sekme arka plandayken durur, geri gelince hemen yeniler.
@@ -83,111 +67,52 @@ export function TeamChat({ currentUserId }: { currentUserId: string }) {
     };
   }, [load]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  const entries: PanelEntry[] = messages.map((m) => ({
+    id: m.id,
+    body: m.body,
+    author: m.senderId === currentUserId ? undefined : m.senderName,
+    mine: m.senderId === currentUserId,
+    createdAt: m.createdAt,
+  }));
 
-  // Textarea otomatik yükseklik ayarı
-  useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-  }, [body]);
-
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault();
-    if (!body.trim()) return;
-
-    setError(null);
-
+  async function handleSend(body: string) {
     // Optimistic UI
     const tempId = Date.now();
-    const tempMsg: Msg = {
-      id: tempId,
-      body,
-      senderName: "Siz",
-      senderId: currentUserId,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, tempMsg]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        body,
+        senderName: "Siz",
+        senderId: currentUserId,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
 
     const formData = new FormData();
     formData.append("body", body);
-    setBody("");
-
     const result = await sendTeamMessage(formData);
     if (!result.ok) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      setError(result.error);
+      return { ok: false, error: result.error };
     }
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend(e);
-    }
+    load();
+    return { ok: true };
   }
 
   return (
-    <div className="flex h-[600px] flex-col rounded-xl border border-ink/15 bg-white shadow-sm overflow-hidden">
-      <div className="border-b border-ink/15 bg-brand-600 px-4 py-3 text-white">
-        <h2 className="font-bold text-sm">Ofis İçi Ekip Sohbeti</h2>
+    <div>
+      <div className="mb-2 rounded-t-xl bg-brand-600 px-4 py-3 text-sm font-bold text-white">
+        Ofis İçi Ekip Sohbeti
       </div>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
-        {messages.length === 0 ? (
-          <p className="text-center text-xs text-ink/40 mt-10">
-            Ekibinizle sohbete başlayın.
-          </p>
-        ) : (
-          messages.map((m) => {
-            const isMe = m.senderId === currentUserId;
-            return (
-              <div
-                key={m.id}
-                className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
-              >
-                <span className="text-[10px] text-ink/50 px-1 mb-0.5">
-                  {m.senderName}
-                </span>
-                <div
-                  className={`rounded-xl px-3 py-2 text-sm max-w-[85%] whitespace-pre-wrap break-words ${isMe ? "bg-brand-600 text-white" : "bg-white border border-ink/10 text-ink"}`}
-                >
-                  {m.body}
-                </div>
-                <span className="text-[10px] text-ink/40 px-1 mt-0.5">
-                  {fmtTime(m.createdAt)}
-                </span>
-              </div>
-            );
-          })
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      <div className="border-t border-ink/15 bg-white p-3">
-        {error && <p className="mb-2 text-[11px] text-rose-600">{error}</p>}
-        <form onSubmit={handleSend} className="flex gap-2">
-          <textarea
-            ref={textareaRef}
-            placeholder="Mesajınız... (Enter: gönder, Shift+Enter: yeni satır)"
-            required
-            rows={1}
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="flex-1 resize-none rounded-lg border border-ink/20 px-3 py-2 text-sm focus:border-brand-600 focus:ring-1 focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="flex items-center justify-center rounded-lg bg-brand-600 p-2 text-white hover:bg-brand-700 transition-colors"
-          >
-            <Send size={18} />
-          </button>
-        </form>
-      </div>
+      <ConversationPanel
+        variant="chat"
+        entries={entries}
+        onSend={handleSend}
+        placeholder="Mesajınız… (Enter: gönder, Shift+Enter: yeni satır)"
+        emptyText="Ekibinizle sohbete başlayın."
+        heightClass="h-[520px]"
+      />
     </div>
   );
 }

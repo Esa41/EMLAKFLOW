@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { trMoney } from "@/lib/labels";
 import type { DealCard } from "./kanban-board";
+import { ConversationPanel, type PanelEntry } from "./conversation-panel";
 
 const LOST_REASONS = [
   { value: "price", label: "Fiyat uyuşmadı" },
@@ -29,6 +30,7 @@ export function DealDrawer({
   onStageChange,
   onDelete,
   activities,
+  onAddNote,
 }: {
   deal: DealCard | null;
   stageLabels: Record<string, string>;
@@ -41,7 +43,18 @@ export function DealDrawer({
     lostReason?: string,
   ) => Promise<void>;
   onDelete: (dealId: string) => Promise<void>;
-  activities: Array<{ id: string; body: string; createdAt: string }>;
+  activities: Array<{
+    id: string;
+    body: string;
+    createdAt: string;
+    type?: string;
+    author?: string | null;
+  }>;
+  onAddNote?: (
+    dealId: string,
+    type: string,
+    body: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -199,26 +212,23 @@ export function DealDrawer({
             )}
           </div>
 
-          {activities.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink/45">
-                Aktivite
-              </p>
-              <ul className="space-y-2">
-                {activities.map((a) => (
-                  <li
-                    key={a.id}
-                    className="rounded-lg bg-ink/[0.03] px-3 py-2 text-xs text-ink/70"
-                  >
-                    {a.body}
-                    <span className="mt-0.5 block font-mono text-[9px] text-ink/35">
-                      {new Date(a.createdAt).toLocaleString("tr-TR")}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink/45">
+              Notlar & Aktivite
+            </p>
+            <ConversationPanel
+              variant="notes"
+              entries={activities as PanelEntry[]}
+              showTypePicker={!!onAddNote}
+              placeholder="Not ekle — arama, görüşme, WhatsApp…"
+              emptyText="Henüz not yok. İlk görüşme/aramayı buraya kaydedin."
+              heightClass="h-56"
+              onSend={async (body, type) => {
+                if (!onAddNote) return { ok: false, error: "Not eklenemiyor." };
+                return onAddNote(deal!.id, type, body);
+              }}
+            />
+          </div>
         </div>
 
         <div className="border-t border-ink/10 p-4">
