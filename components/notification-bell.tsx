@@ -129,6 +129,14 @@ export function NotificationBell() {
               </ul>
             )}
           </div>
+
+          <Link
+            href="/merkez"
+            onClick={() => setOpen(false)}
+            className="block border-t border-ink/10 px-4 py-2.5 text-center text-xs font-semibold text-brand-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
+          >
+            Bildirimler &amp; Faaliyet&apos;e git →
+          </Link>
         </div>
       )}
     </div>

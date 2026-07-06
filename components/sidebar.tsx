@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -22,6 +23,23 @@ export function Sidebar({
   const pathname = usePathname();
   const nav = getNav(vertical);
   const v = getVertical(vertical);
+
+  // Okunmamış bildirim sayısı — "/merkez" menü öğesinde rozet
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      fetch("/api/notifications?unreadOnly=true")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => alive && d && setUnread(d.unread ?? 0))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, 60_000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, []);
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-ink/90 bg-paper lg:flex">
@@ -47,6 +65,15 @@ export function Sidebar({
             >
               <Icon size={17} strokeWidth={active ? 2.4 : 2} />
               {label}
+              {href === "/merkez" && unread > 0 && (
+                <span
+                  className={`ml-auto min-w-[18px] rounded-full px-1.5 py-0.5 text-center text-[10px] font-bold leading-none ${
+                    active ? "bg-white text-brand-700" : "bg-brand-600 text-white"
+                  }`}
+                >
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
             </Link>
           );
         })}

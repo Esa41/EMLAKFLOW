@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Bell, Activity } from "lucide-react";
 import { NotificationCenter } from "@/components/notification-center";
-import { ActivityLogViewer } from "@/components/activity-log-viewer";
+import { ActivityCenter } from "@/components/activity-center";
 
 type Tab = "bildirimler" | "faaliyet";
 
@@ -71,14 +71,7 @@ function MerkezInner({ canViewTeam }: { canViewTeam: boolean }) {
       {tab === "bildirimler" ? (
         <NotificationCenter />
       ) : (
-        <div>
-          <div className="mb-4 rounded-lg border border-ink/10 bg-brand-50/60 px-3.5 py-2 text-xs font-medium text-ink/60">
-            {canViewTeam
-              ? "Tüm ekibin faaliyet kayıtları gösteriliyor."
-              : "Yalnızca kendi faaliyet geçmişiniz gösteriliyor."}
-          </div>
-          <ActivityLogViewer />
-        </div>
+        <ActivityCenter canViewTeam={canViewTeam} />
       )}
     </div>
   );
