@@ -27,6 +27,9 @@ export function ListingGallery({
 }) {
   const [active, setActive] = useState(0);
   const [lightbox, setLightbox] = useState(false);
+  const touchRef = useRef<{ startX: number; lastX: number; startY: number; lastY: number; scale: number; baseScale: number; panning: boolean }>({
+    startX: 0, lastX: 0, startY: 0, lastY: 0, scale: 1, baseScale: 1, panning: false
+  });
 
   // Yalnız görsel medya — video (YouTube) ve tour360 (Matterport) embed URL'leri
   // next/image ile render edilemez, galeri dışında bırakılır.
@@ -54,6 +57,54 @@ export function ListingGallery({
       document.body.style.overflow = "";
     };
   }, [lightbox, go]);
+
+  // Touch/swipe handling for lightbox
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      touchRef.current.startX = e.touches[0].clientX;
+      touchRef.current.startY = e.touches[0].clientY;
+      touchRef.current.lastX = e.touches[0].clientX;
+      touchRef.current.lastY = e.touches[0].clientY;
+      touchRef.current.panning = touchRef.current.scale > 1;
+    } else if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      touchRef.current.startX = dist; // reuse startX for distance
+      touchRef.current.baseScale = touchRef.current.scale;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1 && !touchRef.current.panning) {
+      // Normal swipe
+      const dx = e.touches[0].clientX - touchRef.current.startX;
+      // prevent default if swiping horizontally to avoid navigating back
+      if (Math.abs(dx) > 10) e.preventDefault();
+    } else if (e.touches.length === 2) {
+      e.preventDefault();
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const newScale = Math.min(Math.max(1, touchRef.current.baseScale * (dist / touchRef.current.startX)), 4);
+      touchRef.current.scale = newScale;
+      const el = e.currentTarget.querySelector('img');
+      if (el) el.style.transform = `scale(${newScale})`;
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchRef.current.scale === 1 && !touchRef.current.panning) {
+      const dx = e.changedTouches[0].clientX - touchRef.current.startX;
+      if (Math.abs(dx) > 50) go(dx > 0 ? -1 : 1);
+    }
+    if (e.touches.length === 0 && touchRef.current.scale === 1) {
+      const el = e.currentTarget.querySelector('img');
+      if (el) el.style.transform = '';
+    }
+  };
 
   if (count === 0) {
     return (
@@ -157,15 +208,19 @@ export function ListingGallery({
           </button>
 
           <div
-            className="relative h-[80vh] w-full max-w-5xl"
+            className="relative h-[80vh] w-full max-w-5xl touch-none"
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           >
             <Image
               src={current.url}
               alt={current.alt}
               fill
               sizes="100vw"
-              className="object-contain"
+              className="object-contain transition-transform duration-200"
+              style={{ transformOrigin: "center center" }}
             />
           </div>
 

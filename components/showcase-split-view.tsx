@@ -61,13 +61,11 @@ export function ShowcaseSplitView({
     }));
 
   const handlePinClick = useCallback((listingId: string) => {
-    const card = cardRefs.current[listingId];
-    if (card) {
-      card.scrollIntoView({ behavior: "smooth", block: "center" });
-      card.classList.add("ring-2", "ring-brand-500/40");
-      setTimeout(() => card.classList.remove("ring-2", "ring-brand-500/40"), 2000);
+    const l = listings.find((x) => x.id === listingId);
+    if (l) {
+      window.location.href = `/ofis/${slug}/ilan/${l.slug ? `${l.id}-${l.slug}` : l.id}`;
     }
-  }, []);
+  }, [listings, slug]);
 
   if (listings.length === 0) {
     return (
@@ -108,10 +106,27 @@ export function ShowcaseSplitView({
         </div>
       )}
 
-      <div className="flex gap-6">
-        {/* İlan listesi */}
-        <div className="min-w-0 flex-1">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-2">
+      {/* Desktop/Tablet Harita — Üstte büyük */}
+      {mapListings.length > 0 && (
+        <div className="mb-8 hidden lg:block">
+          <div className="overflow-hidden rounded-2xl border border-ink/15 shadow-sm">
+            <ShowcaseMap
+              listings={mapListings}
+              slug={slug}
+              height={500}
+              highlightedId={hoveredId}
+              onPinClick={handlePinClick}
+            />
+          </div>
+          <p className="mt-2 text-right font-mono text-[11px] text-ink/50">
+            Fiyat plakasına dokun → ilan detayına git. Kartların üzerine geldiğinizde haritada vurgulanır.
+          </p>
+        </div>
+      )}
+
+      {/* İlan listesi */}
+      <div className="min-w-0 flex-1">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {listings.map((l) => (
               <Link
                 key={l.id}
@@ -193,24 +208,6 @@ export function ShowcaseSplitView({
             ))}
           </div>
         </div>
-
-        {/* Desktop harita — sticky */}
-        {mapListings.length > 0 && (
-          <div className="hidden w-[420px] shrink-0 lg:block">
-            <div className="sticky top-20">
-              <ShowcaseMap
-                listings={mapListings}
-                slug={slug}
-                height={600}
-                highlightedId={hoveredId}
-                onPinClick={handlePinClick}
-              />
-              <p className="mt-2 font-mono text-[11px] text-ink/50">
-                Fiyat plakasına dokun → ilan detayına git. Filtreler haritayı da süzer.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

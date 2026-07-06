@@ -14,7 +14,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, Phone, GripVertical, Search } from "lucide-react";
+import { Plus, Phone, GripVertical, Search, ChevronDown } from "lucide-react";
 import { trMoney, STAGE_COLOR } from "@/lib/labels";
 import { getVertical } from "@/lib/verticals";
 import { DealDrawer } from "./deal-drawer";
@@ -87,6 +87,7 @@ export function KanbanBoard({
   const [search, setSearch] = useState("");
   const [agentFilter, setAgentFilter] = useState("");
   const [mineOnly, setMineOnly] = useState(false);
+  const [showClosed, setShowClosed] = useState(false);
   const [drawerDeal, setDrawerDeal] = useState<DealCard | null>(null);
   const [drawerActivities, setDrawerActivities] = useState<
     Array<{ id: string; body: string; createdAt: string; type?: string; author?: string | null }>
@@ -365,24 +366,47 @@ export function KanbanBoard({
             </DragOverlay>
           </DndContext>
 
-          <div className="grid grid-cols-2 gap-3">
-            <DropCloseZone
-              id="CLOSED_WON"
-              label={stageLabels.CLOSED_WON}
-              color="#b4652a"
-              onDrop={(id) =>
-                patchDeal(id, {
-                  stage: "CLOSED_WON",
-                  stageChangedAt: new Date().toISOString(),
-                })
-              }
-            />
-            <DropCloseZone
-              id="CLOSED_LOST"
-              label={stageLabels.CLOSED_LOST}
-              color="#c8beb4"
-              hint="Sürükleyip bırakın — detaydan neden seçebilirsiniz"
-            />
+          <div className="mt-6 rounded-xl border border-ink/15 bg-ink/[0.02] p-2">
+            <button
+              onClick={() => setShowClosed(!showClosed)}
+              className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-bold text-ink/60 transition-colors hover:bg-ink/[0.04] hover:text-ink/80"
+            >
+              <span>BİTTİ (Kazanılan / Kaybedilen)</span>
+              <ChevronDown size={18} className={`transition-transform ${showClosed ? "rotate-180" : ""}`} />
+            </button>
+            <div className={`grid grid-cols-2 gap-3 transition-all ${showClosed ? "mt-2" : "mt-2 opacity-80"}`}>
+              <DropCloseZone
+                id="CLOSED_WON"
+                label={stageLabels.CLOSED_WON}
+                color="#b4652a"
+                deals={showClosed ? byStage.CLOSED_WON : []}
+                stageLabels={stageLabels}
+                onSelect={openDrawer}
+                onDrop={(id) => {
+                  patchDeal(id, {
+                    stage: "CLOSED_WON",
+                    stageChangedAt: new Date().toISOString(),
+                  });
+                  setShowClosed(true);
+                }}
+              />
+              <DropCloseZone
+                id="CLOSED_LOST"
+                label={stageLabels.CLOSED_LOST}
+                color="#c8beb4"
+                hint={!showClosed ? "Sürükleyip bırakın" : undefined}
+                deals={showClosed ? byStage.CLOSED_LOST : []}
+                stageLabels={stageLabels}
+                onSelect={openDrawer}
+                onDrop={(id) => {
+                  patchDeal(id, {
+                    stage: "CLOSED_LOST",
+                    stageChangedAt: new Date().toISOString(),
+                  });
+                  setShowClosed(true);
+                }}
+              />
+            </div>
           </div>
         </>
       )}
@@ -399,6 +423,9 @@ export function KanbanBoard({
             lostReason: lostReason ?? null,
             stageChangedAt: new Date().toISOString(),
           });
+          if (stage === "CLOSED_WON" || stage === "CLOSED_LOST") {
+            setShowClosed(true);
+          }
         }}
         onDelete={async (id) => {
           const res = await fetch(`/api/deals/${id}`, { method: "DELETE" });
@@ -577,27 +604,42 @@ function DropCloseZone({
   label,
   color,
   hint,
+  deals = [],
+  stageLabels = {},
   onDrop,
+  onSelect,
 }: {
   id: string;
   label: string;
   color: string;
   hint?: string;
+  deals?: DealCard[];
+  stageLabels?: Record<string, string>;
   onDrop?: (dealId: string) => void;
+  onSelect?: (d: DealCard) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-xl border-2 border-dashed px-4 py-3 text-center transition-colors ${
+      className={`flex flex-col gap-2 rounded-xl border-2 border-dashed p-3 transition-colors ${
         isOver ? "border-brand-500 bg-brand-50" : "border-ink/20 bg-white"
       }`}
-      style={{ borderColor: isOver ? undefined : color + "66" }}
+      style={{ borderColor: isOver ? undefined : color + "66", minHeight: "68px" }}
     >
-      <p className="text-sm font-bold" style={{ color }}>
-        {label}
-      </p>
-      {hint && <p className="mt-0.5 text-[11px] text-ink/45">{hint}</p>}
+      <div className="text-center">
+        <p className="text-sm font-bold" style={{ color }}>
+          {label} {deals.length > 0 ? `(${deals.length})` : ""}
+        </p>
+        {hint && deals.length === 0 && <p className="mt-0.5 text-[11px] text-ink/45">{hint}</p>}
+      </div>
+      {deals.length > 0 && (
+        <div className="mt-2 grid grid-cols-1 gap-2 xl:grid-cols-2">
+          {deals.map((d) => (
+            <Card key={d.id} deal={d} stageLabels={stageLabels} onClick={() => onSelect?.(d)} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
