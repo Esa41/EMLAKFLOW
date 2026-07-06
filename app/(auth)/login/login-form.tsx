@@ -5,7 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BrandLogo, BrandMark } from "@/components/brand-logo";
-import { getVertical, verticalFromParam } from "@/lib/verticals";
+import { getVertical } from "@/lib/verticals";
 
 export default function LoginForm() {
   return (
@@ -23,14 +23,10 @@ function LoginInner() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const vParam = params.get("v");
-  const vertical = verticalFromParam(vParam);
+  const vertical = "REAL_ESTATE";
   const v = getVertical(vertical);
-  const subtitle =
-    vertical === "AUTO_DEALER"
-      ? "Galerinizin işletim sistemi"
-      : "Ofisinizin işletim sistemi";
-  const registerHref = vParam ? `/register?v=${vParam}` : "/register";
+  const subtitle = "Ofisinizin işletim sistemi";
+  const registerHref = "/register";
 
   async function handleSubmit() {
     setLoading(true);
@@ -102,11 +98,9 @@ function LoginInner() {
         </div>
 
         <p className="mt-6 text-center text-sm text-ink/55">
-          {vertical === "AUTO_DEALER"
-            ? "Galeriniz henüz kayıtlı değil mi? "
-            : "Ofisiniz henüz kayıtlı değil mi? "}
+          Ofisiniz henüz kayıtlı değil mi?{" "}
           <Link href={registerHref} className="font-semibold text-brand-600">
-            {v.officeNameLabel.split(" ")[0]} aç
+            Ofis hesabı aç
           </Link>
         </p>
       </div>

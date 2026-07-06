@@ -2,19 +2,14 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  getVertical,
-  verticalFromParam,
-  PRODUCT_CHOICES,
-} from "@/lib/verticals";
+import { getVertical } from "@/lib/verticals";
 import { BrandLogo } from "@/components/brand-logo";
 
 export default function RegisterForm() {
   const router = useRouter();
-  const sp = useSearchParams();
-  const verticalKey = verticalFromParam(sp.get("v"));
+  const verticalKey = "REAL_ESTATE";
   const v = getVertical(verticalKey);
 
   const [form, setForm] = useState({
@@ -82,29 +77,7 @@ export default function RegisterForm() {
     <div className="flex min-h-screen items-center justify-center bg-paper p-4">
       <div className="glass w-full max-w-md rounded-3xl border border-white/60 p-8 shadow-lg">
         <BrandLogo vertical={verticalKey} className="text-xl" />
-        <p className="mb-1 mt-3 text-sm text-ink/55">{v.tagline}</p>
-        <p className="mb-6 text-xs text-ink/40">
-          Farklı ürün mü?{" "}
-          <Link href="/platform" className="font-semibold text-brand-600">
-            Platform seçimi
-          </Link>
-        </p>
-
-        <div className="mb-4 flex gap-2">
-          {PRODUCT_CHOICES.map(({ key, param, config }) => (
-            <Link
-              key={key}
-              href={`/register?v=${param}`}
-              className={`flex-1 rounded-lg border px-2 py-1.5 text-center text-xs font-semibold ${
-                key === verticalKey
-                  ? "border-brand-600 bg-brand-50 text-brand-700"
-                  : "border-ink/15 text-ink/50 hover:border-ink/30"
-              }`}
-            >
-              {config.productName}
-            </Link>
-          ))}
-        </div>
+        <p className="mb-6 mt-3 text-sm text-ink/55">{v.tagline}</p>
 
         <div className="space-y-4">
           {fields.map((f) => (
