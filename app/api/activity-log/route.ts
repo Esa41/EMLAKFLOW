@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
+import { canViewTeamActivity } from "@/lib/permissions";
 
 const PAGE_SIZE = 50;
 
@@ -14,7 +15,6 @@ export async function GET(req: NextRequest) {
   const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
   const type = url.searchParams.get("type") || undefined;
   const entity = url.searchParams.get("entity") || undefined;
-  const userId = url.searchParams.get("userId") || undefined;
   const from = url.searchParams.get("from") || undefined;
   const to = url.searchParams.get("to") || undefined;
 
@@ -23,7 +23,23 @@ export async function GET(req: NextRequest) {
   if (entity) where.entity = entity;
   const entityId = url.searchParams.get("entityId") || undefined;
   if (entityId) where.entityId = entityId;
-  if (userId) where.userId = userId;
+
+  // ── Rol guard ──
+  // AGENT / ASSISTANT yalnızca kendi kayıtlarını görebilir (userId parametresi
+  // yok sayılır). OWNER / BROKER tüm ekibi görür; userId veya userIds (virgülle
+  // ayrılmış) ile danışman(lar)a göre filtreleyebilir.
+  if (canViewTeamActivity(session.role)) {
+    const userIdsParam = url.searchParams.get("userIds") || undefined;
+    const userId = url.searchParams.get("userId") || undefined;
+    if (userIdsParam) {
+      const ids = userIdsParam.split(",").map((s) => s.trim()).filter(Boolean);
+      if (ids.length) where.userId = { in: ids };
+    } else if (userId) {
+      where.userId = userId;
+    }
+  } else {
+    where.userId = session.userId;
+  }
   if (from || to) {
     where.createdAt = {
       ...(from ? { gte: new Date(from) } : {}),

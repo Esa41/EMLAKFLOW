@@ -1,17 +1,19 @@
 /** Listing create/update body → Prisma alan eşlemesi (emlak + araç). */
 
+import type { ListingPurpose, ListingType, ListingStatus, Prisma } from "@prisma/client";
+
 export function listingDataFromBody(body: Record<string, unknown>) {
   const num = (v: unknown) => (v === "" || v == null ? null : Number(v));
   const str = (v: unknown) => (v === "" || v == null ? null : String(v));
 
   return {
     ...(body.title !== undefined && { title: String(body.title) }),
-    ...(body.purpose !== undefined && { purpose: body.purpose }),
-    ...(body.type !== undefined && { type: body.type }),
-    ...(body.status !== undefined && { status: body.status }),
-    ...(body.price !== undefined && { price: body.price }),
-    ...(body.city !== undefined && { city: body.city }),
-    ...(body.district !== undefined && { district: body.district }),
+    ...(body.purpose !== undefined && { purpose: body.purpose as ListingPurpose }),
+    ...(body.type !== undefined && { type: body.type as ListingType }),
+    ...(body.status !== undefined && { status: body.status as ListingStatus }),
+    ...(body.price !== undefined && { price: body.price as Prisma.Decimal | number | string }),
+    ...(body.city !== undefined && { city: body.city as string }),
+    ...(body.district !== undefined && { district: body.district as string }),
     ...(body.neighborhood !== undefined && { neighborhood: str(body.neighborhood) }),
     ...(body.address !== undefined && { address: str(body.address) }),
     ...(body.lat !== undefined && { lat: num(body.lat) }),
@@ -34,7 +36,9 @@ export function listingDataFromBody(body: Record<string, unknown>) {
     }),
     ...(body.seoTitle !== undefined && { seoTitle: str(body.seoTitle) }),
     ...(body.seoDescription !== undefined && { seoDescription: str(body.seoDescription) }),
-    ...(body.parcelGeo !== undefined && { parcelGeo: body.parcelGeo ?? null }),
+    ...(body.parcelGeo !== undefined && {
+      parcelGeo: (body.parcelGeo ?? null) as Prisma.InputJsonValue,
+    }),
     ...(body.feedEnabled !== undefined && { feedEnabled: !!body.feedEnabled }),
     // Araç
     ...(body.vehicleBrand !== undefined && { vehicleBrand: str(body.vehicleBrand) }),

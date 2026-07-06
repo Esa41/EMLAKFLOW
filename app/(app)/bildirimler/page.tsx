@@ -1,13 +1,6 @@
-import { NotificationCenter } from "@/components/notification-center";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Bildirimler · EmlakFlow",
-};
-
-export default function BildirimlerPage() {
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <NotificationCenter />
-    </div>
-  );
+/** Eski URL — Bildirim & Faaliyet Merkezi'ne (/merkez) taşındı. */
+export default function BildirimlerRedirect() {
+  redirect("/merkez");
 }
