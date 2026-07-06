@@ -29,6 +29,9 @@ export interface TenantSettings {
   visionText: string;
   aboutStats: Array<{ value: string; label: string }>;
   showTeam: boolean;
+  brandColor: string;
+  logoUrl: string;
+  officePhotoUrl: string;
   contractCompanyTitle: string;
   contractRepresentative: string;
   contractAddress: string;
@@ -99,6 +102,9 @@ export function SettingsForm({
         visionText: v.visionText,
         aboutStats: v.aboutStats,
         showTeam: v.showTeam,
+        brandColor: v.brandColor || null,
+        logoUrl: v.logoUrl || null,
+        officePhotoUrl: v.officePhotoUrl || null,
         contractCompanyTitle: v.contractCompanyTitle,
         contractRepresentative: v.contractRepresentative,
         contractAddress: v.contractAddress,
@@ -472,6 +478,48 @@ export function SettingsForm({
                 className="h-5 w-5 rounded border-ink/25 accent-[#1e5b3e]"
               />
             </label>
+          </div>
+
+          {/* Marka kişiselleştirme */}
+          <div className="mt-6 border-t border-ink/10 pt-5">
+            <p className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink/50">
+              Marka Kişiselleştirme
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className={labelCls}>Vitrin tema rengi</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={v.brandColor || "#1e5b3e"}
+                    disabled={!isOwner}
+                    onChange={(e) => set("brandColor", e.target.value)}
+                    className="h-10 w-14 cursor-pointer rounded-lg border border-ink/20 bg-white p-0.5 disabled:cursor-not-allowed"
+                  />
+                  <input
+                    className={`${inputCls} max-w-32 font-mono text-xs`}
+                    value={v.brandColor || "#1e5b3e"}
+                    disabled={!isOwner}
+                    maxLength={7}
+                    placeholder="#1e5b3e"
+                    onChange={(e) => set("brandColor", e.target.value)}
+                  />
+                  {v.brandColor && (
+                    <button
+                      type="button"
+                      onClick={() => set("brandColor", "")}
+                      disabled={!isOwner}
+                      className="text-xs text-ink/45 hover:text-ink disabled:opacity-50"
+                    >
+                      Varsayılana dön
+                    </button>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-ink/45">
+                  Butonlar, başlıklar ve harita pin&apos;leri bu renge uyum sağlar.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

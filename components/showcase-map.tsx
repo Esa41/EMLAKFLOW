@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { applyEmlakflowMapTheme, getMapboxStyleUrl } from "@/lib/mapbox-style";
 
 export interface MapListing {
   id: string;
@@ -38,14 +39,18 @@ export function ShowcaseMap({
   listings,
   slug,
   mode = "browse",
-  height = 340,
+  height = 480,
   parcelGeo,
+  highlightedId,
+  onPinClick,
 }: {
   listings: MapListing[];
   slug: string;
   mode?: "browse" | "single";
   height?: number;
   parcelGeo?: unknown; // tek ilan modunda çizilen alan sınırı
+  highlightedId?: string | null; // split view: vurgulanan ilan
+  onPinClick?: (listingId: string) => void; // split view: pin tıklanma callbackı
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -70,12 +75,14 @@ export function ShowcaseMap({
       try {
         map = new mapboxgl.Map({
           container: ref.current,
-          style: "mapbox://styles/mapbox/light-v11",
+          style: getMapboxStyleUrl(),
           center: [listings[0].lng, listings[0].lat],
           zoom: single ? 14 : 11,
+          pitch: single ? 0 : 28,
+          bearing: single ? 0 : -8,
           dragPan: !single,
           scrollZoom: !single,
-          cooperativeGestures: !single, // sayfa kaydırmasını çalmasın (ctrl+scroll)
+          cooperativeGestures: !single,
           doubleClickZoom: !single,
           boxZoom: false,
           interactive: !single,
@@ -100,6 +107,8 @@ export function ShowcaseMap({
       map.on("load", () => {
         if (cancelled || !map) return;
 
+        applyEmlakflowMapTheme(map);
+
         const bounds = new mapboxgl.LngLatBounds();
         for (const l of listings) {
           bounds.extend([l.lng, l.lat]);
@@ -113,8 +122,19 @@ export function ShowcaseMap({
 
           const el = document.createElement("div");
           el.className = `fiyat-pin${l.purpose === "RENT" ? " fiyat-pin-kira" : ""}`;
+          el.dataset.listingId = l.id;
           el.style.cursor = "pointer";
           el.textContent = `${shortMoney(l.price)}${l.purpose === "RENT" ? "/ay" : ""}`;
+
+          el.addEventListener("mouseenter", () => el.classList.add("fiyat-pin-active"));
+          el.addEventListener("mouseleave", () => el.classList.remove("fiyat-pin-active"));
+          el.addEventListener("click", () => {
+            document
+              .querySelectorAll(".fiyat-pin-active-select")
+              .forEach((n) => n.classList.remove("fiyat-pin-active-select"));
+            el.classList.add("fiyat-pin-active-select");
+            onPinClick?.(l.id);
+          });
 
           // Pin'e tıklayınca önizleme kartı (foto + başlık + oda/m² + İncele)
           const specs = [l.rooms, l.area ? `${l.area} m²` : null]
@@ -191,7 +211,13 @@ export function ShowcaseMap({
         if (single) {
           map.jumpTo({ center: [listings[0].lng, listings[0].lat], zoom: 14 });
         } else if (listings.length > 1) {
-          map.fitBounds(bounds, { padding: 48, maxZoom: 14, duration: 1400 });
+          map.fitBounds(bounds, {
+            padding: 56,
+            maxZoom: 14,
+            duration: 1400,
+            pitch: 28,
+            bearing: -8,
+          });
         } else {
           map.flyTo({
             center: [listings[0].lng, listings[0].lat],
@@ -206,7 +232,20 @@ export function ShowcaseMap({
       cancelled = true;
       map?.remove();
     };
-  }, [listings, slug, mode, router, parcelGeo]);
+  }, [listings, slug, mode, router, parcelGeo, onPinClick]);
+
+  // Dışarıdan gelen highlight değişikliklerini uygula (split view hover)
+  useEffect(() => {
+    if (!ref.current) return;
+    const pins = ref.current.querySelectorAll<HTMLElement>(".fiyat-pin");
+    pins.forEach((pin) => {
+      if (pin.dataset.listingId === highlightedId) {
+        pin.classList.add("fiyat-pin-active");
+      } else {
+        pin.classList.remove("fiyat-pin-active");
+      }
+    });
+  }, [highlightedId]);
 
   if (listings.length === 0) return null;
 
@@ -228,7 +267,7 @@ export function ShowcaseMap({
     <div
       ref={ref}
       style={{ height }}
-      className="z-0 w-full overflow-hidden rounded-[10px] border border-ink"
+      className="z-0 w-full overflow-hidden rounded-2xl border border-ink/15 shadow-lg ring-1 ring-ink/5"
       aria-label="İlan haritası"
     />
   );

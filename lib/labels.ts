@@ -57,6 +57,14 @@ export const CONTRACT_TYPE_TR: Record<string, string> = {
   RENT_CONTRACT: "Kira Sözleşmesi",
 };
 
+export const CONTACT_TYPE_TR: Record<string, string> = {
+  BUYER: "Alıcı",
+  SELLER: "Satıcı",
+  TENANT_C: "Kiracı",
+  LANDLORD: "Mülk Sahibi",
+  OTHER: "Diğer",
+};
+
 export const trMoney = new Intl.NumberFormat("tr-TR", {
   style: "currency",
   currency: "TRY",

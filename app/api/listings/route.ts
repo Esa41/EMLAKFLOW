@@ -7,6 +7,7 @@ import { ensureListingSeo } from "@/lib/seo-ai";
 import { ensureEnvironmentAnalysis } from "@/lib/environment";
 import { nextRefCode } from "@/lib/ref-code";
 import { listingDataFromBody } from "@/lib/listing-payload";
+import { notificationLinks } from "@/lib/notification-links";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
@@ -123,7 +124,8 @@ export async function POST(req: Request) {
         userId: session.userId,
         title: `${listing.refCode} — ${matches.length} taleple eşleşti`,
         body: `En yüksek skor %${matches[0].score}. Eşleşen müşterileri ilan detayında gör.`,
-        href: `/portfoy/${listing.id}`,
+        href: notificationLinks.listing(listing.id),
+        category: "match",
       },
     });
   }

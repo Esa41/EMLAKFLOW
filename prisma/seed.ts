@@ -11,6 +11,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { notificationLinks, dateParam } from "../lib/notification-links";
 
 const prisma = new PrismaClient();
 
@@ -1279,20 +1280,23 @@ async function main() {
     { title: "Bahariye ofis görüşme", start: daysFromNow(7, 14), status: "SCHEDULED", listingIdx: 13, contactIdx: 17, agentIdx: 2 },
   ];
 
+  const vipCreatedAppointments = [];
   for (const a of vipAppointments) {
-    await prisma.appointment.create({
-      data: {
-        tenantId: vipT,
-        title: a.title,
-        status: a.status as any,
-        startsAt: a.start,
-        endsAt: new Date(a.start.getTime() + 90 * 60 * 1000), // 90 dakika
-        listingId: a.listingIdx !== null && a.listingIdx !== undefined ? vipListingRecords[a.listingIdx].id : null,
-        contactId: a.contactIdx !== null && a.contactIdx !== undefined ? vipContacts[a.contactIdx].id : null,
-        agentId: vipAgents[a.agentIdx],
-        note: a.note,
-      },
-    });
+    vipCreatedAppointments.push(
+      await prisma.appointment.create({
+        data: {
+          tenantId: vipT,
+          title: a.title,
+          status: a.status as any,
+          startsAt: a.start,
+          endsAt: new Date(a.start.getTime() + 90 * 60 * 1000), // 90 dakika
+          listingId: a.listingIdx !== null && a.listingIdx !== undefined ? vipListingRecords[a.listingIdx].id : null,
+          contactId: a.contactIdx !== null && a.contactIdx !== undefined ? vipContacts[a.contactIdx].id : null,
+          agentId: vipAgents[a.agentIdx],
+          note: a.note,
+        },
+      }),
+    );
   }
 
   // Sözleşmeler (8 adet - farklı tipler)
@@ -1368,18 +1372,18 @@ async function main() {
 
   // Bildirimler (12 adet - okunmuş ve okunmamış)
   const vipNotifications = [
-    { userId: enes.id, title: "Yeni lead oluşturuldu", body: "Ahmet Yıldız - Kadıköy'de 3+1 arıyor", href: `/leads/${vipLeads[0].id}`, category: "lead", severity: "action", readAt: daysFromNow(-5) },
-    { userId: ayse.id, title: "Yeni eşleşme bulundu", body: "Moda 4+1 ilanınız Ahmet Yıldız'ın aramasıyla eşleşti", href: `/portfoy/${vipListingRecords[0].id}`, category: "match", severity: "action", readAt: daysFromNow(-4) },
-    { userId: enes.id, title: "Fırsat güncellendi", body: "Göztepe 3+1 - SÖZLEŞMEaşamasına geçti", href: `/firsatlar/${vipDeals[3].id}`, category: "deal", severity: "info", readAt: daysFromNow(-3) },
-    { userId: selin.id, title: "Randevu hatırlatması", body: "Bugün saat 14:00 - Bostancı 2+1 yer gösterme", href: `/takvim`, category: "appointment", severity: "urgent", readAt: null },
-    { userId: mehmet.id, title: "Yetki belgesi sona eriyor", body: "Zühtüpaşa 4+1 - Yetki belgesi 30 gün içinde sona erecek", href: `/sozlesmeler`, category: "contract", severity: "action", readAt: null },
-    { userId: enes.id, title: "Yeni mesaj", body: "Vitrin ziyaretçisinden mesaj geldi", href: `/mesajlar`, category: "chat", severity: "action", readAt: todayAt(9, 0) },
-    { userId: ayse.id, title: "Fırsat kaybedildi", body: "Rasimpaşa 1+1 - Finansman sağlanamadı", href: `/firsatlar/${vipDeals[10].id}`, category: "deal", severity: "info", readAt: daysFromNow(-2) },
-    { userId: mehmet.id, title: "İlan pasif duruma geçti", body: "Selamiçeşme arsa pasif duruma alındı", href: `/portfoy/${vipListingRecords[15].id}`, category: "system", severity: "info", readAt: daysFromNow(-1) },
-    { userId: selin.id, title: "Komisyon ödendi", body: "Göztepe 3+1 satışından komisyon hesabınıza yatırıldı", href: `/komisyonlar`, category: "system", severity: "info", readAt: null },
-    { userId: enes.id, title: "Randevu yaklaşıyor", body: "2 saat sonra - Acıbadem ofis görüşmesi", href: `/takvim`, category: "appointment", severity: "urgent", readAt: null },
-    { userId: ayse.id, title: "Yeni teklif", body: "Fenerbahçe villa için 43M teklif geldi", href: `/firsatlar/${vipDeals[1].id}`, category: "deal", severity: "urgent", readAt: null },
-    { userId: mehmet.id, title: "Portal yayını aktif", body: "19 Mayıs 3.5+1 sahibinden.com'da yayınlandı", href: `/portfoy/${vipListingRecords[19].id}`, category: "system", severity: "info", readAt: todayAt(8, 0) },
+    { userId: enes.id, title: "Yeni lead oluşturuldu", body: "Ahmet Yıldız - Kadıköy'de 3+1 arıyor", href: notificationLinks.contact(vipLeads[0].contactId!), category: "lead", severity: "action", readAt: daysFromNow(-5) },
+    { userId: ayse.id, title: "Yeni eşleşme bulundu", body: "Moda 4+1 ilanınız Ahmet Yıldız'ın aramasıyla eşleşti", href: notificationLinks.listing(vipListingRecords[0].id), category: "match", severity: "action", readAt: daysFromNow(-4) },
+    { userId: enes.id, title: "Fırsat güncellendi", body: "Göztepe 3+1 - SÖZLEŞMEaşamasına geçti", href: notificationLinks.deal(vipDeals[3].id), category: "deal", severity: "info", readAt: daysFromNow(-3) },
+    { userId: selin.id, title: "Randevu hatırlatması", body: "Bugün saat 14:00 - Bostancı 2+1 yer gösterme", href: notificationLinks.appointment({ date: dateParam(todayAt(14, 0)), id: vipCreatedAppointments[6].id }), category: "appointment", severity: "urgent", readAt: null },
+    { userId: mehmet.id, title: "Yetki belgesi sona eriyor", body: "Zühtüpaşa 4+1 - Yetki belgesi 30 gün içinde sona erecek", href: notificationLinks.finansContracts(), category: "contract", severity: "action", readAt: null },
+    { userId: enes.id, title: "Yeni mesaj", body: "Vitrin ziyaretçisinden mesaj geldi", href: notificationLinks.chat("v_001"), category: "chat", severity: "action", readAt: todayAt(9, 0) },
+    { userId: ayse.id, title: "Fırsat kaybedildi", body: "Rasimpaşa 1+1 - Finansman sağlanamadı", href: notificationLinks.deal(vipDeals[10].id), category: "deal", severity: "info", readAt: daysFromNow(-2) },
+    { userId: mehmet.id, title: "İlan pasif duruma geçti", body: "Selamiçeşme arsa pasif duruma alındı", href: notificationLinks.listing(vipListingRecords[15].id), category: "system", severity: "info", readAt: daysFromNow(-1) },
+    { userId: selin.id, title: "Komisyon ödendi", body: "Göztepe 3+1 satışından komisyon hesabınıza yatırıldı", href: notificationLinks.finans(), category: "system", severity: "info", readAt: null },
+    { userId: enes.id, title: "Randevu yaklaşıyor", body: "2 saat sonra - Acıbadem ofis görüşmesi", href: notificationLinks.appointment({ date: dateParam(todayAt(14, 0)), id: vipCreatedAppointments[6].id }), category: "appointment", severity: "urgent", readAt: null },
+    { userId: ayse.id, title: "Yeni teklif", body: "Fenerbahçe villa için 43M teklif geldi", href: notificationLinks.deal(vipDeals[1].id), category: "deal", severity: "urgent", readAt: null },
+    { userId: mehmet.id, title: "Portal yayını aktif", body: "19 Mayıs 3.5+1 sahibinden.com'da yayınlandı", href: notificationLinks.listing(vipListingRecords[19].id), category: "system", severity: "info", readAt: todayAt(8, 0) },
   ];
 
   for (const n of vipNotifications) {

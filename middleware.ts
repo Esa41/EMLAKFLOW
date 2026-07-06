@@ -36,6 +36,11 @@ export default auth((req) => {
   if (req.auth && (pathname === "/login" || pathname === "/register")) {
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }
+  if (pathname === "/takvim" || pathname.startsWith("/takvim/")) {
+    const url = new URL("/ajanda", req.nextUrl.origin);
+    req.nextUrl.searchParams.forEach((v, k) => url.searchParams.set(k, v));
+    return NextResponse.redirect(url);
+  }
   return NextResponse.next();
 });
 

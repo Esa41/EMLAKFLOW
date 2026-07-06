@@ -1,16 +1,25 @@
+import { Suspense } from "react";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
-import { Agenda, type AgendaItem } from "@/components/agenda";
-import { TaskList } from "@/components/task-list";
+import { canViewTeamActivity } from "@/lib/permissions";
+import { AgendaHub } from "@/components/agenda-hub";
+import type { AgendaItem } from "@/components/agenda";
+import type { TaskRow } from "@/components/task-list";
 
 export default async function AgendaPage() {
   const session = (await getSession())!;
   const db = forTenant(session.tenantId);
   const d = (n: number) => new Date(Date.now() + n * 86400000);
+  const isManager = canViewTeamActivity(session.role);
+
+  const agentWhere = isManager ? undefined : session.userId;
 
   const [appointments, contacts, listings, agents, tasks] = await Promise.all([
     db.appointment.findMany({
-      where: { startsAt: { gte: d(-7), lte: d(21) } },
+      where: {
+        startsAt: { gte: d(-14), lte: d(42) },
+        ...(agentWhere ? { agentId: agentWhere } : {}),
+      },
       orderBy: { startsAt: "asc" },
       include: {
         contact: { select: { id: true, fullName: true, phone: true } },
@@ -30,6 +39,7 @@ export default async function AgendaPage() {
       select: { id: true, name: true },
     }),
     db.task.findMany({
+      where: agentWhere ? { assigneeId: agentWhere } : undefined,
       orderBy: [{ status: "asc" }, { dueAt: "asc" }],
       include: {
         assignee: { select: { id: true, name: true } },
@@ -49,7 +59,7 @@ export default async function AgendaPage() {
     agent: a.agent,
   }));
 
-  const taskRows = tasks.map((t) => ({
+  const taskRows: TaskRow[] = tasks.map((t) => ({
     id: t.id,
     title: t.title,
     note: t.note,
@@ -61,33 +71,32 @@ export default async function AgendaPage() {
   }));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="font-display text-[27px] font-extrabold tracking-tight">Ajanda & Görevler</h1>
+        <h1 className="font-display text-[27px] font-extrabold tracking-tight">Ajanda</h1>
         <p className="mt-1 text-sm text-ink/55">
-          Son 7 gün ve önümüzdeki 3 hafta — yer göstermeler, imzalar, ziyaretler.
+          Randevu ve görevler tek takvimde — haftalık görünüm veya günlük liste.
         </p>
       </div>
 
-      <section className="space-y-4">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-ink/45">Görevler</h2>
-        <TaskList
+      <Suspense
+        fallback={
+          <div className="rounded-2xl border border-ink/10 bg-white p-12 text-center text-sm text-ink/50">
+            Ajanda yükleniyor…
+          </div>
+        }
+      >
+        <AgendaHub
+          initialAppointments={items}
           initialTasks={taskRows}
-          agents={agents.map((a) => ({ id: a.id, name: a.name }))}
+          contacts={contacts.map((c) => ({ id: c.id, label: c.fullName }))}
+          listings={listings.map((l) => ({ id: l.id, label: `${l.refCode} — ${l.title}` }))}
+          agents={agents.map((a) => ({ id: a.id, label: a.name }))}
           currentUserId={session.userId}
+          canFilterTeam={isManager}
+          defaultAgentId={isManager ? "all" : session.userId}
         />
-      </section>
-
-      <section>
-        <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-ink/45">Randevular</h2>
-        <Agenda
-        initialItems={items}
-        currentUserId={session.userId}
-        contacts={contacts.map((c) => ({ id: c.id, label: c.fullName }))}
-        listings={listings.map((l) => ({ id: l.id, label: `${l.refCode} — ${l.title}` }))}
-        agents={agents.map((a) => ({ id: a.id, label: a.name }))}
-      />
-      </section>
+      </Suspense>
     </div>
   );
 }

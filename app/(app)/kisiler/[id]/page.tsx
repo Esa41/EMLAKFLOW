@@ -2,19 +2,23 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
-import { ContactIcon, Phone, Mail, ArrowLeft, MessageCircle, FileText, CheckCircle2 } from "lucide-react";
-import { STAGE_TR, STAGE_COLOR, trMoney } from "@/lib/labels";
+import { ContactIcon, Phone, Mail, ArrowLeft, MessageCircle } from "lucide-react";
+import { STAGE_TR, STAGE_COLOR, trMoney, CONTACT_TYPE_TR } from "@/lib/labels";
 import { ActivityFeed } from "@/components/activity-feed";
 import { AddDealModal } from "@/components/add-deal-modal";
+import { AddLeadModal } from "@/components/add-lead-modal";
+import { LeadCard, type LeadRow } from "@/components/lead-card";
 import { findMatchingListings } from "@/lib/matching";
 import { createManualDeal } from "@/app/actions/deal";
+import { prisma } from "@/lib/prisma";
+import { isAutoVertical } from "@/lib/verticals";
 
 export default async function ContactDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = (await getSession())!;
   const db = forTenant(session.tenantId);
 
-  const [contact, listings] = await Promise.all([
+  const [contact, listings, tenant] = await Promise.all([
     db.contact.findUnique({
       where: { id: params.id },
       include: {
@@ -31,10 +35,39 @@ export default async function ContactDetailPage(props: { params: Promise<{ id: s
       where: { status: "ACTIVE" },
       select: { id: true, title: true, refCode: true },
       orderBy: { createdAt: "desc" },
-    })
+    }),
+    prisma.tenant.findUnique({
+      where: { id: session.tenantId },
+      select: { vertical: true, city: true },
+    }),
   ]);
 
   if (!contact) return notFound();
+
+  const isAuto = isAutoVertical(tenant?.vertical);
+  const leadRows: LeadRow[] = contact.leads.map((l) => ({
+    id: l.id,
+    purpose: l.purpose,
+    type: l.type,
+    status: l.status,
+    source: l.source,
+    city: l.city,
+    district: l.district,
+    rooms: l.rooms,
+    minArea: l.minArea,
+    maxArea: l.maxArea,
+    minPrice: l.minPrice?.toString() ?? null,
+    maxPrice: l.maxPrice?.toString() ?? null,
+    needsCredit: l.needsCredit,
+    vehicleBrand: l.vehicleBrand,
+    vehicleModel: l.vehicleModel,
+    minYear: l.minYear,
+    maxKm: l.maxKm,
+    fuel: l.fuel,
+    transmission: l.transmission,
+    note: l.note,
+    createdAt: l.createdAt.toISOString(),
+  }));
 
   // Talebe uyan aktif ilanlar (ters eşleştirme) — en yeni talep baz alınır.
   // Zaten fırsat açılmış ilanlar listeden çıkarılır.
@@ -66,7 +99,7 @@ export default async function ContactDetailPage(props: { params: Promise<{ id: s
             <div>
               <h1 className="font-display text-3xl font-extrabold tracking-tight">{contact.fullName}</h1>
               <span className="mt-1 inline-block rounded-md bg-slate-100 px-2 py-1 font-mono text-[10px] font-semibold uppercase text-slate-500">
-                {contact.type}
+                {CONTACT_TYPE_TR[contact.type] ?? contact.type}
               </span>
             </div>
           </div>
@@ -194,16 +227,24 @@ export default async function ContactDetailPage(props: { params: Promise<{ id: s
           )}
 
           <section>
-            <h2 className="bolum mb-4">Vitrin Talepleri ({contact.leads.length})</h2>
-            {contact.leads.length === 0 ? (
-              <p className="text-sm text-ink/50 italic">Talep kaydı yok.</p>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="bolum">
+                Talepler ({contact.leads.length})
+              </h2>
+              <AddLeadModal
+                contactId={contact.id}
+                isAuto={isAuto}
+                defaultCity={tenant?.city}
+              />
+            </div>
+            {leadRows.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-ink/25 bg-white/50 px-4 py-6 text-center text-sm text-ink/50">
+                Henüz talep yok. Vitrinden gelen veya manuel eklediğiniz arama kriterleri burada listelenir.
+              </p>
             ) : (
-              <div className="space-y-2">
-                {contact.leads.map(l => (
-                  <div key={l.id} className="rounded-md bg-white p-3 text-sm border border-ink/10 shadow-sm flex items-start gap-2">
-                     <CheckCircle2 size={16} className="text-brand-500 shrink-0 mt-0.5" />
-                     <p>{l.note || `${l.purpose === "SALE" ? "Satılık" : "Kiralık"} arayışı (${l.district || "Bölge yok"})`}</p>
-                  </div>
+              <div className="space-y-3">
+                {leadRows.map((l) => (
+                  <LeadCard key={l.id} lead={l} isAuto={isAuto} />
                 ))}
               </div>
             )}

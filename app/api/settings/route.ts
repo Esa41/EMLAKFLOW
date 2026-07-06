@@ -33,6 +33,9 @@ export async function GET() {
       visionText: true,
       aboutStats: true,
       showTeam: true,
+      brandColor: true,
+      logoUrl: true,
+      officePhotoUrl: true,
       contractCompanyTitle: true,
       contractRepresentative: true,
       contractAddress: true,
@@ -142,6 +145,15 @@ export async function PATCH(req: Request) {
           : [],
       }),
       ...(body.showTeam !== undefined && { showTeam: !!body.showTeam }),
+      ...(body.brandColor !== undefined && {
+        brandColor: body.brandColor
+          ? String(body.brandColor).slice(0, 7)
+          : null,
+      }),
+      ...(body.logoUrl !== undefined && { logoUrl: body.logoUrl || null }),
+      ...(body.logoKey !== undefined && { logoKey: body.logoKey || null }),
+      ...(body.officePhotoUrl !== undefined && { officePhotoUrl: body.officePhotoUrl || null }),
+      ...(body.officePhotoKey !== undefined && { officePhotoKey: body.officePhotoKey || null }),
       ...(body.contractCompanyTitle !== undefined && {
         contractCompanyTitle: body.contractCompanyTitle
           ? String(body.contractCompanyTitle).slice(0, 120)

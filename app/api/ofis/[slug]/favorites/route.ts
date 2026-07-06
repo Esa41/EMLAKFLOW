@@ -1,6 +1,7 @@
 import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSiteSession } from "@/lib/site-auth";
+import { notificationLinks } from "@/lib/notification-links";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
@@ -89,7 +90,7 @@ export async function POST(req: Request, ctx: Ctx) {
             userId: agentId,
             title: `${listing.refCode} favorilere eklendi`,
             body: `${buyer?.name ?? "Bir ziyaretçi"} (${buyer?.email ?? "üye"}) "${listing.title}" ilanını favoriledi — potansiyel alıcı.`,
-            href: `/portfoy/${listing.id}`,
+            href: notificationLinks.listing(listing.id),
             category: "lead",
             severity: "action",
           },

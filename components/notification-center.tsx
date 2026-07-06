@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { NotificationRow } from "@/components/notification-row";
 import {
   Bell,
   CheckCheck,
@@ -288,41 +288,31 @@ export function NotificationCenter() {
                     return (
                       <li
                         key={n.id}
-                        className={`group relative transition-colors hover:bg-ink/[0.02] ${
+                        className={`group relative ${
                           !n.readAt ? "bg-brand-50/30" : ""
                         }`}
                       >
-                        <div className="flex items-start gap-3 px-4 py-3">
-                          {/* Okundu dot */}
-                          <span
-                            className={`mt-2 h-2 w-2 shrink-0 rounded-full ${
-                              n.readAt ? "bg-slate-200" : "bg-brand-500"
-                            }`}
-                          />
-
-                          {/* Kategori ikon */}
-                          <div
-                            className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${catColor}`}
-                          >
-                            <CatIcon size={15} />
-                          </div>
-
-                          {/* İçerik */}
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                {n.href ? (
-                                  <Link
-                                    href={n.href}
-                                    className={`text-sm hover:underline ${
-                                      n.readAt
-                                        ? "text-ink/65"
-                                        : "font-semibold text-ink"
-                                    }`}
-                                  >
-                                    {n.title}
-                                  </Link>
-                                ) : (
+                        <NotificationRow
+                          id={n.id}
+                          href={n.href}
+                          readAt={n.readAt}
+                          onRead={load}
+                          className="hover:bg-ink/[0.02]"
+                        >
+                          <div className="flex items-start gap-3 px-4 py-3">
+                            <span
+                              className={`mt-2 h-2 w-2 shrink-0 rounded-full ${
+                                n.readAt ? "bg-slate-200" : "bg-brand-500"
+                              }`}
+                            />
+                            <div
+                              className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${catColor}`}
+                            >
+                              <CatIcon size={15} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
                                   <p
                                     className={`text-sm ${
                                       n.readAt
@@ -332,45 +322,53 @@ export function NotificationCenter() {
                                   >
                                     {n.title}
                                   </p>
-                                )}
-                                {n.body && (
-                                  <p className="mt-0.5 line-clamp-2 text-xs text-ink/55">
-                                    {n.body}
-                                  </p>
-                                )}
-                                <div className="mt-1.5 flex items-center gap-2">
-                                  <SevIcon
-                                    size={11}
-                                    className={sevStyle}
-                                  />
-                                  <span className="text-[10px] uppercase tracking-wider text-ink/40">
-                                    {timeAgo(n.createdAt)}
-                                  </span>
+                                  {n.body && (
+                                    <p className="mt-0.5 line-clamp-2 text-xs text-ink/55">
+                                      {n.body}
+                                    </p>
+                                  )}
+                                  <div className="mt-1.5 flex items-center gap-2">
+                                    <SevIcon size={11} className={sevStyle} />
+                                    <span className="text-[10px] uppercase tracking-wider text-ink/40">
+                                      {timeAgo(n.createdAt)}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-
-                              {/* Aksiyon butonları */}
-                              <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                                {!n.readAt && (
-                                  <button
-                                    onClick={() => markRead(n.id)}
-                                    className="rounded-lg p-1.5 text-ink/30 transition-colors hover:bg-brand-50 hover:text-brand-600"
-                                    title="Okundu işaretle"
-                                  >
-                                    <Eye size={14} />
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => deleteOne(n.id)}
-                                  className="rounded-lg p-1.5 text-ink/30 transition-colors hover:bg-rose-50 hover:text-rose-500"
-                                  title="Sil"
+                                <div
+                                  className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
+                                  onClick={(e) => e.preventDefault()}
                                 >
-                                  <Trash2 size={14} />
-                                </button>
+                                  {!n.readAt && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        markRead(n.id);
+                                      }}
+                                      className="rounded-lg p-1.5 text-ink/30 transition-colors hover:bg-brand-50 hover:text-brand-600"
+                                      title="Okundu işaretle"
+                                    >
+                                      <Eye size={14} />
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      deleteOne(n.id);
+                                    }}
+                                    className="rounded-lg p-1.5 text-ink/30 transition-colors hover:bg-rose-50 hover:text-rose-500"
+                                    title="Sil"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
+                        </NotificationRow>
                       </li>
                     );
                   })}

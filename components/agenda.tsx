@@ -236,20 +236,24 @@ export function Agenda({
 }
 
 // ── Yeni randevu formu ──
-function NewAppointment({
+export function NewAppointment({
   contacts,
   listings,
   agents,
   currentUserId,
   onCreated,
+  defaultOpen = false,
+  onClose,
 }: {
   contacts: Option[];
   listings: Option[];
   agents: Option[];
   currentUserId: string;
   onCreated: (a: AgendaItem) => void;
+  defaultOpen?: boolean;
+  onClose?: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("10:00");
@@ -280,6 +284,7 @@ function NewAppointment({
       const data = await res.json();
       onCreated(data.appointment);
       setOpen(false);
+      onClose?.();
       setTitle("");
       setContactId("");
       setListingId("");
@@ -337,7 +342,10 @@ function NewAppointment({
           {saving ? "Oluşturuluyor…" : "Oluştur"}
         </button>
         <button
-          onClick={() => setOpen(false)}
+          onClick={() => {
+            setOpen(false);
+            onClose?.();
+          }}
           className="rounded-xl bg-ink/[0.05] px-5 py-2 text-sm font-semibold text-ink/65"
         >
           Vazgeç

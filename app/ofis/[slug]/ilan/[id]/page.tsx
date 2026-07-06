@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { Phone, Building2, ArrowLeft } from "lucide-react";
+import { Phone, ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { InfoForm } from "@/components/showcase-forms";
 import { ShowcaseMap } from "@/components/showcase-map";
@@ -10,7 +10,9 @@ import { DroneMapFlyover } from "@/components/drone-map-flyover";
 import { EnvironmentScorecard } from "@/components/environment-scorecard";
 import type { EnvironmentResult } from "@/lib/environment";
 import { FavoriteButton } from "@/components/favorite-button";
+import { ShareButton } from "@/components/share-button";
 import { ListingGallery } from "@/components/listing-gallery";
+import { ShowcaseListingCard } from "@/components/showcase-listing-card";
 import { getSiteUser } from "@/lib/site-auth";
 import { TrackListingView } from "@/components/vitrin-tracking";
 import {
@@ -20,8 +22,14 @@ import {
   listingJsonLd,
   breadcrumbJsonLd,
 } from "@/lib/seo";
-import { trMoney, TYPE_TR } from "@/lib/labels";
+import { trMoney } from "@/lib/labels";
 import { getBaseUrl } from "@/lib/url";
+import { isAutoVertical } from "@/lib/verticals";
+import {
+  buildListingSpecs,
+  rentPriceSuffix,
+  showcaseHeroCopy,
+} from "@/lib/showcase-vertical";
 
 const BASE_URL = getBaseUrl();
 
@@ -44,6 +52,10 @@ async function getData(slug: string, id: string) {
       phone: true,
       whatsapp: true,
       showcaseEnabled: true,
+      vertical: true,
+      district: true,
+      city: true,
+      showcaseTagline: true,
     },
   });
   if (!tenant || !tenant.showcaseEnabled) return null;
@@ -98,6 +110,8 @@ export default async function ListingShowcasePage({
   if (!data) notFound();
   const { tenant, listing: l } = data;
   const publicId = l.slug ? `${l.id}-${l.slug}` : l.id;
+  const isAuto = isAutoVertical(tenant.vertical);
+  const copy = showcaseHeroCopy(tenant, tenant.vertical, 1);
 
   const siteUser = await getSiteUser(tenant.id);
   const isFavorited = siteUser
@@ -114,7 +128,9 @@ export default async function ListingShowcasePage({
       tenantId: tenant.id,
       status: "ACTIVE",
       id: { not: l.id },
-      OR: [{ district: l.district }, { type: l.type }],
+      OR: isAuto
+        ? [{ vehicleBrand: l.vehicleBrand }, { type: l.type }]
+        : [{ district: l.district }, { type: l.type }],
       purpose: l.purpose,
     },
     orderBy: { createdAt: "desc" },
@@ -122,34 +138,7 @@ export default async function ListingShowcasePage({
     include: { media: { orderBy: { order: "asc" }, take: 1 } },
   });
 
-  const specs: Array<[string, string | null]> = [
-    ["İşlem", l.purpose === "SALE" ? "Satılık" : "Kiralık"],
-    ["Tip", TYPE_TR[l.type]],
-    ["Oda", l.rooms],
-    ["Brüt m²", l.grossArea?.toString() ?? null],
-    ["Net m²", l.netArea?.toString() ?? null],
-    [
-      "Kat",
-      l.floor != null
-        ? `${l.floor}${l.totalFloors ? ` / ${l.totalFloors}` : ""}`
-        : null,
-    ],
-    [
-      "Bina yaşı",
-      l.buildingAge != null
-        ? l.buildingAge === 0
-          ? "Sıfır"
-          : String(l.buildingAge)
-        : null,
-    ],
-    ["Isıtma", l.heating],
-    ["Aidat", l.dues != null ? trMoney.format(Number(l.dues)) : null],
-    ["Tapu", l.deedStatus],
-    ["Kredi", l.creditEligible ? "Uygun" : "Uygun değil"],
-    ["Eşya", l.furnished ? "Eşyalı" : "Eşyasız"],
-    ["Site", l.inSite ? "Site içinde" : "—"],
-  ];
-  const filled = specs.filter(([, v]) => v);
+  const filled = buildListingSpecs(l, isAuto).filter(([, v]) => v);
 
   const telHref = (p: string | null) =>
     p ? `tel:${p.replace(/\s/g, "")}` : null;
@@ -182,7 +171,7 @@ export default async function ListingShowcasePage({
         href={`/ofis/${slug}`}
         className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-ink/55 hover:text-ink"
       >
-        <ArrowLeft size={13} /> Tüm portföy
+        <ArrowLeft size={13} /> {copy.portfolioLabel}
       </Link>
 
       {/* Galeri */}
@@ -206,8 +195,10 @@ export default async function ListingShowcasePage({
           <div className="mt-2 flex flex-wrap items-center gap-4">
             <p className="font-display text-3xl font-extrabold tracking-tight text-brand-700">
               {trMoney.format(Number(l.price))}
-              {l.purpose === "RENT" && (
-                <span className="text-base font-medium text-ink/45"> /ay</span>
+              {rentPriceSuffix(isAuto, l.purpose) && (
+                <span className="text-base font-medium text-ink/45">
+                  {rentPriceSuffix(isAuto, l.purpose)}
+                </span>
               )}
             </p>
             <FavoriteButton
@@ -217,6 +208,10 @@ export default async function ListingShowcasePage({
               loggedIn={!!siteUser}
               variant="inline"
             />
+            <ShareButton
+              url={`${BASE_URL}/ofis/${slug}/ilan/${publicId}`}
+              title={l.title}
+            />
           </div>
 
           {l.description && (
@@ -225,8 +220,8 @@ export default async function ListingShowcasePage({
             </p>
           )}
 
-          {/* 3D Drone Görünümü + Konum */}
-          {l.lat != null && l.lng != null && (
+          {/* Konum / drone — emlak dikeyi */}
+          {!isAuto && l.lat != null && l.lng != null && (
             <>
               <h2 className="bolum mt-8">3D Drone Görünümü</h2>
               <p className="mt-1 mb-3 text-xs text-ink/45">
@@ -275,7 +270,7 @@ export default async function ListingShowcasePage({
           )}
 
           {/* İlan detayları */}
-          <h2 className="bolum mt-8">İlan Detayları</h2>
+          <h2 className="bolum mt-8">{copy.detailsTitle}</h2>
           <dl className="mt-4 grid grid-cols-2 gap-x-6 sm:grid-cols-3">
             {filled.map(([k, v]) => (
               <div key={k} className="border-b border-ink/10 py-2.5">
@@ -309,7 +304,7 @@ export default async function ListingShowcasePage({
         <aside>
           <div className="rounded-[10px] border border-ink bg-white p-5">
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink/50">
-              İlan Danışmanı
+              {copy.agentLabel}
             </p>
             <p className="mt-2 font-display text-lg font-extrabold tracking-tight">
               {l.agent?.name ?? tenant.name}
@@ -329,7 +324,7 @@ export default async function ListingShowcasePage({
                 {waNumber && (
                   <a
                     href={`https://wa.me/${(waNumber ?? "").replace(/\D/g, "")}?text=${encodeURIComponent(
-                      `Merhaba, "${l.title}" ilanı hakkında bilgi almak istiyorum.`,
+                      `Merhaba, "${l.title}" ${isAuto ? "aracı" : "ilanı"} hakkında bilgi almak istiyorum.`,
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -342,8 +337,9 @@ export default async function ListingShowcasePage({
               </div>
             )}
             <p className="mt-4 border-t border-ink/10 pt-3 font-mono text-[9.5px] leading-relaxed text-ink/45">
-              Görüşmede <b className="text-ink/70">"{l.title}"</b> ilanını
-              referans göstermeniz yeterli.
+              {copy.refHint}{" "}
+              <b className="text-ink/70">&ldquo;{l.title}&rdquo;</b>{" "}
+              {isAuto ? "aracını" : "ilanını"} referans göstermeniz yeterli.
             </p>
           </div>
 
@@ -356,37 +352,17 @@ export default async function ListingShowcasePage({
       {/* Benzer ilanlar */}
       {similar.length > 0 && (
         <section>
-          <h2 className="bolum">Benzer İlanlar</h2>
+          <h2 className="bolum">{copy.similarTitle}</h2>
           <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-3">
             {similar.map((s) => (
-              <Link
+              <ShowcaseListingCard
                 key={s.id}
-                href={`/ofis/${slug}/ilan/${s.slug ? `${s.id}-${s.slug}` : s.id}`}
-                className="overflow-hidden rounded-[10px] border border-ink/15 bg-white hover:border-ink/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
-              >
-                <div className="relative h-32 bg-brand-50">
-                  {s.media[0] ? (
-                    <Image
-                      src={s.media[0].cardUrl ?? s.media[0].url}
-                      alt={s.media[0].alt ?? s.title}
-                      fill
-                      loading="lazy"
-                      sizes="(min-width: 640px) 33vw, 100vw"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-ink/20">
-                      <Building2 size={24} />
-                    </div>
-                  )}
-                </div>
-                <div className="p-3.5">
-                  <h3 className="line-clamp-1 text-sm font-bold">{s.title}</h3>
-                  <p className="mt-1 font-display font-extrabold">
-                    {trMoney.format(Number(s.price))}
-                  </p>
-                </div>
-              </Link>
+                slug={slug}
+                listing={s}
+                isAuto={isAuto}
+                favorited={false}
+                loggedIn={!!siteUser}
+              />
             ))}
           </div>
         </section>

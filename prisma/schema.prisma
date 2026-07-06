@@ -210,6 +210,13 @@ model Tenant {
   aboutStats      Json?   // [{value,label}] x3 — istatistik plakaları
   showTeam        Boolean @default(true) // ekip şeridi görünür mü
 
+  // Marka kişiselleştirme (vitrin teması)
+  brandColor      String? // hex renk kodu, örn. "#1e5b3e" — vitrinde CSS variable olarak enjekte edilir
+  logoUrl         String? // R2'deki ofis logosu URL'si
+  logoKey         String? // R2 object key
+  officePhotoUrl  String? // Hakkımızda bölümündeki ofis fotoğrafı
+  officePhotoKey  String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -247,6 +254,8 @@ model User {
   phone        String?
   role         Role     @default(AGENT)
   avatarUrl    String?
+  photoUrl     String? // ekip vitrininde gösterilen fotoğraf (avatarUrl'den ayrı)
+  photoKey     String? // R2 object key
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -280,6 +289,7 @@ model Contact {
   appointments Appointment[]
   contracts    Contract[]
   rentals      RentalAgreement[]
+  siteUser     SiteUser?
 
   @@index([tenantId])
   @@index([tenantId, phone])
@@ -663,6 +673,8 @@ model SiteUser {
   email        String
   passwordHash String
   phone        String?
+  contactId    String?  @unique
+  contact      Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

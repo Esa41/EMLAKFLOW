@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { forTenant } from "@/lib/tenant";
 import { findMatchingListings } from "@/lib/matching";
+import { notificationLinks } from "@/lib/notification-links";
 
 /**
  * Public vitrin formu → CRM.
@@ -93,7 +94,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string }
           userId: targetUser,
           title: `Vitrinden talep: ${listing.refCode}`,
           body: `${name} (${phone}) "${listing.title}" için bilgi istedi.`,
-          href: `/portfoy/${listing.id}`,
+          href: notificationLinks.listing(listing.id),
+          category: "lead",
         },
       });
     }
@@ -205,7 +207,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string }
             ? ` Portföyde ${matchCount} uygun ${isAuto ? "araç" : "ilan"} var.`
             : ""
         }`,
-        href: `/kisiler/${contact.id}`,
+        href: notificationLinks.contact(contact.id),
+        category: "lead",
       },
     });
   }

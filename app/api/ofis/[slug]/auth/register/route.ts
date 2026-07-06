@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { createSiteSession } from "@/lib/site-auth";
+import { syncSiteUserToContact } from "@/lib/site-crm-sync";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
@@ -47,6 +48,14 @@ export async function POST(req: Request, ctx: Ctx) {
       phone: body?.phone ? String(body.phone).trim() : null,
     },
     select: { id: true, name: true },
+  });
+
+  await syncSiteUserToContact({
+    id: user.id,
+    tenantId: tenant.id,
+    name,
+    email,
+    phone: body?.phone ? String(body.phone).trim() : null,
   });
 
   await createSiteSession(user.id, tenant.id);

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { notificationLinks } from "@/lib/notification-links";
 import { revalidatePath } from "next/cache";
 
 const MAX_BODY_LEN = 2000;
@@ -58,7 +59,7 @@ export async function sendTeamMessage(formData: FormData): Promise<ChatResult> {
             category: "team",
             title: `${session.name} ekip sohbetinde yazdı`,
             body: check.value.slice(0, 120),
-            href: "/ekip",
+            href: notificationLinks.team(),
           })),
         });
       }
@@ -120,9 +121,10 @@ export async function sendVitrinMessage(
             data: {
               tenantId,
               userId: owner.id,
+              category: "chat",
               title: "Yeni vitrin sohbeti",
               body: `${senderName} yazdı: "${check.value.slice(0, 80)}"`,
-              href: "/sohbet",
+              href: notificationLinks.chat(sessionId),
             },
           });
         }

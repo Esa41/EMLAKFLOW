@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, CheckCheck } from "lucide-react";
+import { NotificationRow } from "@/components/notification-row";
 
 interface Notification {
   id: string;
@@ -38,11 +39,10 @@ export function NotificationBell() {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 60_000); // dakikada bir tazele
+    const t = setInterval(load, 60_000);
     return () => clearInterval(t);
   }, []);
 
-  // Dışarı tıklayınca kapat
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -54,7 +54,19 @@ export function NotificationBell() {
   async function markAllRead() {
     await fetch("/api/notifications", { method: "PATCH" });
     setUnread(0);
-    setItems((xs) => xs.map((x) => ({ ...x, readAt: x.readAt ?? new Date().toISOString() })));
+    setItems((xs) =>
+      xs.map((x) => ({ ...x, readAt: x.readAt ?? new Date().toISOString() })),
+    );
+  }
+
+  function onItemRead(id: string) {
+    setUnread((u) => Math.max(0, u - 1));
+    setItems((xs) =>
+      xs.map((x) =>
+        x.id === id ? { ...x, readAt: x.readAt ?? new Date().toISOString() } : x,
+      ),
+    );
+    setOpen(false);
   }
 
   return (
@@ -89,43 +101,44 @@ export function NotificationBell() {
           <div className="max-h-96 overflow-y-auto">
             {items.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-ink/45">
-                Henüz bildirim yok. Yeni ilan taleple eşleşince burada göreceksin.
+                Henüz bildirim yok.
               </p>
             ) : (
               <ul className="divide-y divide-ink/[0.06]">
-                {items.map((n) => {
-                  const inner = (
-                    <div className="flex gap-3 px-4 py-3 transition-colors hover:bg-ink/[0.04]/70">
-                      <span
-                        className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                          n.readAt ? "bg-slate-200" : "bg-brand-500"
-                        }`}
-                      />
-                      <div className="min-w-0">
-                        <p className={`text-sm ${n.readAt ? "text-ink/65" : "font-semibold text-ink"}`}>
-                          {n.title}
-                        </p>
-                        {n.body && (
-                          <p className="mt-0.5 line-clamp-2 text-xs text-ink/55">{n.body}</p>
-                        )}
-                        <p className="mt-1 text-[10px] uppercase tracking-wider text-ink/45">
-                          {timeAgo(n.createdAt)}
-                        </p>
+                {items.map((n) => (
+                  <li key={n.id}>
+                    <NotificationRow
+                      id={n.id}
+                      href={n.href}
+                      readAt={n.readAt}
+                      onRead={() => onItemRead(n.id)}
+                      className="hover:bg-ink/[0.04]"
+                    >
+                      <div className="flex gap-3 px-4 py-3">
+                        <span
+                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                            n.readAt ? "bg-slate-200" : "bg-brand-500"
+                          }`}
+                        />
+                        <div className="min-w-0">
+                          <p
+                            className={`text-sm ${n.readAt ? "text-ink/65" : "font-semibold text-ink"}`}
+                          >
+                            {n.title}
+                          </p>
+                          {n.body && (
+                            <p className="mt-0.5 line-clamp-2 text-xs text-ink/55">
+                              {n.body}
+                            </p>
+                          )}
+                          <p className="mt-1 text-[10px] uppercase tracking-wider text-ink/45">
+                            {timeAgo(n.createdAt)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                  return (
-                    <li key={n.id}>
-                      {n.href ? (
-                        <Link href={n.href} onClick={() => setOpen(false)}>
-                          {inner}
-                        </Link>
-                      ) : (
-                        inner
-                      )}
-                    </li>
-                  );
-                })}
+                    </NotificationRow>
+                  </li>
+                ))}
               </ul>
             )}
           </div>

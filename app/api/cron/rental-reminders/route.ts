@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { paymentStatus } from "@/lib/rentals";
+import { notificationLinks } from "@/lib/notification-links";
 
 export const maxDuration = 60;
 
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
         userId: owner.id,
         title,
         body,
-        href: "/kiralar",
+        href: notificationLinks.rentals(p.agreementId),
         category: "system",
         severity: st === "OVERDUE" ? "urgent" : "action",
       },
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
         userId: owner.id,
         title: `Sözleşme yenileme: ${a.title}`,
         body: `Bitiş tarihi ${a.endDate.toLocaleDateString("tr-TR")} — yenilemeyi planlayın.`,
-        href: "/kiralar",
+        href: notificationLinks.rentals(a.id),
         category: "system",
         severity: "action",
       },
