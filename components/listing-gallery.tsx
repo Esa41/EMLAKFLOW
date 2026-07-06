@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { Building2, ChevronLeft, ChevronRight, X, Play, Expand } from "lucide-react";
 

@@ -11,9 +11,7 @@ import { getSiteUser } from "@/lib/site-auth";
 import { officeJsonLd } from "@/lib/seo";
 import { getBaseUrl } from "@/lib/url";
 import { isAutoVertical } from "@/lib/verticals";
-import { HeroCarousel } from "@/components/hero-carousel";
-import { ShowcaseSplitView, type SplitListing } from "@/components/showcase-split-view";
-import { SaveSearchButton } from "@/components/save-search-button";
+import { ShowcaseWorkspace, type SplitListing } from "@/components/showcase-workspace";
 import { AnimatedCounter } from "@/components/animated-counter";
 
 const BASE_URL = getBaseUrl();
@@ -215,7 +213,6 @@ export default async function ShowcasePage({
     }),
   ]);
 
-  // Split view için serialize
   const splitListings: SplitListing[] = listings.map((l) => ({
     id: l.id,
     title: l.title,
@@ -232,11 +229,6 @@ export default async function ShowcasePage({
     mediaCount: l._count.media,
     image: l.media[0]?.cardUrl ?? l.media[0]?.url ?? null,
     imageAlt: l.media[0]?.alt ?? l.title,
-  }));
-
-  const heroImages = heroMedia.map((m) => ({
-    url: m.cardUrl ?? m.url,
-    alt: m.alt ?? m.listing?.title ?? tenant.name,
   }));
 
   const stats = Array.isArray(tenant.aboutStats)
@@ -300,292 +292,14 @@ export default async function ShowcasePage({
       />
       <TrackImpressions tenantId={tenant.id} />
 
-      {/* Hero Carousel */}
-      <HeroCarousel
-        officeName={tenant.name}
-        tagline={
-          tenant.showcaseTagline ??
-          `Her ilan ${tenant.name} tarafından yerinde incelenip künyelenmiştir — fiyat, metrekare ve tapu bilgisi olduğu gibidir.`
-        }
-        listingCount={listings.length}
-        images={heroImages}
-      />
-
-      {/* Filtreler */}
-      <div className="space-y-3">
-        {/* Kelime / ilçe / mahalle araması */}
-        <form method="GET" className="flex gap-2">
-          {sp.purpose && (
-            <input type="hidden" name="purpose" value={sp.purpose} />
-          )}
-          {sp.type && <input type="hidden" name="type" value={sp.type} />}
-          {sp.minPrice && (
-            <input type="hidden" name="minPrice" value={sp.minPrice} />
-          )}
-          {sp.maxPrice && (
-            <input type="hidden" name="maxPrice" value={sp.maxPrice} />
-          )}
-          {sp.minArea && (
-            <input type="hidden" name="minArea" value={sp.minArea} />
-          )}
-          {sp.sort && <input type="hidden" name="sort" value={sp.sort} />}
-          <div className="relative flex-1">
-            <svg
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/35"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-            <input
-              type="search"
-              name="q"
-              defaultValue={sp.q ?? ""}
-              placeholder="Kelime, mahalle veya ilçe ara — ör. Moda, deniz manzaralı, 3+1"
-              className="w-full rounded-full border border-ink/20 bg-white py-2.5 pl-9 pr-4 text-sm focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
-            />
-          </div>
-          <button
-            type="submit"
-            className="btn-selvi shrink-0 rounded-full px-5 py-2.5 text-sm font-bold text-white"
-          >
-            Ara
-          </button>
-          {q && (
-            <Link
-              href={qs({ q: undefined })}
-              className="flex shrink-0 items-center rounded-full border border-ink/20 px-4 py-2.5 text-sm font-medium text-ink/60 hover:border-ink/50"
-            >
-              Temizle
-            </Link>
-          )}
-        </form>
-
-        {q && (
-          <p className="font-mono text-[11px] text-ink/50">
-            &ldquo;{q}&rdquo; için {listings.length} sonuç
-          </p>
-        )}
-
-        {/* Sonuç sayısı + sıralama */}
-        <div className="flex items-center justify-between">
-          <p className="font-mono text-[11px] font-semibold text-ink/50">
-            {listings.length} ilan
-            {activeFilterCount > 0 && (
-              <span className="ml-1.5 rounded-full bg-brand-600 px-1.5 py-0.5 text-[9px] text-white">
-                {activeFilterCount} filtre
-              </span>
-            )}
-          </p>
-          <div className="flex items-center gap-2">
-            <SaveSearchButton
-              slug={slug}
-              filters={{
-                purpose: sp.purpose,
-                district: sp.district,
-                rooms: sp.rooms,
-                type: sp.type,
-                minPrice: sp.minPrice,
-                maxPrice: sp.maxPrice,
-                minArea: sp.minArea,
-              }}
-            />
-            <div className="flex gap-1 rounded-full border border-ink/15 bg-white p-0.5">
-              {Object.entries(SORT_OPTIONS).map(([key, opt]) => (
-                <Link
-                  key={key}
-                  href={qs({ sort: key === "date_desc" ? undefined : key })}
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                    sortKey === key
-                      ? "bg-ink text-white"
-                      : "text-ink/50 hover:text-ink"
-                  }`}
-                >
-                  {opt.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {[
-            {
-              label: "Tümü",
-              href: qs({ purpose: undefined }),
-              on: !sp.purpose,
-            },
-            {
-              label: "Satılık",
-              href: qs({ purpose: "SALE" }),
-              on: sp.purpose === "SALE",
-            },
-            {
-              label: "Kiralık",
-              href: qs({ purpose: "RENT" }),
-              on: sp.purpose === "RENT",
-            },
-          ].map((f) => (
-            <Link
-              key={f.label}
-              href={f.href}
-              className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-                f.on
-                  ? "border-ink bg-ink text-white"
-                  : "border-ink/20 bg-white text-ink/65 hover:border-ink/50"
-              }`}
-            >
-              {f.label}
-            </Link>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {districts.map(({ district }) => (
-            <Link
-              key={district}
-              href={qs({
-                district: sp.district === district ? undefined : district,
-              })}
-              className={`rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-wider transition-colors ${
-                sp.district === district
-                  ? "border-brand-600 bg-brand-600 text-white"
-                  : "border-ink/15 bg-white text-ink/55 hover:border-ink/40"
-              }`}
-            >
-              {district}
-            </Link>
-          ))}
-          {ROOM_OPTIONS.slice(1, 7).map((r) => (
-            <Link
-              key={r}
-              href={qs({ rooms: sp.rooms === r ? undefined : r })}
-              className={`rounded-full border px-3 py-1 font-mono text-[11px] transition-colors ${
-                sp.rooms === r
-                  ? "border-brand-600 bg-brand-600 text-white"
-                  : "border-ink/15 bg-white text-ink/55 hover:border-ink/40"
-              }`}
-            >
-              {r}
-            </Link>
-          ))}
-        </div>
-
-        {/* Detaylı arama — JS gerektirmez (GET formu) */}
-        <details
-          open={hasAdvanced}
-          className="rounded-[10px] border border-ink/15 bg-white"
-        >
-          <summary className="cursor-pointer select-none px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-ink/60 hover:text-ink">
-            Detaylı Arama{" "}
-            {hasAdvanced && <span className="text-brand-600">· aktif</span>}
-          </summary>
-          <form
-            method="GET"
-            className="grid grid-cols-2 gap-3 border-t border-ink/10 p-4 sm:grid-cols-5"
-          >
-            {/* Aktif çip filtrelerini koru */}
-            {sp.q && <input type="hidden" name="q" value={sp.q} />}
-            {sp.purpose && (
-              <input type="hidden" name="purpose" value={sp.purpose} />
-            )}
-            {sp.district && (
-              <input type="hidden" name="district" value={sp.district} />
-            )}
-            {sp.rooms && <input type="hidden" name="rooms" value={sp.rooms} />}
-            {sp.sort && <input type="hidden" name="sort" value={sp.sort} />}
-            <div>
-              <label className="mb-1 block font-mono text-[9.5px] uppercase tracking-wider text-ink/50">
-                Tip
-              </label>
-              <select
-                name="type"
-                defaultValue={sp.type ?? ""}
-                className="w-full rounded-lg border border-ink/20 px-2.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
-              >
-                <option value="">Tümü</option>
-                {LISTING_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {TYPE_TR[t]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block font-mono text-[9.5px] uppercase tracking-wider text-ink/50">
-                Min Fiyat (₺)
-              </label>
-              <input
-                type="number"
-                name="minPrice"
-                min={0}
-                defaultValue={sp.minPrice ?? ""}
-                placeholder="0"
-                className="w-full rounded-lg border border-ink/20 px-2.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block font-mono text-[9.5px] uppercase tracking-wider text-ink/50">
-                Max Fiyat (₺)
-              </label>
-              <input
-                type="number"
-                name="maxPrice"
-                min={0}
-                defaultValue={sp.maxPrice ?? ""}
-                placeholder="∞"
-                className="w-full rounded-lg border border-ink/20 px-2.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block font-mono text-[9.5px] uppercase tracking-wider text-ink/50">
-                Min Net m²
-              </label>
-              <input
-                type="number"
-                name="minArea"
-                min={0}
-                defaultValue={sp.minArea ?? ""}
-                placeholder="0"
-                className="w-full rounded-lg border border-ink/20 px-2.5 py-2 text-sm focus:border-brand-600 focus:outline-none"
-              />
-            </div>
-            <div className="col-span-2 flex items-end gap-2 sm:col-span-1">
-              <button
-                type="submit"
-                className="btn-selvi flex-1 rounded-lg px-4 py-2 text-sm font-bold text-white"
-              >
-                Ara
-              </button>
-              {hasAdvanced && (
-                <Link
-                  href={qs({
-                    type: undefined,
-                    minPrice: undefined,
-                    maxPrice: undefined,
-                    minArea: undefined,
-                  })}
-                  className="rounded-lg border border-ink/20 px-3 py-2 text-sm font-medium text-ink/60 hover:border-ink/50"
-                >
-                  Temizle
-                </Link>
-              )}
-            </div>
-          </form>
-        </details>
-      </div>
-
-      {/* Vitrin — harita + ilan listesi split view */}
-      <ShowcaseSplitView
+      {/* Ana Çalışma Alanı: Harita, Filtreler ve Grid */}
+      <ShowcaseWorkspace
         listings={splitListings}
         slug={slug}
         favoriteIds={favoriteIds}
         loggedIn={!!siteUser}
+        searchParams={sp}
+        districts={districts.map(d => d.district)}
       />
 
       {/* Son tamamlanan işlemler — sosyal kanıt */}
