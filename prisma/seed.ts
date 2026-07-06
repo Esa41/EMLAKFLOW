@@ -16,6 +16,7 @@ const prisma = new PrismaClient();
 
 const SLUG_ATLAS = "atlas-gayrimenkul";
 const SLUG_VIP = "vip-gayrimenkul";
+const SLUG_GALERI = "akdeniz-otomotiv"; // AUTO_DEALER dikeyi demo galerisi
 // Prisma, Decimal alanlara number kabul eder — P sadece okunabilirlik için
 const P = (n: number) => n;
 
@@ -73,7 +74,7 @@ function daysFromNow(n: number, h = 10, m = 0) {
 
 async function main() {
   // Önceki demo'ları temizle (cascade tüm alt kayıtları siler)
-  await prisma.tenant.deleteMany({ where: { slug: { in: [SLUG_ATLAS, SLUG_VIP] } } });
+  await prisma.tenant.deleteMany({ where: { slug: { in: [SLUG_ATLAS, SLUG_VIP, SLUG_GALERI] } } });
 
   const passwordHash = await hash("demo1234", 12);
 
@@ -1613,6 +1614,227 @@ async function main() {
   console.log(`  Insight'lar: ${vipInsights.length}`);
   console.log(`\n  🔑 Giriş: enes@vipgayrimenkul.com / demo1234`);
   console.log(`  🌐 Vitrin: /ofis/${SLUG_VIP}\n`);
+
+  await seedGaleri();
+}
+
+/**
+ * ── GaleriFlow (AUTO_DEALER) demo galerisi ──
+ * Araç vitrini + araç kriterli lead formu + kira widget'ı için kompakt veri seti.
+ */
+async function seedGaleri() {
+  const passwordHash = await hash("demo1234", 12);
+
+  // Unsplash — araç görselleri
+  const CAR_PHOTOS = [
+    "photo-1503376780353-7e6692767b70",
+    "photo-1494976388531-d1058494cdd8",
+    "photo-1552519507-da3b142c6e3d",
+    "photo-1583121274602-3e2820c69888",
+    "photo-1550355291-bbee04a92027",
+    "photo-1568605117036-5fe5e7bab0b7",
+    "photo-1541899481282-d53bffe3c35d",
+    "photo-1502877338535-766e1452684a",
+  ].map((id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=70`);
+
+  const tenant = await prisma.tenant.create({
+    data: {
+      name: "Akdeniz Otomotiv",
+      slug: SLUG_GALERI,
+      vertical: "AUTO_DEALER",
+      city: "Antalya",
+      district: "Muratpaşa",
+      phone: "+90 242 000 00 00",
+      whatsapp: "+90 532 000 10 01",
+      plan: "pro",
+      showcaseTagline:
+        "Her araç ekspertizden geçer, hasar kaydı ve kilometresi olduğu gibi paylaşılır. Antalya'nın güvenilir galerisi.",
+      aboutTitle: "Ekspertizli araç, şeffaf fiyat.",
+      aboutText:
+        "Galeriye giren her araç bağımsız ekspertizden geçer; boya, değişen ve kilometre bilgisi olduğu gibi ilana yazılır. Takas ve kredi desteğiyle anahtar teslim satış yaparız.",
+      visionText:
+        "İkinci el araçta güven, gizlenen değil paylaşılan bilgidir.",
+      aboutStats: [
+        { value: "9", label: "Yıl" },
+        { value: "1.400+", label: "Satılan araç" },
+        { value: "%94", label: "Memnuniyet" },
+      ],
+    },
+  });
+  const t = tenant.id;
+
+  const owner = await prisma.user.create({
+    data: {
+      tenantId: t,
+      name: "Kaan Akdeniz",
+      email: "sahibi@akdenizotomotiv.com",
+      passwordHash,
+      role: "OWNER",
+      phone: "+90 532 000 10 01",
+    },
+  });
+
+  const contactData: Array<{
+    fullName: string;
+    type: "BUYER" | "SELLER" | "TENANT_C" | "LANDLORD";
+    phone: string;
+  }> = [
+    { fullName: "Cem Yıldırım", type: "BUYER", phone: "+90 555 210 10 10" },
+    { fullName: "Derya Aksoy", type: "BUYER", phone: "+90 555 210 20 20" },
+    { fullName: "Onur Taş", type: "TENANT_C", phone: "+90 555 210 30 30" },
+    { fullName: "Sibel Er", type: "SELLER", phone: "+90 555 210 40 40" },
+  ];
+  const contacts = await Promise.all(
+    contactData.map((c) => prisma.contact.create({ data: { tenantId: t, ...c } }))
+  );
+
+  // ── Araç ilanları ──
+  type V = {
+    title: string;
+    purpose: "SALE" | "RENT";
+    type: "SEDAN" | "HATCHBACK" | "SUV" | "PICKUP" | "MINIVAN" | "COMMERCIAL_VEHICLE" | "MOTORCYCLE";
+    price: number;
+    brand: string;
+    model: string;
+    year: number;
+    km: number;
+    fuel: string;
+    transmission: string;
+    color: string;
+    status?: "ACTIVE" | "SOLD" | "RENTED";
+  };
+  const V: V[] = [
+    { title: "2019 VW Passat 1.6 TDI Elegance", purpose: "SALE", type: "SEDAN", price: 1_450_000, brand: "Volkswagen", model: "Passat 1.6 TDI", year: 2019, km: 98000, fuel: "Dizel", transmission: "Otomatik", color: "Beyaz" },
+    { title: "2021 Renault Clio 1.0 TCe Touch", purpose: "SALE", type: "HATCHBACK", price: 890_000, brand: "Renault", model: "Clio 1.0 TCe", year: 2021, km: 42000, fuel: "Benzin", transmission: "Manuel", color: "Gri" },
+    { title: "2020 BMW 320i Sport Line", purpose: "SALE", type: "SEDAN", price: 2_350_000, brand: "BMW", model: "320i", year: 2020, km: 61000, fuel: "Benzin", transmission: "Otomatik", color: "Siyah" },
+    { title: "2018 Ford Ranger XLT 4x4", purpose: "SALE", type: "PICKUP", price: 1_680_000, brand: "Ford", model: "Ranger XLT", year: 2018, km: 132000, fuel: "Dizel", transmission: "Manuel", color: "Mavi" },
+    { title: "2022 Toyota Corolla 1.8 Hybrid Dream", purpose: "SALE", type: "SEDAN", price: 1_620_000, brand: "Toyota", model: "Corolla 1.8 Hybrid", year: 2022, km: 28000, fuel: "Hibrit", transmission: "Otomatik", color: "Gümüş" },
+    { title: "2023 Tesla Model 3 Long Range", purpose: "SALE", type: "SEDAN", price: 2_950_000, brand: "Tesla", model: "Model 3 LR", year: 2023, km: 15000, fuel: "Elektrik", transmission: "Otomatik", color: "Kırmızı" },
+    { title: "2017 Nissan Qashqai 1.5 dCi Sky Pack", purpose: "SALE", type: "SUV", price: 1_120_000, brand: "Nissan", model: "Qashqai 1.5 dCi", year: 2017, km: 145000, fuel: "Dizel", transmission: "Manuel", color: "Kahverengi" },
+    { title: "2021 Fiat Egea 1.4 Fire Urban (Günlük Kiralık)", purpose: "RENT", type: "SEDAN", price: 1_400, brand: "Fiat", model: "Egea 1.4 Fire", year: 2021, km: 76000, fuel: "Benzin", transmission: "Manuel", color: "Beyaz" },
+  ];
+
+  const listings = [];
+  for (let i = 0; i < V.length; i++) {
+    const x = V[i];
+    const listing = await prisma.listing.create({
+      data: {
+        tenantId: t,
+        agentId: owner.id,
+        refCode: `GF-2026-${String(i + 1).padStart(4, "0")}`,
+        title: x.title,
+        purpose: x.purpose,
+        type: x.type,
+        status: x.status ?? "ACTIVE",
+        price: P(x.price),
+        city: "Antalya",
+        district: "Muratpaşa",
+        neighborhood: "Fener",
+        vehicleBrand: x.brand,
+        vehicleModel: x.model,
+        vehicleYear: x.year,
+        vehicleKm: x.km,
+        fuel: x.fuel,
+        transmission: x.transmission,
+        color: x.color,
+        bodyType: x.type,
+        creditEligible: x.purpose === "SALE",
+        description:
+          "Ekspertiz raporu galeride mevcuttur. Takas ve kredi desteği sağlanır. Detay ve test sürüşü için bize ulaşın.",
+        media: {
+          create: [
+            { url: CAR_PHOTOS[i % CAR_PHOTOS.length], key: `demo/car-${i}-0.jpg`, order: 0 },
+            { url: CAR_PHOTOS[(i + 1) % CAR_PHOTOS.length], key: `demo/car-${i}-1.jpg`, order: 1 },
+            { url: CAR_PHOTOS[(i + 3) % CAR_PHOTOS.length], key: `demo/car-${i}-2.jpg`, order: 2 },
+          ],
+        },
+      },
+    });
+    listings.push(listing);
+  }
+
+  // ── Araç kriterli lead'ler ──
+  const leadData = [
+    { contactIdx: 0, purpose: "SALE" as const, vehicleBrand: "Volkswagen", minYear: 2018, maxKm: 120000, fuel: "Dizel", transmission: "Otomatik", maxPrice: 1_600_000, source: "vitrin" },
+    { contactIdx: 1, purpose: "SALE" as const, vehicleBrand: "Toyota", vehicleModel: "Corolla", minYear: 2021, fuel: "Hibrit", maxPrice: 1_800_000, source: "instagram" },
+    { contactIdx: 2, purpose: "RENT" as const, maxPrice: 2_000, source: "vitrin" },
+  ];
+  const leads = [];
+  for (const ld of leadData) {
+    const lead = await prisma.lead.create({
+      data: {
+        tenantId: t,
+        contactId: contacts[ld.contactIdx].id,
+        status: "OPEN",
+        source: ld.source,
+        purpose: ld.purpose,
+        vehicleBrand: ld.vehicleBrand ?? null,
+        vehicleModel: ld.vehicleModel ?? null,
+        minYear: ld.minYear ?? null,
+        maxKm: ld.maxKm ?? null,
+        fuel: ld.fuel ?? null,
+        transmission: ld.transmission ?? null,
+        maxPrice: ld.maxPrice ? P(ld.maxPrice) : null,
+        note: "[Demo] Araç arama talebi.",
+      },
+    });
+    leads.push(lead);
+  }
+
+  // ── Kira sözleşmesi (günlük kiralık Egea) + ödeme planı → dashboard kira widget'ı ──
+  const rentalListing = listings.find((l) => l.purpose === "RENT")!;
+  const start = new Date();
+  start.setDate(start.getDate() - 20); // 20 gün önce başladı
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 30); // 30 günlük kiralama
+  const dailyRent = 1_400;
+  const agreement = await prisma.rentalAgreement.create({
+    data: {
+      tenantId: t,
+      listingId: rentalListing.id,
+      contactId: contacts[2].id,
+      title: "Fiat Egea — 30 günlük kiralama",
+      status: "ACTIVE",
+      period: "DAILY",
+      startDate: start,
+      endDate: end,
+      rentAmount: P(dailyRent),
+      paymentDueDay: 1,
+      note: "[Demo] Günlük araç kiralama sözleşmesi.",
+    },
+  });
+
+  // Günlük ödeme satırları — geçmiştekiler ödenmiş, bugünden sonrası bekliyor
+  const now = new Date();
+  const paymentRows: Array<{ periodLabel: string; dueDate: Date; paid: boolean }> = [];
+  const cur = new Date(start);
+  let day = 0;
+  while (cur <= end) {
+    paymentRows.push({
+      periodLabel: `G${++day}-${cur.toISOString().slice(0, 10)}`,
+      dueDate: new Date(cur),
+      paid: cur < now,
+    });
+    cur.setDate(cur.getDate() + 1);
+  }
+  await prisma.rentPayment.createMany({
+    data: paymentRows.map((p) => ({
+      tenantId: t,
+      agreementId: agreement.id,
+      periodLabel: p.periodLabel,
+      dueDate: p.dueDate,
+      amount: P(dailyRent),
+      paidAt: p.paid ? p.dueDate : null,
+      method: p.paid ? "nakit" : null,
+    })),
+  });
+
+  console.log("\n✔ Akdeniz Otomotiv (GaleriFlow) oluşturuldu");
+  console.log(`  Ofis: ${tenant.name} (${SLUG_GALERI})`);
+  console.log(`  Araçlar: ${listings.length} · Lead: ${leads.length} · Kira: 1 (${paymentRows.length} ödeme)`);
+  console.log(`  🔑 Giriş: sahibi@akdenizotomotiv.com / demo1234`);
+  console.log(`  🌐 Vitrin: /ofis/${SLUG_GALERI}\n`);
 }
 
 main()

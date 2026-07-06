@@ -4,12 +4,21 @@ export const PURPOSE_TR: Record<string, string> = {
 };
 
 export const TYPE_TR: Record<string, string> = {
+  // Emlak (REAL_ESTATE)
   APARTMENT: "Daire",
   HOUSE: "Müstakil Ev",
   VILLA: "Villa",
   LAND: "Arsa",
   COMMERCIAL: "Dükkan / Ticari",
   OFFICE: "Ofis",
+  // Araç (AUTO_DEALER)
+  SEDAN: "Sedan",
+  HATCHBACK: "Hatchback",
+  SUV: "SUV / Arazi",
+  PICKUP: "Pick-up",
+  MINIVAN: "Minivan / Panelvan",
+  COMMERCIAL_VEHICLE: "Ticari Araç",
+  MOTORCYCLE: "Motosiklet",
 };
 
 export const STATUS_TR: Record<string, string> = {

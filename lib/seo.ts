@@ -73,7 +73,7 @@ export function seoDescription(l: SeoListing, officeName?: string): string {
 
 export function mediaAltText(l: SeoListing, index: number): string {
   const yer = [l.neighborhood, l.district].filter(Boolean).join(", ");
-  const base = `${yer} ${l.purpose === "SALE" ? "satılık" : "kiralık"} ${TYPE_TR[l.type].toLowerCase()}${l.rooms ? ` ${l.rooms}` : ""}`;
+  const base = `${yer} ${l.purpose === "SALE" ? "satılık" : "kiralık"} ${(TYPE_TR[l.type] ?? "ilan").toLowerCase()}${l.rooms ? ` ${l.rooms}` : ""}`;
   return index === 0
     ? `${base} — kapak fotoğrafı`
     : `${base} — fotoğraf ${index + 1}`;

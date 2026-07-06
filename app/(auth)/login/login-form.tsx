@@ -4,6 +4,8 @@ import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { BrandLogo, BrandMark } from "@/components/brand-logo";
+import { getVertical, verticalFromParam } from "@/lib/verticals";
 
 export default function LoginForm() {
   return (
@@ -20,6 +22,15 @@ function LoginInner() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const vParam = params.get("v");
+  const vertical = verticalFromParam(vParam);
+  const v = getVertical(vertical);
+  const subtitle =
+    vertical === "AUTO_DEALER"
+      ? "Galerinizin işletim sistemi"
+      : "Ofisinizin işletim sistemi";
+  const registerHref = vParam ? `/register?v=${vParam}` : "/register";
 
   async function handleSubmit() {
     setLoading(true);
@@ -38,14 +49,10 @@ function LoginInner() {
     <div className="flex min-h-screen items-center justify-center bg-paper p-4">
       <div className="glass w-full max-w-md rounded-3xl border border-white/60 p-8 shadow-lg">
         <div className="mb-8 flex items-center gap-3">
-          <div className="btn-selvi flex h-11 w-11 items-center justify-center rounded-xl text-xl font-extrabold text-white">
-            E
-          </div>
+          <BrandMark vertical={vertical} />
           <div>
-            <p className="font-display text-xl font-extrabold tracking-tight">
-              EmlakFlow
-            </p>
-            <p className="text-xs text-ink/45">Ofisinizin işletim sistemi</p>
+            <BrandLogo vertical={vertical} className="text-xl" />
+            <p className="text-xs text-ink/45">{subtitle}</p>
           </div>
         </div>
 
@@ -95,9 +102,11 @@ function LoginInner() {
         </div>
 
         <p className="mt-6 text-center text-sm text-ink/55">
-          Ofisiniz henüz kayıtlı değil mi?{" "}
-          <Link href="/register" className="font-semibold text-brand-600">
-            Ofis aç
+          {vertical === "AUTO_DEALER"
+            ? "Galeriniz henüz kayıtlı değil mi? "
+            : "Ofisiniz henüz kayıtlı değil mi? "}
+          <Link href={registerHref} className="font-semibold text-brand-600">
+            {v.officeNameLabel.split(" ")[0]} aç
           </Link>
         </p>
       </div>

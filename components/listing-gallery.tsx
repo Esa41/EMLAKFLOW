@@ -28,7 +28,12 @@ export function ListingGallery({
   const [active, setActive] = useState(0);
   const [lightbox, setLightbox] = useState(false);
 
-  const count = media.length;
+  // Yalnız görsel medya — video (YouTube) ve tour360 (Matterport) embed URL'leri
+  // next/image ile render edilemez, galeri dışında bırakılır.
+  const photos = media.filter(
+    (m) => m.kind !== "video" && m.kind !== "tour360",
+  );
+  const count = photos.length;
   const go = useCallback(
     (dir: number) => setActive((i) => (i + dir + count) % count),
     [count],
@@ -58,7 +63,7 @@ export function ListingGallery({
     );
   }
 
-  const current = media[active];
+  const current = photos[active];
 
   return (
     <div>
@@ -102,7 +107,7 @@ export function ListingGallery({
       {/* Küçük görseller */}
       {count > 1 && (
         <div className="mt-5 grid grid-cols-5 gap-2 sm:grid-cols-8">
-          {media.map((m, i) => (
+          {photos.map((m, i) => (
             <button
               type="button"
               key={m.id}
