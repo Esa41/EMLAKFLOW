@@ -5,7 +5,7 @@ import { forTenant } from "@/lib/tenant";
 import { ParselMap, type ParselDeal } from "@/components/parsel-map";
 import { InsightList, type InsightItem } from "@/components/insight-list";
 import { STAGE_TR, STAGE_COLOR, trMoney } from "@/lib/labels";
-import { Building2 } from "lucide-react";
+import { Building2, ArrowRight, AlertTriangle, Wallet } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = (await getSession())!;
@@ -15,6 +15,8 @@ export default async function DashboardPage() {
   startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(startOfDay);
   endOfDay.setDate(endOfDay.getDate() + 1);
+  const monthStart = new Date(startOfDay.getFullYear(), startOfDay.getMonth(), 1);
+  const monthEnd = new Date(startOfDay.getFullYear(), startOfDay.getMonth() + 1, 1);
 
   const [
     openDeals,
@@ -23,6 +25,11 @@ export default async function DashboardPage() {
     latestListings,
     todaysAppointments,
     insights,
+    activeRentals,
+    monthPaid,
+    monthDue,
+    overdue,
+    upcomingPayments,
   ] = await Promise.all([
     db.deal.findMany({
       where: {
@@ -65,7 +72,40 @@ export default async function DashboardPage() {
         listingId: true,
       },
     }),
+    db.rentalAgreement.count({ where: { status: "ACTIVE" } }),
+    db.rentPayment.aggregate({
+      _sum: { amount: true },
+      where: { paidAt: { not: null }, dueDate: { gte: monthStart, lt: monthEnd } },
+    }),
+    db.rentPayment.aggregate({
+      _sum: { amount: true },
+      _count: true,
+      where: { paidAt: null, dueDate: { gte: monthStart, lt: monthEnd } },
+    }),
+    db.rentPayment.aggregate({
+      _sum: { amount: true },
+      _count: true,
+      where: { paidAt: null, dueDate: { lt: startOfDay } },
+    }),
+    db.rentPayment.findMany({
+      where: { paidAt: null, dueDate: { gte: startOfDay } },
+      orderBy: { dueDate: "asc" },
+      take: 4,
+      include: {
+        agreement: {
+          select: { id: true, title: true, contact: { select: { fullName: true } } },
+        },
+      },
+    }),
   ]);
+
+  const monthPaidTotal = Number(monthPaid._sum.amount ?? 0);
+  const monthDueTotal = Number(monthDue._sum.amount ?? 0);
+  const overdueTotal = Number(overdue._sum.amount ?? 0);
+  const monthTarget = monthPaidTotal + monthDueTotal;
+  const collectRate =
+    monthTarget > 0 ? Math.round((monthPaidTotal / monthTarget) * 100) : 0;
+  const showRentals = activeRentals > 0 || monthTarget > 0 || overdueTotal > 0;
 
   const parselDeals: ParselDeal[] = openDeals.map((d) => ({
     id: d.id,
@@ -132,6 +172,100 @@ export default async function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Kira & Finans — bu ayki tahsilat durumu */}
+      {showRentals && (
+        <section>
+          <div className="flex items-center justify-between">
+            <h2 className="bolum">Kira &amp; Finans</h2>
+            <Link
+              href="/kiralar"
+              className="flex items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-600 hover:text-brand-700"
+            >
+              Tümü <ArrowRight size={12} />
+            </Link>
+          </div>
+
+          <div className="mt-4 rounded-[10px] border border-ink/10 bg-white p-4 shadow-sm">
+            {/* Bu ay tahsilat oranı */}
+            <div className="flex items-center justify-between">
+              <p className="flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-ink/50">
+                <Wallet size={13} className="text-brand-600" /> Bu ay tahsilat
+              </p>
+              <p className="font-mono text-[11px] font-semibold text-ink/55">
+                %{collectRate}
+              </p>
+            </div>
+            <p className="mt-1.5 font-display text-2xl font-extrabold tracking-tight text-brand-700">
+              {trMoney.format(monthPaidTotal)}
+              <span className="ml-1 text-sm font-medium text-ink/45">
+                / {trMoney.format(monthTarget)}
+              </span>
+            </p>
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-brand-50">
+              <div
+                className="h-full rounded-full bg-brand-600 transition-all"
+                style={{ width: `${collectRate}%` }}
+              />
+            </div>
+            <div className="mt-2 flex gap-4 text-xs text-ink/55">
+              <span>{activeRentals} aktif sözleşme</span>
+              {monthDueTotal > 0 && (
+                <span>Bekleyen {trMoney.format(monthDueTotal)}</span>
+              )}
+            </div>
+
+            {/* Geciken uyarısı */}
+            {overdue._count > 0 && (
+              <Link
+                href="/kiralar"
+                className="mt-3 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 transition hover:bg-red-100"
+              >
+                <AlertTriangle size={14} />
+                {overdue._count} geciken ödeme · {trMoney.format(overdueTotal)}
+              </Link>
+            )}
+
+            {/* Yaklaşan ödemeler */}
+            {upcomingPayments.length > 0 && (
+              <div className="mt-3 border-t border-ink/10 pt-3">
+                <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink/45">
+                  Yaklaşan ödemeler
+                </p>
+                <ul className="mt-2 space-y-1.5">
+                  {upcomingPayments.map((p) => (
+                    <li
+                      key={p.id}
+                      className="flex items-center justify-between text-[13px]"
+                    >
+                      <span className="min-w-0 flex-1 truncate">
+                        <span className="font-medium">{p.agreement.title}</span>
+                        {p.agreement.contact && (
+                          <span className="text-ink/45">
+                            {" "}
+                            · {p.agreement.contact.fullName}
+                          </span>
+                        )}
+                      </span>
+                      <span className="ml-3 shrink-0 text-right">
+                        <span className="font-semibold">
+                          {trMoney.format(Number(p.amount))}
+                        </span>
+                        <span className="ml-2 font-mono text-[10px] text-ink/45">
+                          {p.dueDate.toLocaleDateString("tr-TR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                          })}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Eylem odaklı öneriler (Insight motoru — gecelik üretilir) */}
       <InsightList insights={insights as InsightItem[]} />
