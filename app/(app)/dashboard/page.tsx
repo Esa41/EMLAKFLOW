@@ -6,6 +6,7 @@ import { ParselMap, type ParselDeal } from "@/components/parsel-map";
 import { InsightList, type InsightItem } from "@/components/insight-list";
 import { STAGE_TR, STAGE_COLOR, trMoney } from "@/lib/labels";
 import { Building2, ArrowRight, AlertTriangle, Wallet } from "lucide-react";
+import { OnboardingTour } from "@/components/onboarding-tour";
 
 export default async function DashboardPage() {
   const session = (await getSession())!;
@@ -141,6 +142,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
+      <OnboardingTour />
       <div>
         <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-600">
           {weekday} · Günlük Durum
