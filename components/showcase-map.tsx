@@ -43,6 +43,8 @@ export function ShowcaseMap({
   parcelGeo,
   highlightedId,
   onPinClick,
+  interactive = true,
+  flat = false,
 }: {
   listings: MapListing[];
   slug: string;
@@ -51,6 +53,10 @@ export function ShowcaseMap({
   parcelGeo?: unknown; // tek ilan modunda çizilen alan sınırı
   highlightedId?: string | null; // split view: vurgulanan ilan
   onPinClick?: (listingId: string) => void; // split view: pin tıklanma callbackı
+  /** false → önizleme (landing hero gibi): kaydırma/zoom kapalı */
+  interactive?: boolean;
+  /** true → çerçevesiz, gömülü görünüm (landing mockup) */
+  flat?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -71,6 +77,7 @@ export function ShowcaseMap({
 
       mapboxgl.accessToken = token;
       const single = mode === "single";
+      const canInteract = interactive && !single;
 
       try {
         map = new mapboxgl.Map({
@@ -80,12 +87,12 @@ export function ShowcaseMap({
           zoom: single ? 14 : 11,
           pitch: single ? 0 : 28,
           bearing: single ? 0 : -8,
-          dragPan: !single,
-          scrollZoom: !single,
-          cooperativeGestures: !single,
-          doubleClickZoom: !single,
+          dragPan: canInteract,
+          scrollZoom: canInteract,
+          cooperativeGestures: canInteract,
+          doubleClickZoom: canInteract,
           boxZoom: false,
-          interactive: !single,
+          interactive: canInteract,
           attributionControl: false,
         });
       } catch {
@@ -96,7 +103,7 @@ export function ShowcaseMap({
       // Token geçersiz / stil yüklenemedi gibi runtime hataları
       map.on("error", () => setFailed(true));
 
-      if (!single) {
+      if (!single && interactive) {
         map.addControl(
           new mapboxgl.NavigationControl({ showCompass: false }),
           "top-right",
@@ -232,7 +239,7 @@ export function ShowcaseMap({
       cancelled = true;
       map?.remove();
     };
-  }, [listings, slug, mode, router, parcelGeo, onPinClick]);
+  }, [listings, slug, mode, router, parcelGeo, onPinClick, interactive]);
 
   // Dışarıdan gelen highlight değişikliklerini uygula (split view hover)
   useEffect(() => {
@@ -267,7 +274,11 @@ export function ShowcaseMap({
     <div
       ref={ref}
       style={{ height }}
-      className="z-0 w-full overflow-hidden rounded-2xl border border-ink/15 shadow-lg ring-1 ring-ink/5"
+      className={
+        flat
+          ? "z-0 h-full w-full"
+          : "z-0 w-full overflow-hidden rounded-2xl border border-ink/15 shadow-lg ring-1 ring-ink/5"
+      }
       aria-label="İlan haritası"
     />
   );
