@@ -549,7 +549,7 @@ model Notification {
   body      String?
   href      String?   // tıklanınca gidilecek sayfa
   readAt    DateTime?
-  category  String    @default("system") // "lead" | "match" | "chat" | "deal" | "contract" | "appointment" | "system"
+  category  String    @default("system") // "lead" | "match" | "chat" | "team" | "deal" | "contract" | "appointment" | "system"
   severity  String    @default("info")   // "info" | "action" | "urgent"
   createdAt DateTime  @default(now())
 

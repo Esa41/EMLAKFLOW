@@ -38,6 +38,34 @@ export async function sendTeamMessage(formData: FormData): Promise<ChatResult> {
       },
     });
 
+    // Her ekip mesajında OWNER + BROKER'a bildirim (gönderen hariç).
+    // Bildirim üretimi sohbeti asla bozmamalı — hataları yut.
+    try {
+      const managers = await prisma.user.findMany({
+        where: {
+          tenantId: session.tenantId,
+          role: { in: ["OWNER", "BROKER"] },
+          isActive: true,
+          id: { not: session.userId },
+        },
+        select: { id: true },
+      });
+      if (managers.length) {
+        await prisma.notification.createMany({
+          data: managers.map((m) => ({
+            tenantId: session.tenantId,
+            userId: m.id,
+            category: "team",
+            title: `${session.name} ekip sohbetinde yazdı`,
+            body: check.value.slice(0, 120),
+            href: "/ekip",
+          })),
+        });
+      }
+    } catch (err) {
+      console.error("Ekip mesajı bildirimi oluşturulamadı:", err);
+    }
+
     revalidatePath("/ekip");
     return { ok: true };
   } catch (err) {
