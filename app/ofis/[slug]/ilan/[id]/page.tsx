@@ -10,6 +10,7 @@ import { DroneMapFlyover } from "@/components/drone-map-flyover";
 import { EnvironmentScorecard } from "@/components/environment-scorecard";
 import type { EnvironmentResult } from "@/lib/environment";
 import { FavoriteButton } from "@/components/favorite-button";
+import { ListingGallery } from "@/components/listing-gallery";
 import { getSiteUser } from "@/lib/site-auth";
 import { TrackListingView } from "@/components/vitrin-tracking";
 import {
@@ -185,46 +186,17 @@ export default async function ListingShowcasePage({
       </Link>
 
       {/* Galeri */}
-      <div>
-        <div className="relative h-64 overflow-hidden rounded-[10px] border border-ink/15 bg-brand-50 sm:h-96">
-          {l.media[0] ? (
-            <Image
-              src={l.media[0].url}
-              alt={l.media[0].alt ?? mediaAltText(l, 0)}
-              fill
-              priority
-              sizes="(min-width: 1024px) 683px, 100vw"
-              className="object-cover"
-            />
-          ) : (
-            <div className="flex h-64 items-center justify-center text-ink/20 sm:h-96">
-              <Building2 size={40} />
-            </div>
-          )}
-          <span className="kunye absolute -bottom-3 left-4 max-w-[85%] truncate shadow-sm">
-            {l.title}
-          </span>
-        </div>
-        {l.media.length > 1 && (
-          <div className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-6">
-            {l.media.slice(1, 7).map((m, i) => (
-              <div
-                key={m.id}
-                className="relative aspect-[4/3] w-full overflow-hidden rounded-md border border-ink/10"
-              >
-                <Image
-                  src={m.thumbUrl ?? m.url}
-                  alt={m.alt ?? mediaAltText(l, i + 1)}
-                  fill
-                  loading="lazy"
-                  sizes="(min-width: 640px) 16vw, 25vw"
-                  className="object-cover"
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <ListingGallery
+        title={l.title}
+        media={l.media.map((m, i) => ({
+          id: m.id,
+          url: m.url,
+          thumbUrl: m.thumbUrl,
+          cardUrl: m.cardUrl,
+          kind: m.kind,
+          alt: m.alt ?? mediaAltText(l, i),
+        }))}
+      />
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
