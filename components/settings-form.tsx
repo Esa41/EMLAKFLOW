@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Check } from "lucide-react";
+import { getVertical } from "@/lib/verticals";
 
 export interface TenantSettings {
   name: string;
@@ -15,8 +16,11 @@ export interface TenantSettings {
   portalSahibinden: boolean;
   portalHepsiemlak: boolean;
   portalEmlakjet: boolean;
+  portalArabam: boolean;
+  portalSahibindenAuto: boolean;
   feedToken: string;
   slug: string;
+  vertical: string;
   showcaseEnabled: boolean;
   showcaseTagline: string;
   whatsapp: string;
@@ -42,10 +46,12 @@ export function SettingsForm({
   initial,
   isOwner,
   appUrl,
+  vertical = "REAL_ESTATE",
 }: {
   initial: TenantSettings;
   isOwner: boolean;
   appUrl: string;
+  vertical?: string;
 }) {
   const router = useRouter();
   const [v, setV] = useState(initial);
@@ -63,7 +69,8 @@ export function SettingsForm({
   };
 
   const feedUrl = `${appUrl}/api/feed/${v.feedToken}.xml`;
-  const showcaseUrl = `${appUrl}/ofis/${v.slug}`;
+  const showcaseBase = getVertical(vertical).showcaseBase;
+  const showcaseUrl = `${appUrl}${showcaseBase}/${v.slug}`;
   const [copiedShowcase, setCopiedShowcase] = useState(false);
 
   async function handleSave() {
@@ -82,6 +89,8 @@ export function SettingsForm({
         portalSahibinden: v.portalSahibinden,
         portalHepsiemlak: v.portalHepsiemlak,
         portalEmlakjet: v.portalEmlakjet,
+        portalArabam: v.portalArabam,
+        portalSahibindenAuto: v.portalSahibindenAuto,
         showcaseEnabled: v.showcaseEnabled,
         showcaseTagline: v.showcaseTagline,
         whatsapp: v.whatsapp,
@@ -472,11 +481,16 @@ export function SettingsForm({
         <h2 className={headCls}>Portal Yayını (XML Feed)</h2>
         <div className="space-y-3">
           {(
-            [
-              ["portalSahibinden", "Sahibinden.com"],
-              ["portalHepsiemlak", "Hepsiemlak"],
-              ["portalEmlakjet", "Emlakjet"],
-            ] as const
+            vertical === "AUTO_DEALER"
+              ? ([
+                  ["portalArabam", "Arabam.com"],
+                  ["portalSahibindenAuto", "Sahibinden Otomobil"],
+                ] as const)
+              : ([
+                  ["portalSahibinden", "Sahibinden.com"],
+                  ["portalHepsiemlak", "Hepsiemlak"],
+                  ["portalEmlakjet", "Emlakjet"],
+                ] as const)
           ).map(([key, label]) => (
             <label
               key={key}
@@ -515,9 +529,10 @@ export function SettingsForm({
             </button>
           </div>
           <p className="mt-1 text-xs text-ink/45">
-            Bu adresi portal panelindeki "XML ile ilan aktarımı" alanına
-            yapıştıracaksın. Feed çıkışı bir sonraki güncellemeyle aktifleşecek;
-            açık portallardaki YAYINDA durumundaki ilanlar otomatik aktarılacak.
+            Bu adresi portal panelindeki &quot;XML ile ilan aktarımı&quot; alanına
+            yapıştırın. Otomotiv feed için: <code className="text-[10px]">?portal=arabam</code> veya{" "}
+            <code className="text-[10px]">?portal=sahibinden-auto</code> ekleyin.
+            Feed&apos;e dahil olması için ilanda &quot;Portal feed&apos;ine dahil et&quot; açık olmalı.
           </p>
         </div>
       </section>

@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Phone } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { getSiteUser } from "@/lib/site-auth";
 import { LiveChatWidget } from "@/components/live-chat-widget";
+import { SiteAuthHeader } from "@/components/site-auth";
 
 export default async function ShowcaseLayout({
   children,
@@ -18,6 +20,8 @@ export default async function ShowcaseLayout({
   });
   if (!tenant || !tenant.showcaseEnabled) notFound();
 
+  const siteUser = await getSiteUser(tenant.id);
+
   return (
     <div className="min-h-screen">
       {/* Antet — müşteri yüzü */}
@@ -31,14 +35,17 @@ export default async function ShowcaseLayout({
               {[tenant.district, tenant.city].filter(Boolean).join(" · ") || "Gayrimenkul"}
             </p>
           </Link>
-          {tenant.phone && (
-            <a
-              href={`tel:${tenant.phone.replace(/\s/g, "")}`}
-              className="btn-selvi ml-auto flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700"
-            >
-              <Phone size={15} /> Ara
-            </a>
-          )}
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <SiteAuthHeader slug={slug} userName={siteUser?.name ?? null} />
+            {tenant.phone && (
+              <a
+                href={`tel:${tenant.phone.replace(/\s/g, "")}`}
+                className="btn-selvi flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700"
+              >
+                <Phone size={15} /> Ara
+              </a>
+            )}
+          </div>
         </div>
       </header>
 

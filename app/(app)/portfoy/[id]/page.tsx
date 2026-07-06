@@ -8,7 +8,10 @@ import { DeleteListingButton } from "@/components/delete-listing-button";
 import { ContractPanel } from "@/components/contract-panel";
 import { PriceAdvisor } from "@/components/price-advisor";
 import { OwnerReport } from "@/components/owner-report";
+import { EnvironmentPanel } from "@/components/environment-panel";
+import type { EnvironmentResult } from "@/lib/environment";
 import { STATUS_TR, STATUS_BADGE } from "@/lib/labels";
+import { getVertical } from "@/lib/verticals";
 import { Eye } from "lucide-react";
 
 export default async function ListingDetailPage({
@@ -27,7 +30,7 @@ export default async function ListingDetailPage({
     }),
     prisma.tenant.findUnique({
       where: { id: session.tenantId },
-      select: { slug: true, showcaseEnabled: true },
+      select: { slug: true, showcaseEnabled: true, vertical: true },
     }),
     db.contact.findMany({
       orderBy: { fullName: "asc" },
@@ -53,6 +56,8 @@ export default async function ListingDetailPage({
   const contactOf = (cid: string | null) =>
     matchContacts.find((c) => c.id === cid);
 
+  const vConf = getVertical(tenant?.vertical);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -72,7 +77,7 @@ export default async function ListingDetailPage({
         <div className="flex items-center gap-2">
           {tenant?.showcaseEnabled && listing.status === "ACTIVE" && (
             <a
-              href={`/ofis/${tenant.slug}/ilan/${listing.id}`}
+              href={`${vConf.showcaseBase}/${tenant.slug}/ilan/${listing.id}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 rounded-lg border border-brand-600/40 px-3.5 py-2 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
@@ -132,6 +137,15 @@ export default async function ListingDetailPage({
         currentPrice={Number(listing.price)}
       />
 
+      <EnvironmentPanel
+        listingId={listing.id}
+        hasLocation={listing.lat != null && listing.lng != null}
+        initialScore={listing.environmentScore}
+        initialData={
+          listing.environmentData as unknown as EnvironmentResult | null
+        }
+      />
+
       <OwnerReport
         listingId={listing.id}
         owners={contacts.map((c) => ({
@@ -149,10 +163,12 @@ export default async function ListingDetailPage({
 
       <ListingForm
         listingId={listing.id}
+        vertical={tenant?.vertical}
         initialMedia={listing.media.map((m) => ({
           id: m.id,
           url: m.url,
           key: m.key,
+          thumbUrl: m.thumbUrl,
         }))}
         initial={{
           title: listing.title,
@@ -180,6 +196,26 @@ export default async function ListingDetailPage({
           inSite: listing.inSite,
           description: listing.description ?? "",
           parcelGeo: listing.parcelGeo ? JSON.stringify(listing.parcelGeo) : "",
+          features: listing.features,
+          seoTitle: listing.seoTitle ?? "",
+          seoDescription: listing.seoDescription ?? "",
+          feedEnabled: listing.feedEnabled ?? true,
+          vehicleBrand: listing.vehicleBrand ?? "",
+          vehicleModel: listing.vehicleModel ?? "",
+          vehicleYear: listing.vehicleYear?.toString() ?? "",
+          vehicleKm: listing.vehicleKm?.toString() ?? "",
+          fuel: listing.fuel ?? "",
+          transmission: listing.transmission ?? "",
+          engineSize: listing.engineSize ?? "",
+          enginePower: listing.enginePower?.toString() ?? "",
+          color: listing.color ?? "",
+          tramerAmount: listing.tramerAmount?.toString() ?? "",
+          plateNumber: listing.plateNumber ?? "",
+          exchangeOk: listing.exchangeOk ?? false,
+          warrantyOk: listing.warrantyOk ?? false,
+          rentDailyPrice: listing.rentDailyPrice?.toString() ?? "",
+          rentWeeklyPrice: listing.rentWeeklyPrice?.toString() ?? "",
+          rentDeposit: listing.rentDeposit?.toString() ?? "",
         }}
       />
     </div>

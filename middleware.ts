@@ -9,13 +9,17 @@ const { auth } = NextAuth(authConfig);
 const PUBLIC_PATHS = [
   "/login",
   "/register",
+  "/platform",
   "/api/register",
   "/api/auth",
   "/api/feed",
   "/api/chat",
+  "/api/ofis",
+  "/api/social/callback",
   "/api/e",
   "/api/cron",
   "/ofis",
+  "/galeri",
   "/robots.txt",
   "/sitemap.xml",
 ];

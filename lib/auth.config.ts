@@ -16,10 +16,12 @@ export const authConfig = {
           tenantId: string;
           role: string;
           tenantName: string;
+          vertical: string;
         };
         token.tenantId = u.tenantId;
         token.role = u.role;
         token.tenantName = u.tenantName;
+        token.vertical = u.vertical;
       }
       return token;
     },
@@ -29,11 +31,13 @@ export const authConfig = {
         tenantId: string;
         role: string;
         tenantName: string;
+        vertical: string;
       };
       u.id = token.sub as string;
       u.tenantId = token.tenantId as string;
       u.role = token.role as Role;
       u.tenantName = token.tenantName as string;
+      u.vertical = (token.vertical as string) ?? "REAL_ESTATE";
       return session;
     },
   },

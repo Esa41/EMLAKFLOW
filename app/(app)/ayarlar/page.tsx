@@ -35,6 +35,7 @@ export default async function SettingsPage() {
       <SettingsForm
         isOwner={session.role === "OWNER"}
         appUrl={appUrl}
+        vertical={tenant.vertical}
         initial={{
           name: tenant.name,
           phone: tenant.phone ?? "",
@@ -46,8 +47,11 @@ export default async function SettingsPage() {
           portalSahibinden: tenant.portalSahibinden,
           portalHepsiemlak: tenant.portalHepsiemlak,
           portalEmlakjet: tenant.portalEmlakjet,
+          portalArabam: tenant.portalArabam,
+          portalSahibindenAuto: tenant.portalSahibindenAuto,
           feedToken: tenant.feedToken!,
           slug: tenant.slug,
+          vertical: tenant.vertical,
           showcaseEnabled: tenant.showcaseEnabled,
           showcaseTagline: tenant.showcaseTagline ?? "",
           whatsapp: tenant.whatsapp ?? "",

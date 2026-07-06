@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
 import { publicUrl, deleteObject } from "@/lib/r2";
+import { processListingImage, variantKeys } from "@/lib/images";
+import { mediaAltText } from "@/lib/seo";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -12,7 +14,10 @@ export async function POST(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const db = forTenant(session.tenantId);
 
-  const listing = await db.listing.findUnique({ where: { id }, select: { id: true } });
+  const listing = await db.listing.findUnique({
+    where: { id },
+    include: { _count: { select: { media: true } } },
+  });
   if (!listing) return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
 
   const body = await req.json().catch(() => null);
@@ -23,7 +28,25 @@ export async function POST(req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Geçersiz key" }, { status: 400 });
   }
 
-  const count = await prismaCount(db, id);
+  const kind = body.kind ?? "photo";
+  const order = listing._count.media;
+
+  // Sunucu tarafı optimizasyon: thumb (400px) + card (960px) WebP varyantları.
+  // Best-effort — başarısız olursa varyantsız kaydedilir, UI orijinali kullanır.
+  let variants: {
+    thumbUrl?: string;
+    cardUrl?: string;
+    width?: number | null;
+    height?: number | null;
+  } = {};
+  if (kind === "photo") {
+    try {
+      variants = await processListingImage(String(body.key));
+    } catch (err) {
+      console.error("[media] varyant üretilemedi:", err);
+    }
+  }
+
   const media = await db.listing.update({
     where: { id },
     data: {
@@ -31,8 +54,13 @@ export async function POST(req: Request, ctx: Ctx) {
         create: {
           key: body.key,
           url: publicUrl(body.key),
-          kind: body.kind ?? "photo",
-          order: count,
+          kind,
+          order,
+          thumbUrl: variants.thumbUrl ?? null,
+          cardUrl: variants.cardUrl ?? null,
+          width: variants.width ?? null,
+          height: variants.height ?? null,
+          alt: kind === "photo" ? mediaAltText(listing, order) : null,
         },
       },
     },
@@ -40,14 +68,6 @@ export async function POST(req: Request, ctx: Ctx) {
   });
 
   return NextResponse.json({ media: media.media }, { status: 201 });
-}
-
-async function prismaCount(db: ReturnType<typeof forTenant>, listingId: string) {
-  const l = await db.listing.findUnique({
-    where: { id: listingId },
-    include: { _count: { select: { media: true } } },
-  });
-  return l?._count.media ?? 0;
 }
 
 /** Body: { mediaId } — medyayı hem DB'den hem R2'den siler */
@@ -67,7 +87,10 @@ export async function DELETE(req: Request, ctx: Ctx) {
   const media = listing?.media[0];
   if (!media) return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
 
-  await deleteObject(media.key).catch(() => {});
+  // Orijinal + üretilen varyantları birlikte temizle (best-effort)
+  await Promise.allSettled(
+    [media.key, ...variantKeys(media.key)].map((k) => deleteObject(k)),
+  );
   // ListingMedia tenant kolonlu değil — aidiyet yukarıda listing üzerinden doğrulandı
   const { prisma } = await import("@/lib/prisma");
   await prisma.listingMedia.delete({ where: { id: media.id } });

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/sidebar";
 import { MobileNav } from "@/components/mobile-nav";
 import { NotificationBell } from "@/components/notification-bell";
+import { BrandLogo } from "@/components/brand-logo";
 
 export default async function AppLayout({
   children,
@@ -15,9 +16,10 @@ export default async function AppLayout({
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: session.tenantId },
-    select: { slug: true, showcaseEnabled: true },
+    select: { slug: true, showcaseEnabled: true, vertical: true },
   });
   const showcaseSlug = tenant?.showcaseEnabled ? tenant.slug : null;
+  const vertical = tenant?.vertical ?? session.vertical ?? "REAL_ESTATE";
 
   const today = new Date().toLocaleDateString("tr-TR", {
     day: "2-digit",
@@ -27,16 +29,23 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen">
-      <Sidebar tenantName={session.tenantName} userName={session.name} showcaseSlug={showcaseSlug} />
+      <Sidebar
+        tenantName={session.tenantName}
+        userName={session.name}
+        showcaseSlug={showcaseSlug}
+        vertical={vertical}
+      />
       <div className="lg:pl-64">
-        {/* Antet — başlık bloğu */}
         <header className="sticky top-0 z-30 border-b border-ink bg-paper">
           <div className="flex h-16 items-center gap-3 px-4 lg:px-8">
-            <MobileNav tenantName={session.tenantName} userName={session.name} showcaseSlug={showcaseSlug} />
+            <MobileNav
+              tenantName={session.tenantName}
+              userName={session.name}
+              showcaseSlug={showcaseSlug}
+              vertical={vertical}
+            />
             <div className="lg:hidden">
-              <p className="font-display text-lg font-extrabold tracking-tight">
-                Emlak<span className="text-brand-600">Flow</span>
-              </p>
+              <BrandLogo vertical={vertical} className="text-lg" />
             </div>
             <input
               type="search"

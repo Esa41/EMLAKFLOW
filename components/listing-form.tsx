@@ -2,9 +2,37 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PURPOSE_TR, TYPE_TR, STATUS_TR, ROOM_OPTIONS } from "@/lib/labels";
+import { X, Plus, Sparkles } from "lucide-react";
+import { PURPOSE_TR, STATUS_TR, ROOM_OPTIONS } from "@/lib/labels";
+import {
+  getVertical,
+  isAutoVertical,
+  FUEL_OPTIONS,
+  TRANSMISSION_OPTIONS,
+  VEHICLE_FEATURE_SUGGESTIONS,
+} from "@/lib/verticals";
 import { PhotoUploader, type MediaItem } from "./photo-uploader";
 import { LocationPicker } from "./location-picker";
+
+/** Tek tıkla eklenebilen hazır özellik önerileri */
+const FEATURE_SUGGESTIONS = [
+  "Asansör",
+  "Otopark",
+  "Kapalı Otopark",
+  "Balkon",
+  "Teras",
+  "Ankastre Mutfak",
+  "Klima",
+  "Güvenlik",
+  "Yüzme Havuzu",
+  "Spor Salonu",
+  "Ebeveyn Banyosu",
+  "Giyinme Odası",
+  "Deniz Manzarası",
+  "Bahçe",
+  "Beyaz Eşyalı",
+  "Doğalgaz",
+];
 
 export interface ListingFormValues {
   title: string;
@@ -32,6 +60,26 @@ export interface ListingFormValues {
   inSite: boolean;
   description: string;
   parcelGeo: string; // harita ile çizilen alan sınırı (GeoJSON string, "" = yok)
+  features: string[]; // hızlı eklenen özellik çipleri
+  seoTitle: string; // otomatik/elle SEO başlığı
+  seoDescription: string; // otomatik/elle SEO açıklaması
+  feedEnabled: boolean;
+  vehicleBrand: string;
+  vehicleModel: string;
+  vehicleYear: string;
+  vehicleKm: string;
+  fuel: string;
+  transmission: string;
+  engineSize: string;
+  enginePower: string;
+  color: string;
+  tramerAmount: string;
+  plateNumber: string;
+  exchangeOk: boolean;
+  warrantyOk: boolean;
+  rentDailyPrice: string;
+  rentWeeklyPrice: string;
+  rentDeposit: string;
 }
 
 const EMPTY: ListingFormValues = {
@@ -60,6 +108,26 @@ const EMPTY: ListingFormValues = {
   inSite: false,
   description: "",
   parcelGeo: "",
+  features: [],
+  seoTitle: "",
+  seoDescription: "",
+  feedEnabled: true,
+  vehicleBrand: "",
+  vehicleModel: "",
+  vehicleYear: "",
+  vehicleKm: "",
+  fuel: "",
+  transmission: "",
+  engineSize: "",
+  enginePower: "",
+  color: "",
+  tramerAmount: "",
+  plateNumber: "",
+  exchangeOk: false,
+  warrantyOk: false,
+  rentDailyPrice: "",
+  rentWeeklyPrice: "",
+  rentDeposit: "",
 };
 
 const inputCls =
@@ -70,24 +138,87 @@ export function ListingForm({
   listingId,
   initial,
   initialMedia = [],
+  vertical = "REAL_ESTATE",
 }: {
   listingId?: string;
   initial?: Partial<ListingFormValues>;
   initialMedia?: MediaItem[];
+  vertical?: string | null;
 }) {
+  const vConf = getVertical(vertical);
+  const isAuto = isAutoVertical(vertical);
+  const TYPE_TR = vConf.listingTypes;
   const router = useRouter();
-  const [v, setV] = useState<ListingFormValues>({ ...EMPTY, ...initial });
+  const [v, setV] = useState<ListingFormValues>({
+    ...EMPTY,
+    type: vConf.defaultListingType,
+    ...initial,
+  });
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [matched, setMatched] = useState<number | null>(null);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [featureInput, setFeatureInput] = useState("");
+  const [seoLoading, setSeoLoading] = useState(false);
 
   const set = <K extends keyof ListingFormValues>(
     k: K,
     val: ListingFormValues[K],
   ) => setV((s) => ({ ...s, [k]: val }));
+
+  function addFeature(raw: string) {
+    const f = raw.trim();
+    if (!f) return;
+    setV((s) =>
+      s.features.some((x) => x.toLowerCase() === f.toLowerCase())
+        ? s
+        : { ...s, features: [...s.features, f] },
+    );
+    setFeatureInput("");
+  }
+
+  function removeFeature(f: string) {
+    setV((s) => ({ ...s, features: s.features.filter((x) => x !== f) }));
+  }
+
+  async function generateSeo() {
+    if (!v.title || !v.district) return;
+    setSeoLoading(true);
+    try {
+      const res = await fetch("/api/ai/seo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: v.title,
+          purpose: v.purpose,
+          type: v.type,
+          city: v.city,
+          district: v.district,
+          neighborhood: v.neighborhood,
+          rooms: v.rooms,
+          netArea: v.netArea,
+          grossArea: v.grossArea,
+          price: v.price,
+          buildingAge: v.buildingAge,
+          heating: v.heating,
+          features: v.features,
+          description: v.description,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.seo) {
+        setV((s) => ({
+          ...s,
+          seoTitle: data.seo.seoTitle ?? s.seoTitle,
+          seoDescription: data.seo.seoDescription ?? s.seoDescription,
+        }));
+      }
+    } finally {
+      setSeoLoading(false);
+    }
+  }
 
   async function generateWithAI() {
     if (!aiPrompt.trim() || aiPrompt.trim().length < 5) {
@@ -125,6 +256,17 @@ export function ListingForm({
         creditEligible: l.creditEligible ?? prev.creditEligible,
         furnished: l.furnished ?? prev.furnished,
         inSite: l.inSite ?? prev.inSite,
+        features: Array.isArray(l.features)
+          ? [
+              ...prev.features,
+              ...l.features.filter(
+                (f: string) =>
+                  !prev.features.some(
+                    (x) => x.toLowerCase() === String(f).toLowerCase(),
+                  ),
+              ),
+            ]
+          : prev.features,
       }));
     } catch (err: unknown) {
       setAiError(err instanceof Error ? err.message : "AI hatası.");
@@ -136,6 +278,10 @@ export function ListingForm({
   async function handleSubmit() {
     if (!v.title || !v.price || !v.district) {
       setError("Başlık, fiyat ve ilçe zorunlu.");
+      return;
+    }
+    if (isAuto && (!v.vehicleBrand || !v.vehicleModel)) {
+      setError("Marka ve model zorunlu.");
       return;
     }
     setSaving(true);
@@ -187,9 +333,6 @@ export function ListingForm({
           <h2 className="text-sm font-bold text-ink/80">
             Yapay Zeka ile Sihirli Ekleme
           </h2>
-          <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-600">
-            Beta
-          </span>
         </div>
         <p className="mb-3 text-xs text-ink/50">
           Kısa bir açıklama yaz, AI tüm formu otomatik doldursun. Örn:
@@ -388,9 +531,86 @@ export function ListingForm({
         </details>
       </section>
 
-      {/* Özellikler */}
+      {/* Özellikler — emlak veya araç */}
       <section className="rounded-2xl bg-white p-5 border border-ink/15">
-        <h2 className="bolum mb-4">Özellikler</h2>
+        <h2 className="bolum mb-4">{isAuto ? "Araç Bilgileri" : "Özellikler"}</h2>
+        {isAuto ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <div>
+              <label className={labelCls}>Marka *</label>
+              <input className={inputCls} value={v.vehicleBrand} onChange={(e) => set("vehicleBrand", e.target.value)} placeholder="Volkswagen" />
+            </div>
+            <div>
+              <label className={labelCls}>Model *</label>
+              <input className={inputCls} value={v.vehicleModel} onChange={(e) => set("vehicleModel", e.target.value)} placeholder="Passat 1.6 TDI" />
+            </div>
+            <div>
+              <label className={labelCls}>Model yılı</label>
+              <input type="number" className={inputCls} value={v.vehicleYear} onChange={(e) => set("vehicleYear", e.target.value)} min={1990} />
+            </div>
+            <div>
+              <label className={labelCls}>Km</label>
+              <input type="number" className={inputCls} value={v.vehicleKm} onChange={(e) => set("vehicleKm", e.target.value)} min={0} />
+            </div>
+            <div>
+              <label className={labelCls}>Yakıt</label>
+              <select className={inputCls} value={v.fuel} onChange={(e) => set("fuel", e.target.value)}>
+                <option value="">—</option>
+                {FUEL_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Vites</label>
+              <select className={inputCls} value={v.transmission} onChange={(e) => set("transmission", e.target.value)}>
+                <option value="">—</option>
+                {TRANSMISSION_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Motor hacmi</label>
+              <input className={inputCls} value={v.engineSize} onChange={(e) => set("engineSize", e.target.value)} placeholder="1.6" />
+            </div>
+            <div>
+              <label className={labelCls}>Renk</label>
+              <input className={inputCls} value={v.color} onChange={(e) => set("color", e.target.value)} />
+            </div>
+            <div>
+              <label className={labelCls}>Tramer (₺)</label>
+              <input type="number" className={inputCls} value={v.tramerAmount} onChange={(e) => set("tramerAmount", e.target.value)} min={0} />
+            </div>
+            {v.purpose === "RENT" && (
+              <>
+                <div>
+                  <label className={labelCls}>Günlük kira (₺)</label>
+                  <input type="number" className={inputCls} value={v.rentDailyPrice} onChange={(e) => set("rentDailyPrice", e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelCls}>Haftalık kira (₺)</label>
+                  <input type="number" className={inputCls} value={v.rentWeeklyPrice} onChange={(e) => set("rentWeeklyPrice", e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelCls}>Depozito (₺)</label>
+                  <input type="number" className={inputCls} value={v.rentDeposit} onChange={(e) => set("rentDeposit", e.target.value)} />
+                </div>
+              </>
+            )}
+            <div className="col-span-full flex flex-wrap gap-x-6 gap-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={v.exchangeOk} onChange={(e) => set("exchangeOk", e.target.checked)} className="h-4 w-4 accent-brand-600" />
+                Takas kabul
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={v.warrantyOk} onChange={(e) => set("warrantyOk", e.target.checked)} className="h-4 w-4 accent-brand-600" />
+                Garantili
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={v.feedEnabled} onChange={(e) => set("feedEnabled", e.target.checked)} className="h-4 w-4 accent-brand-600" />
+                Portal feed&apos;ine dahil et
+              </label>
+            </div>
+          </div>
+        ) : (
+        <>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
             <label className={labelCls}>Oda</label>
@@ -507,6 +727,78 @@ export function ListingForm({
             </label>
           ))}
         </div>
+        {/* Hızlı özellik ekleme — çip sistemi */}
+        <div className="mt-5 border-t border-ink/10 pt-4">
+          <label className={labelCls}>
+            Ekstra özellikler{" "}
+            <span className="font-normal text-ink/40">
+              — hazır önerilere tıkla ya da yazıp Enter'a bas
+            </span>
+          </label>
+
+          {v.features.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {v.features.map((f) => (
+                <span
+                  key={f}
+                  className="inline-flex items-center gap-1 rounded-full bg-brand-600 py-1 pl-3 pr-1.5 text-xs font-semibold text-white"
+                >
+                  {f}
+                  <button
+                    type="button"
+                    onClick={() => removeFeature(f)}
+                    className="rounded-full p-0.5 hover:bg-white/20"
+                    aria-label={`${f} özelliğini kaldır`}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <input
+              className={inputCls}
+              value={featureInput}
+              onChange={(e) => setFeatureInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addFeature(featureInput);
+                }
+              }}
+              placeholder="Özellik yaz — örn. Akıllı Ev Sistemi"
+            />
+            <button
+              type="button"
+              onClick={() => addFeature(featureInput)}
+              disabled={!featureInput.trim()}
+              className="flex shrink-0 items-center gap-1.5 rounded-xl border border-brand-600/40 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-40"
+            >
+              <Plus size={15} /> Ekle
+            </button>
+          </div>
+
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {FEATURE_SUGGESTIONS.filter(
+              (s) =>
+                !v.features.some((f) => f.toLowerCase() === s.toLowerCase()),
+            ).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => addFeature(s)}
+                className="rounded-full border border-ink/20 bg-white px-3 py-1 text-xs font-medium text-ink/65 transition-colors hover:border-brand-500 hover:text-brand-600"
+              >
+                + {s}
+              </button>
+            ))}
+          </div>
+        </div>
+        </>
+        )}
+
         <div className="mt-4">
           <label className={labelCls}>Açıklama</label>
           <textarea
@@ -514,6 +806,84 @@ export function ListingForm({
             value={v.description}
             onChange={(e) => set("description", e.target.value)}
           />
+        </div>
+      </section>
+
+      {/* Otomatik SEO — girilen ilana göre üretilir, elle düzenlenebilir */}
+      <section className="rounded-2xl border border-ink/15 bg-white p-5">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="bolum">SEO Önizleme</h2>
+          <button
+            type="button"
+            onClick={generateSeo}
+            disabled={seoLoading || !v.title || !v.district}
+            className="flex items-center gap-1.5 rounded-xl border border-brand-600/40 px-3.5 py-2 text-xs font-bold text-brand-700 hover:bg-brand-50 disabled:opacity-40"
+          >
+            {seoLoading ? (
+              <>
+                <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-brand-300 border-t-brand-700" />
+                Üretiliyor…
+              </>
+            ) : (
+              <>
+                <Sparkles size={13} /> AI ile üret
+              </>
+            )}
+          </button>
+        </div>
+        <p className="mb-4 text-xs text-ink/50">
+          Boş bırakırsanız ilan kaydedilirken girilen bilgilere göre otomatik
+          üretilir. Google'da görünecek başlık ve açıklamayı buradan
+          özelleştirebilirsiniz.
+        </p>
+        <div className="space-y-4">
+          <div>
+            <label className={labelCls}>
+              SEO başlığı{" "}
+              <span
+                className={`font-normal ${v.seoTitle.length > 70 ? "text-rose-500" : "text-ink/40"}`}
+              >
+                ({v.seoTitle.length}/70)
+              </span>
+            </label>
+            <input
+              className={inputCls}
+              value={v.seoTitle}
+              onChange={(e) => set("seoTitle", e.target.value)}
+              placeholder="Otomatik üretilecek — örn. Moda Kadıköy'de Satılık 3+1 Daire 120 m²"
+              maxLength={70}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>
+              SEO açıklaması{" "}
+              <span
+                className={`font-normal ${v.seoDescription.length > 160 ? "text-rose-500" : "text-ink/40"}`}
+              >
+                ({v.seoDescription.length}/160)
+              </span>
+            </label>
+            <textarea
+              className={`${inputCls} min-h-16`}
+              value={v.seoDescription}
+              onChange={(e) => set("seoDescription", e.target.value)}
+              placeholder="Otomatik üretilecek — arama sonuçlarında görünecek kısa tanıtım metni"
+              maxLength={300}
+            />
+          </div>
+          {(v.seoTitle || v.seoDescription) && (
+            <div className="rounded-xl border border-ink/10 bg-ink/[0.02] px-4 py-3">
+              <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink/40">
+                Google önizleme
+              </p>
+              <p className="mt-1 truncate text-[15px] font-medium text-[#1a0dab]">
+                {v.seoTitle || v.title}
+              </p>
+              <p className="mt-0.5 line-clamp-2 text-xs text-ink/60">
+                {v.seoDescription || "Açıklama otomatik üretilecek…"}
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

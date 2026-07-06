@@ -2,11 +2,21 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import {
+  getVertical,
+  verticalFromParam,
+  PRODUCT_CHOICES,
+} from "@/lib/verticals";
+import { BrandLogo } from "@/components/brand-logo";
 
 export default function RegisterForm() {
   const router = useRouter();
+  const sp = useSearchParams();
+  const verticalKey = verticalFromParam(sp.get("v"));
+  const v = getVertical(verticalKey);
+
   const [form, setForm] = useState({
     officeName: "",
     city: "",
@@ -26,7 +36,7 @@ export default function RegisterForm() {
     const res = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, vertical: verticalKey }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -34,7 +44,6 @@ export default function RegisterForm() {
       setLoading(false);
       return;
     }
-    // Kayıt sonrası otomatik giriş
     await signIn("credentials", {
       email: form.email,
       password: form.password,
@@ -50,11 +59,20 @@ export default function RegisterForm() {
     type?: string;
     placeholder: string;
   }> = [
-    { key: "officeName", label: "Ofis adı", placeholder: "Örn. Atlas Gayrimenkul" },
+    {
+      key: "officeName",
+      label: v.officeNameLabel,
+      placeholder: v.officeNamePlaceholder,
+    },
     { key: "city", label: "Şehir", placeholder: "Örn. Ankara" },
     { key: "name", label: "Ad Soyad", placeholder: "Adınız Soyadınız" },
     { key: "email", label: "E-posta", type: "email", placeholder: "ornek@ofis.com" },
-    { key: "password", label: "Şifre (en az 8 karakter)", type: "password", placeholder: "••••••••" },
+    {
+      key: "password",
+      label: "Şifre (en az 8 karakter)",
+      type: "password",
+      placeholder: "••••••••",
+    },
   ];
 
   const valid =
@@ -63,10 +81,30 @@ export default function RegisterForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper p-4">
       <div className="glass w-full max-w-md rounded-3xl border border-white/60 p-8 shadow-lg">
-        <h1 className="mb-1 text-xl font-extrabold tracking-tight">Ofis aç</h1>
-        <p className="mb-6 text-sm text-ink/55">
-          Ofisinizi ve yönetici hesabınızı bir dakikada oluşturun.
+        <BrandLogo vertical={verticalKey} className="text-xl" />
+        <p className="mb-1 mt-3 text-sm text-ink/55">{v.tagline}</p>
+        <p className="mb-6 text-xs text-ink/40">
+          Farklı ürün mü?{" "}
+          <Link href="/platform" className="font-semibold text-brand-600">
+            Platform seçimi
+          </Link>
         </p>
+
+        <div className="mb-4 flex gap-2">
+          {PRODUCT_CHOICES.map(({ key, param, config }) => (
+            <Link
+              key={key}
+              href={`/register?v=${param}`}
+              className={`flex-1 rounded-lg border px-2 py-1.5 text-center text-xs font-semibold ${
+                key === verticalKey
+                  ? "border-brand-600 bg-brand-50 text-brand-700"
+                  : "border-ink/15 text-ink/50 hover:border-ink/30"
+              }`}
+            >
+              {config.productName}
+            </Link>
+          ))}
+        </div>
 
         <div className="space-y-4">
           {fields.map((f) => (
@@ -95,7 +133,7 @@ export default function RegisterForm() {
             disabled={loading || !valid}
             className="btn-selvi w-full rounded-xl py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
           >
-            {loading ? "Oluşturuluyor…" : "Ofisi oluştur"}
+            {loading ? "Oluşturuluyor…" : `${v.productName} hesabı oluştur`}
           </button>
         </div>
 

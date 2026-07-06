@@ -4,34 +4,36 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { LogOut, Store, ExternalLink } from "lucide-react";
-import { NAV } from "./nav-items";
+import { getNav } from "./nav-items";
+import { BrandLogo } from "./brand-logo";
+import { getVertical } from "@/lib/verticals";
 
 export function Sidebar({
   tenantName,
   userName,
   showcaseSlug,
+  vertical = "REAL_ESTATE",
 }: {
   tenantName: string;
   userName: string;
   showcaseSlug?: string | null;
+  vertical?: string | null;
 }) {
   const pathname = usePathname();
+  const nav = getNav(vertical);
+  const v = getVertical(vertical);
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-ink/90 bg-paper lg:flex">
-      {/* Antet */}
       <div className="border-b border-ink/15 px-6 pb-5 pt-6">
-        <p className="font-display text-xl font-extrabold tracking-tight">
-          Emlak<span className="text-brand-600">Flow</span>
-        </p>
+        <BrandLogo vertical={vertical} className="text-xl" />
         <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-ink/50">
           {tenantName}
         </p>
       </div>
 
-      {/* Navigasyon */}
-      <nav className="flex-1 space-y-0.5 px-3 pt-4">
-        {NAV.map(({ href, label, icon: Icon }) => {
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pt-4">
+        {nav.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (
             <Link
@@ -50,23 +52,21 @@ export function Sidebar({
         })}
       </nav>
 
-      {/* Vitrin — ofisin public sayfası */}
       {showcaseSlug && (
         <div className="px-3 pb-2">
           <a
-            href={`/ofis/${showcaseSlug}`}
+            href={`${v.showcaseBase}/${showcaseSlug}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 rounded-lg border border-dashed border-brand-600/40 px-3 py-2.5 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
           >
             <Store size={17} />
-            Vitrini Gör
+            {v.labels.showcase} Gör
             <ExternalLink size={13} className="ml-auto text-brand-600/60" />
           </a>
         </div>
       )}
 
-      {/* Kullanıcı */}
       <div className="border-t border-ink/15 p-4">
         <div className="flex items-center justify-between">
           <div>

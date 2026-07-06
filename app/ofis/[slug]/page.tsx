@@ -8,6 +8,8 @@ import { trMoney, ROOM_OPTIONS, TYPE_TR } from "@/lib/labels";
 import { RequestForm } from "@/components/showcase-forms";
 import { ShowcaseMap, type MapListing } from "@/components/showcase-map";
 import { TrackImpressions } from "@/components/vitrin-tracking";
+import { FavoriteButton } from "@/components/favorite-button";
+import { getSiteUser } from "@/lib/site-auth";
 import { officeJsonLd } from "@/lib/seo";
 import { getBaseUrl } from "@/lib/url";
 
@@ -115,6 +117,18 @@ export default async function ShowcasePage({
     ? (sp.type as (typeof LISTING_TYPES)[number])
     : null;
 
+  const siteUser = await getSiteUser(tenant.id);
+  const favoriteIds = siteUser
+    ? new Set(
+        (
+          await prisma.favorite.findMany({
+            where: { siteUserId: siteUser.id },
+            select: { listingId: true },
+          })
+        ).map((f) => f.listingId),
+      )
+    : new Set<string>();
+
   const [listings, districts, team] = await Promise.all([
     prisma.listing.findMany({
       where: {
@@ -174,7 +188,7 @@ export default async function ShowcasePage({
       price: Number(l.price),
       purpose: l.purpose,
       title: l.title,
-      image: l.media[0]?.url ?? null,
+      image: l.media[0]?.thumbUrl ?? l.media[0]?.url ?? null,
       rooms: l.rooms,
       area: l.netArea ?? l.grossArea ?? null,
     }));
@@ -499,17 +513,24 @@ export default async function ShowcasePage({
             return (
               <Link
                 key={l.id}
-                href={`/ofis/${slug}/ilan/${l.id}`}
+                href={`/ofis/${slug}/ilan/${l.slug ? `${l.id}-${l.slug}` : l.id}`}
                 data-imp={l.id}
                 className="group overflow-hidden rounded-[10px] border border-ink/15 bg-white transition-colors hover:border-ink/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
               >
                 <div className="relative">
+                  <FavoriteButton
+                    slug={slug}
+                    listingId={l.id}
+                    initialFavorited={favoriteIds.has(l.id)}
+                    loggedIn={!!siteUser}
+                  />
                   <div className="relative h-48 overflow-hidden bg-brand-50">
                     {l.media[0] ? (
                       <Image
-                        src={l.media[0].url}
-                        alt={l.title}
+                        src={l.media[0].cardUrl ?? l.media[0].url}
+                        alt={l.media[0].alt ?? l.title}
                         fill
+                        loading="lazy"
                         sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                         className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                       />

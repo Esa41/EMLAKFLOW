@@ -21,7 +21,10 @@ export async function GET() {
       portalSahibinden: true,
       portalHepsiemlak: true,
       portalEmlakjet: true,
+      portalArabam: true,
+      portalSahibindenAuto: true,
       feedToken: true,
+      vertical: true,
       showcaseEnabled: true,
       showcaseTagline: true,
       whatsapp: true,
@@ -99,6 +102,12 @@ export async function PATCH(req: Request) {
       }),
       ...(body.portalEmlakjet !== undefined && {
         portalEmlakjet: !!body.portalEmlakjet,
+      }),
+      ...(body.portalArabam !== undefined && {
+        portalArabam: !!body.portalArabam,
+      }),
+      ...(body.portalSahibindenAuto !== undefined && {
+        portalSahibindenAuto: !!body.portalSahibindenAuto,
       }),
       ...(body.showcaseEnabled !== undefined && {
         showcaseEnabled: !!body.showcaseEnabled,

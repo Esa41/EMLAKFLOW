@@ -5,19 +5,25 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Menu, X, LogOut, Store, ExternalLink } from "lucide-react";
-import { NAV } from "./nav-items";
+import { getNav } from "./nav-items";
+import { BrandLogo, BrandMark } from "./brand-logo";
+import { getVertical } from "@/lib/verticals";
 
 export function MobileNav({
   tenantName,
   userName,
   showcaseSlug,
+  vertical = "REAL_ESTATE",
 }: {
   tenantName: string;
   userName: string;
   showcaseSlug?: string | null;
+  vertical?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const nav = getNav(vertical);
+  const v = getVertical(vertical);
 
   return (
     <div className="lg:hidden">
@@ -39,13 +45,9 @@ export function MobileNav({
           <div className="glass absolute inset-y-0 left-0 flex w-72 flex-col border-r border-white/60 shadow-2xl">
             <div className="flex items-center justify-between px-5 pb-4 pt-5">
               <div className="flex items-center gap-3">
-                <div className="btn-selvi flex h-9 w-9 items-center justify-center rounded-xl font-extrabold text-white">
-                  E
-                </div>
+                <BrandMark vertical={vertical} size="sm" />
                 <div>
-                  <p className="font-display font-extrabold tracking-tight">
-                    EmlakFlow
-                  </p>
+                  <BrandLogo vertical={vertical} />
                   <p className="font-mono text-[10px] uppercase tracking-widest text-ink/45">
                     {tenantName}
                   </p>
@@ -61,7 +63,7 @@ export function MobileNav({
             </div>
 
             <nav className="flex-1 space-y-1 overflow-y-auto px-3">
-              {NAV.map(({ href, label, icon: Icon }) => {
+              {nav.map(({ href, label, icon: Icon }) => {
                 const active = pathname.startsWith(href);
                 return (
                   <Link
@@ -84,14 +86,14 @@ export function MobileNav({
             {showcaseSlug && (
               <div className="px-3 pb-2">
                 <a
-                  href={`/ofis/${showcaseSlug}`}
+                  href={`${v.showcaseBase}/${showcaseSlug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-3 rounded-xl border border-dashed border-brand-600/40 px-3 py-3 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
                 >
                   <Store size={18} />
-                  Vitrini Gör
+                  {v.labels.showcase} Gör
                   <ExternalLink size={13} className="ml-auto text-brand-600/60" />
                 </a>
               </div>

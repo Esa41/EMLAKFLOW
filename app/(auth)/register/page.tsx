@@ -1,7 +1,12 @@
 import RegisterForm from "./register-form";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
 export default function RegisterPage() {
-  return <RegisterForm />;
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
+  );
 }

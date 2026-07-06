@@ -3,17 +3,24 @@ import { Lock } from "lucide-react";
 import { ListingForm } from "@/components/listing-form";
 import { getSession } from "@/lib/auth";
 import { getListingUsage, FREE_LISTING_LIMIT } from "@/lib/plans";
+import { prisma } from "@/lib/prisma";
+import { getVertical } from "@/lib/verticals";
 
 export default async function NewListingPage() {
   const session = (await getSession())!;
   const usage = await getListingUsage(session.tenantId);
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: session.tenantId },
+    select: { vertical: true },
+  });
+  const v = getVertical(tenant?.vertical);
 
   if (!usage.canCreate) {
     return (
       <div className="mx-auto max-w-2xl space-y-6">
         <div>
           <h1 className="font-display text-[27px] font-extrabold tracking-tight">
-            Yeni İlan
+            {v.labels.newListing}
           </h1>
           <p className="mt-1 text-sm text-ink/55">
             Kaydettiğinde açık taleplerle otomatik eşleştirilir.
@@ -66,7 +73,7 @@ export default async function NewListingPage() {
           )}
         </p>
       </div>
-      <ListingForm />
+      <ListingForm vertical={tenant?.vertical} />
     </div>
   );
 }

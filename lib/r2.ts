@@ -1,4 +1,9 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 /**
@@ -35,4 +40,29 @@ export async function presignUpload(key: string, contentType: string) {
 
 export async function deleteObject(key: string) {
   await r2.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+}
+
+/** R2'deki nesneyi Buffer olarak indirir (sunucu tarafı görsel işleme için). */
+export async function getObjectBuffer(key: string): Promise<Buffer> {
+  const res = await r2.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+  const bytes = await res.Body!.transformToByteArray();
+  return Buffer.from(bytes);
+}
+
+/** Sunucudan R2'ye doğrudan yükleme — üretilen görsel varyantları için. */
+export async function putObject(
+  key: string,
+  body: Buffer,
+  contentType: string,
+) {
+  await r2.send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      // Varyantlar içerik-adresli (key değişmeden içerik değişmez) → agresif cache
+      CacheControl: "public, max-age=31536000, immutable",
+    }),
+  );
 }

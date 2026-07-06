@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import type { Vertical } from "@prisma/client";
 
 function slugify(s: string) {
   return s
@@ -18,7 +19,7 @@ function slugify(s: string) {
 /**
  * POST /api/register
  * Yeni ofis (Tenant) + OWNER kullanıcısını tek transaction'da oluşturur.
- * Body: { officeName, city?, name, email, password, phone? }
+ * Body: { officeName, city?, name, email, password, phone?, vertical? }
  */
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
@@ -34,6 +35,10 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+
+  const verticalRaw = String(body.vertical ?? "REAL_ESTATE").toUpperCase();
+  const vertical: Vertical =
+    verticalRaw === "AUTO_DEALER" ? "AUTO_DEALER" : "REAL_ESTATE";
 
   const email = String(body.email).toLowerCase().trim();
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -58,6 +63,7 @@ export async function POST(req: Request) {
       name: body.officeName,
       slug,
       city: body.city ?? null,
+      vertical,
       users: {
         create: {
           name: body.name,

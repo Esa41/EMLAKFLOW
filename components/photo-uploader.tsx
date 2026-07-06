@@ -8,18 +8,19 @@ export interface MediaItem {
   id: string;
   url: string;
   key: string;
+  thumbUrl?: string | null;
 }
 
 /**
- * Yükleme öncesi tarayıcıda sıkıştırma: en uzun kenar 1920px'e indirilir,
- * WebP'ye çevrilir (kalite 0.82). Başarısız olursa orijinal dosya kullanılır —
- * hiçbir zaman yüklemeyi bloklamaz. Sunucu tarafına dokunmadan (R2 doğrudan
- * PUT akışı korunarak) depolama ve indirme boyutunu ciddi ölçüde düşürür.
+ * Yükleme öncesi tarayıcıda sıkıştırma: en uzun kenar 2560px'e indirilir
+ * (yüksek çözünürlük korunur — sunucu bu orijinalden thumb/card varyantları
+ * üretir), WebP'ye çevrilir (kalite 0.85). Başarısız olursa orijinal dosya
+ * kullanılır — hiçbir zaman yüklemeyi bloklamaz.
  */
 async function compressImage(
   file: File,
-  maxDim = 1920,
-  quality = 0.82,
+  maxDim = 2560,
+  quality = 0.85,
 ): Promise<File> {
   try {
     const bitmap = await createImageBitmap(file);
@@ -55,37 +56,55 @@ export function PhotoUploader({
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  /** Tek dosyayı sıkıştırıp R2'ye yükler → key döner (kayıt ayrı adımda). */
+  async function uploadToR2(rawFile: File): Promise<string> {
+    // 0. Tarayıcıda küçült + WebP'ye çevir (optimize edilmiş yükleme)
+    const file = await compressImage(rawFile);
+
+    // 1. Presigned URL al
+    const presign = await fetch("/api/uploads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: file.name, contentType: file.type }),
+    });
+    if (!presign.ok) {
+      const d = await presign.json().catch(() => ({}));
+      throw new Error(d.error ?? "Yükleme URL'si alınamadı.");
+    }
+    const { uploadUrl, key } = await presign.json();
+
+    // 2. Doğrudan R2'ye PUT
+    const put = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    if (!put.ok) throw new Error("Dosya R2'ye yüklenemedi.");
+    return key as string;
+  }
+
   async function handleFiles(files: FileList | null) {
     if (!files?.length) return;
     setUploading(true);
     setError(null);
 
-    for (const rawFile of Array.from(files)) {
-      try {
-        // 0. Tarayıcıda küçült + WebP'ye çevir (optimize edilmiş yükleme)
-        const file = await compressImage(rawFile);
+    const list = Array.from(files);
+    try {
+      // Sıkıştırma + R2 PUT aşaması 3'lü eşzamanlı yürür (gecikmeyi düşürür);
+      // sıra numarası tutarlılığı için ilana bağlama sıralı yapılır.
+      const keys: string[] = new Array(list.length);
+      const CONCURRENCY = 3;
+      let next = 0;
+      await Promise.all(
+        Array.from({ length: Math.min(CONCURRENCY, list.length) }, async () => {
+          while (next < list.length) {
+            const i = next++;
+            keys[i] = await uploadToR2(list[i]);
+          }
+        }),
+      );
 
-        // 1. Presigned URL al
-        const presign = await fetch("/api/uploads", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileName: file.name, contentType: file.type }),
-        });
-        if (!presign.ok) {
-          const d = await presign.json().catch(() => ({}));
-          throw new Error(d.error ?? "Yükleme URL'si alınamadı.");
-        }
-        const { uploadUrl, key } = await presign.json();
-
-        // 2. Doğrudan R2'ye PUT
-        const put = await fetch(uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": file.type },
-          body: file,
-        });
-        if (!put.ok) throw new Error("Dosya R2'ye yüklenemedi.");
-
-        // 3. Medyayı ilana bağla
+      for (const key of keys) {
         const reg = await fetch(`/api/listings/${listingId}/media`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -94,10 +113,9 @@ export function PhotoUploader({
         if (!reg.ok) throw new Error("Medya kaydedilemedi.");
         const data = await reg.json();
         setMedia(data.media);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Yükleme başarısız.");
-        break;
       }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Yükleme başarısız.");
     }
     setUploading(false);
     if (fileRef.current) fileRef.current.value = "";
@@ -126,7 +144,7 @@ export function PhotoUploader({
             className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-ink/[0.05]"
           >
             <Image
-              src={m.url}
+              src={m.thumbUrl ?? m.url}
               alt=""
               fill
               sizes="(min-width: 768px) 25vw, (min-width: 640px) 33vw, 50vw"

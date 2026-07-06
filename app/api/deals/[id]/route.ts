@@ -42,7 +42,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
     const deal = await db.deal.update({
       where: { id },
       data: {
-        ...(body.stage !== undefined && { stage: body.stage }),
+        ...(body.stage !== undefined && {
+          stage: body.stage,
+          stageChangedAt: new Date(),
+        }),
         ...(body.value !== undefined && { value: body.value === null ? null : Number(body.value) }),
         ...(body.lostReason !== undefined && { lostReason: body.lostReason || null }),
         ...(body.stage !== undefined && { closedAt: isClosing ? new Date() : null }),

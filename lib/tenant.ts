@@ -16,6 +16,11 @@ const TENANT_MODELS = new Set([
   "ListingEvent",
   "ListingDailyStat",
   "Insight",
+  "RentalAgreement",
+  "RentPayment",
+  "Task",
+  "SocialAccount",
+  "SocialPost",
 ]);
 
 /**

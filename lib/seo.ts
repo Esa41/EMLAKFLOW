@@ -24,7 +24,9 @@ type SeoListing = Pick<
   | "creditEligible"
   | "furnished"
   | "refCode"
->;
+> &
+  // AI ile üretilen kayıtlı SEO alanları — varsa şablona tercih edilir
+  Partial<Pick<Listing, "seoTitle" | "seoDescription">>;
 
 const tl = new Intl.NumberFormat("tr-TR", {
   style: "currency",
@@ -33,6 +35,10 @@ const tl = new Intl.NumberFormat("tr-TR", {
 });
 
 export function seoTitle(l: SeoListing, officeName?: string): string {
+  // AI ile üretilmiş kayıtlı başlık öncelikli
+  if (l.seoTitle) {
+    return officeName ? `${l.seoTitle} | ${officeName}` : l.seoTitle;
+  }
   const islem = l.purpose === "SALE" ? "Satılık" : "Kiralık";
   const yer = [l.neighborhood, l.district].filter(Boolean).join(" ");
   const oda = l.rooms ? ` ${l.rooms}` : "";
@@ -42,6 +48,8 @@ export function seoTitle(l: SeoListing, officeName?: string): string {
 }
 
 export function seoDescription(l: SeoListing, officeName?: string): string {
+  // AI ile üretilmiş kayıtlı açıklama öncelikli
+  if (l.seoDescription) return l.seoDescription.slice(0, 300);
   const islem = l.purpose === "SALE" ? "satılık" : "kiralık";
   const parts: string[] = [];
   parts.push(

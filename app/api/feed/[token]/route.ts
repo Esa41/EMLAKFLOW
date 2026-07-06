@@ -1,20 +1,21 @@
 import { prisma } from "@/lib/prisma";
-import { buildFeedXml } from "@/lib/feed";
+import { buildFeedXml, type FeedPortal } from "@/lib/feed";
 
 type Ctx = { params: Promise<{ token: string }> };
 
 /**
- * Public XML feed — GET /api/feed/{token}.xml
- * Kimlik doğrulama URL'deki gizli token'la yapılır (portal panelleri
- * cookie taşıyamaz). Token Ayarlar sayfasında görünür.
+ * Public XML feed — GET /api/feed/{token}.xml?portal=arabam
  */
-export async function GET(_req: Request, ctx: Ctx) {
+export async function GET(req: Request, ctx: Ctx) {
   const { token: raw } = await ctx.params;
   const token = raw.replace(/\.xml$/i, "");
 
   if (!token || token.length < 24) {
     return new Response("Not found", { status: 404 });
   }
+
+  const url = new URL(req.url);
+  const portal = (url.searchParams.get("portal") ?? "generic") as FeedPortal;
 
   const tenant = await prisma.tenant.findUnique({
     where: { feedToken: token },
@@ -23,24 +24,30 @@ export async function GET(_req: Request, ctx: Ctx) {
       name: true,
       phone: true,
       city: true,
+      vertical: true,
       portalSahibinden: true,
       portalHepsiemlak: true,
       portalEmlakjet: true,
+      portalArabam: true,
+      portalSahibindenAuto: true,
     },
   });
   if (!tenant) return new Response("Not found", { status: 404 });
 
-  const anyPortal =
+  const anyEstate =
     tenant.portalSahibinden || tenant.portalHepsiemlak || tenant.portalEmlakjet;
+  const anyAuto = tenant.portalArabam || tenant.portalSahibindenAuto;
+  const anyPortal = anyEstate || anyAuto;
+
   if (!anyPortal) {
     return new Response(
       "Feed kapalı: Ayarlar > Portal Yayını bölümünden en az bir portalı açın.",
-      { status: 403, headers: { "Content-Type": "text/plain; charset=utf-8" } }
+      { status: 403, headers: { "Content-Type": "text/plain; charset=utf-8" } },
     );
   }
 
   const listings = await prisma.listing.findMany({
-    where: { tenantId: tenant.id, status: "ACTIVE" },
+    where: { tenantId: tenant.id, status: "ACTIVE", feedEnabled: true },
     orderBy: { updatedAt: "desc" },
     include: {
       media: { orderBy: { order: "asc" } },
@@ -48,13 +55,16 @@ export async function GET(_req: Request, ctx: Ctx) {
     },
   });
 
-  const xml = buildFeedXml(tenant, listings);
+  const xml = buildFeedXml(
+    { ...tenant, vertical: tenant.vertical },
+    listings,
+    portal,
+  );
 
   return new Response(xml, {
     status: 200,
     headers: {
       "Content-Type": "application/xml; charset=utf-8",
-      // Portallar feed'i periyodik çeker — 15 dk edge cache yeterli
       "Cache-Control": "public, s-maxage=900, stale-while-revalidate=300",
     },
   });

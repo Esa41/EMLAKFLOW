@@ -21,6 +21,8 @@ export async function GET(req: NextRequest) {
   const where: Record<string, unknown> = {};
   if (type) where.type = type;
   if (entity) where.entity = entity;
+  const entityId = url.searchParams.get("entityId") || undefined;
+  if (entityId) where.entityId = entityId;
   if (userId) where.userId = userId;
   if (from || to) {
     where.createdAt = {

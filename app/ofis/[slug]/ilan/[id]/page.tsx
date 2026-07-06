@@ -7,6 +7,10 @@ import { prisma } from "@/lib/prisma";
 import { InfoForm } from "@/components/showcase-forms";
 import { ShowcaseMap } from "@/components/showcase-map";
 import { DroneMapFlyover } from "@/components/drone-map-flyover";
+import { EnvironmentScorecard } from "@/components/environment-scorecard";
+import type { EnvironmentResult } from "@/lib/environment";
+import { FavoriteButton } from "@/components/favorite-button";
+import { getSiteUser } from "@/lib/site-auth";
 import { TrackListingView } from "@/components/vitrin-tracking";
 import {
   seoTitle,
@@ -21,6 +25,14 @@ import { getBaseUrl } from "@/lib/url";
 const BASE_URL = getBaseUrl();
 
 type Params = Promise<{ slug: string; id: string }>;
+
+/**
+ * URL "[id]-[seo-slug]" biçimini destekler (cuid tire içermez).
+ * Eski "/ilan/[id]" bağlantıları da çalışmaya devam eder.
+ */
+function parseListingId(param: string): string {
+  return param.split("-")[0];
+}
 
 async function getData(slug: string, id: string) {
   const tenant = await prisma.tenant.findUnique({
@@ -52,21 +64,23 @@ export async function generateMetadata({
   params: Params;
 }): Promise<Metadata> {
   const { slug, id } = await params;
-  const data = await getData(slug, id);
+  const data = await getData(slug, parseListingId(id));
   if (!data) return {};
   const { listing, tenant } = data;
-  // Şablon bazlı otomatik SEO (lib/seo.ts) — ilan alanlarından deterministik üretilir
+  // AI ile üretilen SEO alanları öncelikli; yoksa şablon bazlı üretim (lib/seo.ts)
   const title = seoTitle(listing, tenant.name);
   const desc = seoDescription(listing, tenant.name);
+  const publicId = listing.slug ? `${listing.id}-${listing.slug}` : listing.id;
+  const canonical = `${BASE_URL}/ofis/${slug}/ilan/${publicId}`;
   return {
     title,
     description: desc,
-    alternates: { canonical: `${BASE_URL}/ofis/${slug}/ilan/${id}` },
+    alternates: { canonical },
     openGraph: {
       title,
       description: desc,
       type: "website",
-      url: `${BASE_URL}/ofis/${slug}/ilan/${id}`,
+      url: canonical,
       images: listing.media[0] ? [{ url: listing.media[0].url }] : [],
     },
     twitter: { card: "summary_large_image", title, description: desc },
@@ -79,9 +93,20 @@ export default async function ListingShowcasePage({
   params: Params;
 }) {
   const { slug, id } = await params;
-  const data = await getData(slug, id);
+  const data = await getData(slug, parseListingId(id));
   if (!data) notFound();
   const { tenant, listing: l } = data;
+  const publicId = l.slug ? `${l.id}-${l.slug}` : l.id;
+
+  const siteUser = await getSiteUser(tenant.id);
+  const isFavorited = siteUser
+    ? !!(await prisma.favorite.findUnique({
+        where: {
+          siteUserId_listingId: { siteUserId: siteUser.id, listingId: l.id },
+        },
+        select: { id: true },
+      }))
+    : false;
 
   const similar = await prisma.listing.findMany({
     where: {
@@ -132,13 +157,13 @@ export default async function ListingShowcasePage({
 
   const baseUrl = BASE_URL;
   const jsonLd = listingJsonLd(
-    { ...l, description: l.description, media: l.media },
+    { ...l, id: publicId, description: l.description, media: l.media },
     { name: tenant.name, slug },
     baseUrl,
   );
   const breadcrumb = breadcrumbJsonLd([
     { name: tenant.name, url: `${baseUrl}/ofis/${slug}` },
-    { name: l.title, url: `${baseUrl}/ofis/${slug}/ilan/${l.id}` },
+    { name: l.title, url: `${baseUrl}/ofis/${slug}/ilan/${publicId}` },
   ]);
 
   return (
@@ -165,7 +190,7 @@ export default async function ListingShowcasePage({
           {l.media[0] ? (
             <Image
               src={l.media[0].url}
-              alt={mediaAltText(l, 0)}
+              alt={l.media[0].alt ?? mediaAltText(l, 0)}
               fill
               priority
               sizes="(min-width: 1024px) 683px, 100vw"
@@ -188,9 +213,10 @@ export default async function ListingShowcasePage({
                 className="relative aspect-[4/3] w-full overflow-hidden rounded-md border border-ink/10"
               >
                 <Image
-                  src={m.url}
-                  alt={mediaAltText(l, i + 1)}
+                  src={m.thumbUrl ?? m.url}
+                  alt={m.alt ?? mediaAltText(l, i + 1)}
                   fill
+                  loading="lazy"
                   sizes="(min-width: 640px) 16vw, 25vw"
                   className="object-cover"
                 />
@@ -205,12 +231,21 @@ export default async function ListingShowcasePage({
           <h1 className="font-display text-2xl font-extrabold leading-tight tracking-tight sm:text-3xl">
             {l.title}
           </h1>
-          <p className="mt-2 font-display text-3xl font-extrabold tracking-tight text-brand-700">
-            {trMoney.format(Number(l.price))}
-            {l.purpose === "RENT" && (
-              <span className="text-base font-medium text-ink/45"> /ay</span>
-            )}
-          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-4">
+            <p className="font-display text-3xl font-extrabold tracking-tight text-brand-700">
+              {trMoney.format(Number(l.price))}
+              {l.purpose === "RENT" && (
+                <span className="text-base font-medium text-ink/45"> /ay</span>
+              )}
+            </p>
+            <FavoriteButton
+              slug={slug}
+              listingId={l.id}
+              initialFavorited={isFavorited}
+              loggedIn={!!siteUser}
+              variant="inline"
+            />
+          </div>
 
           {l.description && (
             <p className="mt-4 max-w-prose text-[15px] leading-relaxed text-ink/75">
@@ -232,6 +267,19 @@ export default async function ListingShowcasePage({
                 parcelGeo={l.parcelGeo ?? undefined}
                 height={340}
               />
+
+              {/* Çevresel Değerlendirme Puanı */}
+              {l.environmentScore != null && l.environmentData != null && (
+                <>
+                  <h2 className="bolum mt-8">Çevresel Değerlendirme</h2>
+                  <div className="mt-4">
+                    <EnvironmentScorecard
+                      score={l.environmentScore}
+                      data={l.environmentData as unknown as EnvironmentResult}
+                    />
+                  </div>
+                </>
+              )}
 
               <h2 className="bolum mt-8">Konum</h2>
               <div className="mt-4">
@@ -266,6 +314,23 @@ export default async function ListingShowcasePage({
               </div>
             ))}
           </dl>
+
+          {/* Özellik rozetleri */}
+          {l.features.length > 0 && (
+            <>
+              <h2 className="bolum mt-8">Özellikler</h2>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {l.features.map((f) => (
+                  <span
+                    key={f}
+                    className="rounded-full border border-brand-600/25 bg-brand-50 px-3.5 py-1.5 text-sm font-semibold text-brand-700"
+                  >
+                    ✓ {f}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Danışman kartı */}
@@ -324,15 +389,16 @@ export default async function ListingShowcasePage({
             {similar.map((s) => (
               <Link
                 key={s.id}
-                href={`/ofis/${slug}/ilan/${s.id}`}
+                href={`/ofis/${slug}/ilan/${s.slug ? `${s.id}-${s.slug}` : s.id}`}
                 className="overflow-hidden rounded-[10px] border border-ink/15 bg-white hover:border-ink/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
               >
                 <div className="relative h-32 bg-brand-50">
                   {s.media[0] ? (
                     <Image
-                      src={s.media[0].url}
-                      alt={s.title}
+                      src={s.media[0].cardUrl ?? s.media[0].url}
+                      alt={s.media[0].alt ?? s.title}
                       fill
+                      loading="lazy"
                       sizes="(min-width: 640px) 33vw, 100vw"
                       className="object-cover"
                     />

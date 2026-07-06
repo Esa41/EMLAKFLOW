@@ -1,8 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
 import { findMatchingLeads } from "@/lib/matching";
 import { getListingUsage, FREE_LISTING_LIMIT } from "@/lib/plans";
+import { ensureListingSeo } from "@/lib/seo-ai";
+import { ensureEnvironmentAnalysis } from "@/lib/environment";
+import { nextRefCode } from "@/lib/ref-code";
+import { listingDataFromBody } from "@/lib/listing-payload";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
   const session = await getSession();
@@ -60,12 +65,14 @@ export async function POST(req: Request) {
     );
   }
 
-  // refCode: EF-YYYY-NNNN — tenant başına sıralı
-  const year = new Date().getFullYear();
-  const count = await db.listing.count({
-    where: { refCode: { startsWith: `EF-${year}-` } },
+  // refCode: EF/GF-YYYY-NNNN — tenant dikeyine göre
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: session.tenantId },
+    select: { vertical: true },
   });
-  const refCode = `EF-${year}-${String(count + 1).padStart(4, "0")}`;
+  const refCode = await nextRefCode(db, tenant?.vertical);
+
+  const fields = listingDataFromBody(body);
 
   const listing = await db.listing.create({
     data: {
@@ -73,32 +80,27 @@ export async function POST(req: Request) {
       refCode,
       title: body.title,
       purpose: body.purpose ?? "SALE",
-      type: body.type ?? "APARTMENT",
+      type: body.type ?? (tenant?.vertical === "AUTO_DEALER" ? "SEDAN" : "APARTMENT"),
       status: body.status ?? "ACTIVE",
       price: body.price,
       currency: "TRY",
       city: body.city,
       district: body.district,
-      neighborhood: body.neighborhood || null,
-      address: body.address || null,
-      lat: body.lat !== "" && body.lat != null ? Number(body.lat) : null,
-      lng: body.lng !== "" && body.lng != null ? Number(body.lng) : null,
-      rooms: body.rooms || null,
-      grossArea: body.grossArea ? Number(body.grossArea) : null,
-      netArea: body.netArea ? Number(body.netArea) : null,
-      floor: body.floor !== "" && body.floor != null ? Number(body.floor) : null,
-      totalFloors: body.totalFloors ? Number(body.totalFloors) : null,
-      buildingAge: body.buildingAge !== "" && body.buildingAge != null ? Number(body.buildingAge) : null,
-      heating: body.heating || null,
-      dues: body.dues ? Number(body.dues) : null,
-      deedStatus: body.deedStatus || null,
-      creditEligible: body.creditEligible ?? true,
-      furnished: body.furnished ?? false,
-      inSite: body.inSite ?? false,
-      description: body.description || null,
-      parcelGeo: body.parcelGeo ?? undefined,
       agentId: session.userId,
+      ...fields,
     },
+  });
+
+  // Otomatik SEO + çevre analizi — yanıtı bloklamadan arka planda çalışır.
+  after(async () => {
+    await Promise.allSettled([
+      ensureListingSeo(listing).catch((err) =>
+        console.error("[listings] otomatik SEO üretilemedi:", err),
+      ),
+      ensureEnvironmentAnalysis(listing).catch((err) =>
+        console.error("[listings] çevre analizi yapılamadı:", err),
+      ),
+    ]);
   });
 
   // Akıllı eşleştirme: yeni ilana uyan açık lead'ler

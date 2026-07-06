@@ -13,6 +13,7 @@ declare module "next-auth" {
       tenantId: string;
       role: Role;
       tenantName: string;
+      vertical: string;
     } & DefaultSession["user"];
   }
 }
@@ -46,6 +47,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           tenantId: user.tenantId,
           role: user.role,
           tenantName: user.tenant.name,
+          vertical: user.tenant.vertical,
         };
       },
     }),
@@ -65,5 +67,6 @@ export async function getSession() {
     role: session.user.role,
     name: session.user.name ?? "",
     tenantName: session.user.tenantName,
+    vertical: session.user.vertical ?? "REAL_ESTATE",
   };
 }

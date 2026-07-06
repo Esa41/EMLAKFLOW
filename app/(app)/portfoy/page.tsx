@@ -166,9 +166,10 @@ export default async function PortfolioPage({
                   <div className="relative h-44 overflow-hidden bg-brand-50">
                     {l.media[0] ? (
                       <Image
-                        src={l.media[0].url}
+                        src={l.media[0].cardUrl ?? l.media[0].url}
                         alt={l.title}
                         fill
+                        loading="lazy"
                         sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                         className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                       />

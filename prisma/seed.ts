@@ -64,10 +64,10 @@ function todayAt(h: number, m = 0) {
   d.setHours(h, m, 0, 0);
   return d;
 }
-function daysFromNow(n: number, h = 10) {
+function daysFromNow(n: number, h = 10, m = 0) {
   const d = new Date();
   d.setDate(d.getDate() + n);
-  d.setHours(h, 0, 0, 0);
+  d.setHours(h, m, 0, 0);
   return d;
 }
 

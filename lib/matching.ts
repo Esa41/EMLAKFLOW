@@ -1,33 +1,43 @@
 import type { Lead, Listing } from "@prisma/client";
 import type { TenantClient } from "./tenant";
+import { isAutoVertical } from "./verticals";
 
 export interface MatchResult {
   lead: Lead;
-  score: number; // 0–100
+  score: number;
   reasons: string[];
 }
 
 export interface ListingMatchResult {
   listing: Listing;
-  score: number; // 0–100
+  score: number;
   reasons: string[];
+}
+
+function isVehicleListing(l: Listing): boolean {
+  return !!(l.vehicleBrand || l.vehicleYear);
 }
 
 /**
  * Bir lead ile bir ilanın uyum skorunu hesaplar (0–100).
- * Çift yönlü eşleştirmenin (ilan→lead ve lead→ilan) ortak çekirdeği.
+ * Emlak ve araç dikeyleri için ortak çekirdek + dikeye özel kriterler.
  */
 export function scorePair(
   lead: Lead,
   listing: Listing,
 ): { score: number; reasons: string[] } {
-  // Amaç (satılık/kiralık) ön şart
   if (lead.purpose !== listing.purpose) return { score: 0, reasons: [] };
+
+  const vehicleLead = !!(lead.vehicleBrand || lead.minYear || lead.maxKm);
+  const vehicleListing = isVehicleListing(listing);
+
+  if (vehicleLead || vehicleListing) {
+    return scoreVehiclePair(lead, listing);
+  }
 
   let score = 0;
   const reasons: string[] = [];
 
-  // Lokasyon (35)
   if (lead.city && lead.city === listing.city) {
     score += 15;
     reasons.push("Şehir uyumlu");
@@ -46,7 +56,6 @@ export function scorePair(
     score += 10;
   }
 
-  // Fiyat (30)
   const price = Number(listing.price);
   const min = lead.minPrice ? Number(lead.minPrice) : null;
   const max = lead.maxPrice ? Number(lead.maxPrice) : null;
@@ -60,7 +69,6 @@ export function scorePair(
     reasons.push("Bütçenin %10 üstünde (pazarlık payı)");
   }
 
-  // Oda (15)
   if (lead.rooms && listing.rooms) {
     if (lead.rooms === listing.rooms) {
       score += 15;
@@ -70,7 +78,6 @@ export function scorePair(
     score += 8;
   }
 
-  // Net m² (10)
   if (listing.netArea) {
     const okMin = lead.minArea === null || listing.netArea >= (lead.minArea ?? 0);
     const okMax =
@@ -82,13 +89,11 @@ export function scorePair(
     }
   }
 
-  // Tip (5)
   if (!lead.type || lead.type === listing.type) {
     score += 5;
     if (lead.type) reasons.push("Gayrimenkul tipi uyumlu");
   }
 
-  // Kredi (5)
   if (!lead.needsCredit || listing.creditEligible) {
     score += 5;
     if (lead.needsCredit) reasons.push("Krediye uygun");
@@ -99,21 +104,95 @@ export function scorePair(
   return { score: Math.min(score, 100), reasons };
 }
 
-/**
- * Yeni/güncellenen bir ilana uyan AÇIK lead'leri bulur ve puanlar.
- * Skor bileşenleri:
- *   amaç (satılık/kiralık) → ön şart
- *   şehir/ilçe/mahalle     → 35
- *   fiyat aralığı          → 30
- *   oda ("3+1")            → 15
- *   net m² aralığı         → 10
- *   tip (daire/villa…)     → 5
- *   kredi uygunluğu        → 5
- */
+function scoreVehiclePair(
+  lead: Lead,
+  listing: Listing,
+): { score: number; reasons: string[] } {
+  let score = 0;
+  const reasons: string[] = [];
+
+  if (lead.city && listing.city && lead.city === listing.city) {
+    score += 20;
+    reasons.push("Şehir uyumlu");
+  } else if (!lead.city) {
+    score += 10;
+  }
+
+  const price = Number(listing.price);
+  const min = lead.minPrice ? Number(lead.minPrice) : null;
+  const max = lead.maxPrice ? Number(lead.maxPrice) : null;
+  if (min === null && max === null) score += 20;
+  else if ((min === null || price >= min) && (max === null || price <= max)) {
+    score += 30;
+    reasons.push("Bütçe aralığında");
+  } else if (max !== null && price <= max * 1.1) {
+    score += 15;
+    reasons.push("Bütçenin %10 üstünde");
+  }
+
+  if (lead.vehicleBrand && listing.vehicleBrand) {
+    if (
+      lead.vehicleBrand.toLowerCase() === listing.vehicleBrand.toLowerCase()
+    ) {
+      score += 15;
+      reasons.push(`Marka uyumlu (${listing.vehicleBrand})`);
+    }
+  } else if (!lead.vehicleBrand) {
+    score += 5;
+  }
+
+  if (lead.vehicleModel && listing.vehicleModel) {
+    if (
+      listing.vehicleModel.toLowerCase().includes(lead.vehicleModel.toLowerCase())
+    ) {
+      score += 10;
+      reasons.push("Model uyumlu");
+    }
+  }
+
+  if (lead.minYear && listing.vehicleYear) {
+    if (listing.vehicleYear >= lead.minYear) {
+      score += 10;
+      reasons.push(`Model yılı uygun (${listing.vehicleYear})`);
+    }
+  } else if (!lead.minYear) {
+    score += 5;
+  }
+
+  if (lead.maxKm != null && listing.vehicleKm != null) {
+    if (listing.vehicleKm <= lead.maxKm) {
+      score += 10;
+      reasons.push(`Km uygun (${listing.vehicleKm.toLocaleString("tr-TR")})`);
+    }
+  } else if (lead.maxKm == null) {
+    score += 5;
+  }
+
+  if (lead.fuel && listing.fuel) {
+    if (lead.fuel.toLowerCase() === listing.fuel.toLowerCase()) {
+      score += 5;
+      reasons.push("Yakıt tipi uyumlu");
+    }
+  }
+
+  if (lead.transmission && listing.transmission) {
+    if (lead.transmission.toLowerCase() === listing.transmission.toLowerCase()) {
+      score += 5;
+      reasons.push("Vites uyumlu");
+    }
+  }
+
+  if (!lead.type || lead.type === listing.type) {
+    score += 5;
+  }
+
+  return { score: Math.min(score, 100), reasons };
+}
+
 export async function findMatchingLeads(
   db: TenantClient,
   listing: Listing,
-  minScore = 50
+  minScore = 50,
 ): Promise<MatchResult[]> {
   const leads = await db.lead.findMany({
     where: { status: "OPEN", purpose: listing.purpose },
@@ -127,14 +206,10 @@ export async function findMatchingLeads(
   return results.sort((a, b) => b.score - a.score);
 }
 
-/**
- * Ters yön: yeni/güncellenen bir TALEBE (lead) uyan AKTİF ilanları bulur.
- * Vitrinden ya da elle talep geldiğinde danışmanı bilgilendirmek için kullanılır.
- */
 export async function findMatchingListings(
   db: TenantClient,
   lead: Lead,
-  minScore = 50
+  minScore = 50,
 ): Promise<ListingMatchResult[]> {
   const listings = await db.listing.findMany({
     where: { status: "ACTIVE", purpose: lead.purpose },
@@ -146,4 +221,9 @@ export async function findMatchingListings(
     if (score >= minScore) results.push({ listing, score, reasons });
   }
   return results.sort((a, b) => b.score - a.score);
+}
+
+/** Lead oluştururken dikeye göre varsayılan tip */
+export function defaultLeadTypeForVertical(vertical: string | null | undefined) {
+  return isAutoVertical(vertical) ? "SEDAN" : "APARTMENT";
 }

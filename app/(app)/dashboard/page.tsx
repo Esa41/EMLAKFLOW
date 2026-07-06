@@ -188,9 +188,10 @@ export default async function DashboardPage() {
                   <div className="relative h-40 bg-brand-50">
                     {l.media[0] ? (
                       <Image
-                        src={l.media[0].url}
+                        src={l.media[0].cardUrl ?? l.media[0].url}
                         alt={l.title}
                         fill
+                        loading="lazy"
                         sizes="(min-width: 640px) 50vw, 100vw"
                         className="object-cover"
                       />
