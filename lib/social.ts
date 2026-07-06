@@ -55,6 +55,32 @@ export async function exchangeMetaCode(
   });
   const res = await fetch(`${GRAPH}/oauth/access_token?${params}`);
   if (!res.ok) throw new Error("Meta token alınamadı.");
+  const short = (await res.json()) as MetaTokenResponse;
+
+  // Kısa ömürlü token (~1 saat) → uzun ömürlü token (~60 gün).
+  // Başarısız olursa akışı bozmadan kısa ömürlü token ile devam edilir.
+  const long = await exchangeForLongLivedToken(short.access_token).catch(
+    () => null,
+  );
+  return long ?? short;
+}
+
+/** Kısa ömürlü kullanıcı token'ını ~60 günlük uzun ömürlü token'a çevirir. */
+export async function exchangeForLongLivedToken(
+  shortToken: string,
+): Promise<MetaTokenResponse> {
+  const appId = process.env.META_APP_ID;
+  const appSecret = process.env.META_APP_SECRET;
+  if (!appId || !appSecret) throw new Error("Meta OAuth yapılandırması eksik.");
+
+  const params = new URLSearchParams({
+    grant_type: "fb_exchange_token",
+    client_id: appId,
+    client_secret: appSecret,
+    fb_exchange_token: shortToken,
+  });
+  const res = await fetch(`${GRAPH}/oauth/access_token?${params}`);
+  if (!res.ok) throw new Error("Uzun ömürlü token alınamadı.");
   return res.json();
 }
 
