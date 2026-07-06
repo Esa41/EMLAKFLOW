@@ -26,7 +26,7 @@ const PUBLIC_PATHS = [
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const isPublic = pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   if (!req.auth && !isPublic) {
     const url = new URL("/login", req.nextUrl.origin);
