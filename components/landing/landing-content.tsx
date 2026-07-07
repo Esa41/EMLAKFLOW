@@ -89,37 +89,37 @@ function CommissionVisual() {
 const STORY_STEPS = [
   {
     no: "01 — YAYINLA",
-    title: "İlan 60 saniyede vitrinde.",
-    body: "Fotoğrafları yükleyin, künyeyi doldurun. Harita vitrininiz ve portal XML feed'iniz aynı anda güncellenir — çift giriş, eski fiyat derdi biter.",
+    title: "İlan bir kez girilir, her yerde görünür.",
+    body: "Fotoğraf, künye ve konum — hepsi tek formda. Harita vitrininiz ve portal XML feed'iniz aynı anda güncellenir. Çift giriş, eski fiyat, kopuk ilan derdi biter.",
     visual: <VitrinVisual />,
   },
   {
     no: "02 — EŞLEŞTİR",
-    title: "Sistem alıcıyı sizden önce bulur.",
-    body: "Yeni ilan girildiği an açık talepler skorlanır: bütçe, semt, oda sayısı. Sabah kahvenizi alırken hangi müşteriyi arayacağınızı bilirsiniz.",
+    title: "Doğru alıcı, doğru ilan — otomatik.",
+    body: "Yeni ilan yayına girdiği an açık talepler skorlanır: bütçe, semt, oda sayısı. Sabah ofise geldiğinizde arayacağınız müşteri listesi hazırdır.",
     visual: <MatchMockup />,
   },
   {
     no: "03 — YÜRÜT",
-    title: "Süreç panoda, ekip aynı sayfada.",
-    body: "Yeni → Yer gösterildi → Teklif → Sözleşme. Sürükle-bırak satış hattında hiçbir müşteri unutulmaz, hiçbir teklif havada kalmaz.",
+    title: "Satış hattı tek panoda, ekip senkron.",
+    body: "Yeni → Yer gösterildi → Teklif → Sözleşme. Sürükle-bırak kanbanda hiçbir müşteri unutulmaz, hiçbir teklif havada kalmaz.",
     visual: <KanbanMockup />,
   },
   {
     no: "04 — TAHSİL ET",
-    title: "Komisyon kendini hesaplar.",
-    body: "Satış kapandığı an danışman payı, ofis kesintisi ve KDV tek tıkla bölüşülür. Ay sonu Excel kavgası tarihe karışır.",
+    title: "Komisyon hesabı satışla biter.",
+    body: "Anlaşma kapandığı an danışman payı, ofis kesintisi ve KDV tek tıkla bölüşülür. Ay sonu Excel ve WhatsApp hesabı tarihe karışır.",
     visual: <CommissionVisual />,
   },
 ];
 
 const SMALL_FEATURES = [
-  { icon: Sparkles, title: "SEO AI", desc: "İlan başlığı ve açıklaması yapay zekâyla saniyeler içinde yazılır." },
-  { icon: FileText, title: "Sözleşme taslağı", desc: "Ofis bilgilerinizle hazır, yazdırılabilir sözleşme metni." },
-  { icon: Calendar, title: "Ajanda", desc: "Yer gösterimleri ve randevular tek takvimde, çakışma yok." },
-  { icon: Bell, title: "Anlık bildirim", desc: "Lead, eşleşme ve satış anında cebinizde." },
-  { icon: Users, title: "Ekip yönetimi", desc: "Danışman bazlı portföy, yetki ve performans takibi." },
-  { icon: BarChart3, title: "Analitik", desc: "Vitrin trafiği, dönüşüm ve ciro tek bakışta." },
+  { icon: Sparkles, title: "SEO AI", desc: "İlan başlığı ve açıklaması yapay zekâyla, saniyeler içinde ve SEO uyumlu." },
+  { icon: FileText, title: "Sözleşme taslağı", desc: "Ofis bilgilerinizle hazır, yazdırılabilir sözleşme metni — her seferinde sıfırdan yazmayın." },
+  { icon: Calendar, title: "Ajanda", desc: "Yer gösterimleri, görüşmeler ve randevular tek takvimde; çakışma uyarısı dahil." },
+  { icon: Bell, title: "Anlık bildirim", desc: "Yeni lead, eşleşme ve kapanan satış anında cebinizde — hiçbir fırsat kaçmaz." },
+  { icon: Users, title: "Ekip yönetimi", desc: "Danışman bazlı portföy, yetki ve performans — kim ne yaptı, tek bakışta." },
+  { icon: BarChart3, title: "Analitik", desc: "Vitrin trafiği, lead dönüşümü ve aylık ciro — karar vermek için rakamlar hazır." },
 ];
 
 function CtaButton({
@@ -169,9 +169,9 @@ export function LandingContent() {
                 Nasıl çalışır
               </p>
               <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight sm:text-5xl">
-                Bir satışın yolculuğu,
+                İlandan tahsilata,
                 <br />
-                baştan sona EmlakFlow&apos;da.
+                dört adımda EmlakFlow.
               </h2>
             </div>
           </ScrollReveal>
@@ -188,7 +188,7 @@ export function LandingContent() {
           {[
             { to: 60, suffix: " sn", label: "İlan girişinden vitrine" },
             { to: 3, suffix: "", label: "Portala tek XML feed" },
-            { to: 7, suffix: "+", label: "Modül tek panelde" },
+            { to: 7, suffix: "+", label: "Modül, tek panelde" },
             { to: 14, suffix: "", label: "Gün ücretsiz deneme" },
           ].map((s, i) => (
             <ScrollReveal key={s.label} delay={i * 80}>
@@ -212,10 +212,12 @@ export function LandingContent() {
                 Özellikler
               </p>
               <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight sm:text-5xl">
-                Parça parça yazılım almayın.
+                Beş ayrı yazılım yerine,
+                <br />
+                tek ofis paneli.
               </h2>
               <p className="mt-4 text-lg text-ink/55">
-                Vitrinden kasaya, ofisinizin her işi tek ekranda birleşir.
+                Vitrinden kasaya, ofisinizin her işi aynı ekranda birleşir.
               </p>
             </div>
           </ScrollReveal>
@@ -233,11 +235,11 @@ export function LandingContent() {
                   </span>
                 </div>
                 <h3 className="font-display text-2xl font-bold">
-                  Ziyaretçi gece yazar, sabah lead olarak bekler.
+                  Gece yazılan mesaj, sabah lead olarak bekler.
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-white/60">
-                  Vitrindeki sohbet kutusu doğrudan CRM&apos;e bağlı. Hiçbir mesaj
-                  WhatsApp karmaşasında kaybolmaz.
+                  Vitrin sohbeti doğrudan CRM&apos;e bağlı. Hiçbir mesaj
+                  WhatsApp karmaşasında kaybolmaz — her konuşma takip altında.
                 </p>
                 <div className="mt-6 flex-1 rounded-2xl bg-white/[0.06] p-4">
                   <ChatMockup />
@@ -257,10 +259,10 @@ export function LandingContent() {
                   </span>
                 </div>
                 <h3 className="font-display text-2xl font-bold">
-                  Sahibinden, Hepsiemlak, Emlakjet — tek giriş.
+                  Sahibinden, Hepsiemlak, Emlakjet — tek kaynak.
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink/55">
-                  İlanı bir kez girin, XML feed ile hepsine otomatik aksın.
+                  İlanı bir kez girin; XML feed ile tüm portallara otomatik aksın.
                 </p>
                 <div className="mt-6 flex-1">
                   <PortalMockup />
@@ -293,17 +295,17 @@ export function LandingContent() {
         <div className="relative mx-auto max-w-4xl px-5 text-center sm:px-8">
           <ScrollReveal from="scale">
             <h2 className="font-display text-[clamp(2.5rem,7vw,5rem)] font-extrabold leading-[1.05] tracking-tight">
-              Excel&apos;i kapatın.
+              Dağınık tabloları kapatın.
               <br />
               <span className="bg-gradient-to-r from-brand-100 via-white to-brand-100 bg-clip-text text-transparent">
-                Akışa geçin.
+                Ofisinizi birleştirin.
               </span>
             </h2>
           </ScrollReveal>
           <ScrollReveal delay={120}>
             <p className="mx-auto mt-6 max-w-lg text-lg text-white/60">
-              14 gün boyunca her modülü deneyin. Kredi kartı gerekmez,
-              kurulum 5 dakika sürer.
+              14 gün boyunca tüm modülleri deneyin. Kredi kartı gerekmez,
+              kurulum beş dakika sürer.
             </p>
           </ScrollReveal>
           <ScrollReveal delay={220}>

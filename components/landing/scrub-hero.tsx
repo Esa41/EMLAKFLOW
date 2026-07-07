@@ -5,7 +5,11 @@ import Link from "next/link";
 import type mapboxgl from "mapbox-gl";
 import { ArrowRight, ChevronDown, ChevronRight, Sparkles, Zap } from "lucide-react";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { applyEmlakflowMapTheme, getMapboxStyleUrl } from "@/lib/mapbox-style";
+import {
+  applyEmlakflowMapTheme,
+  getMapboxStyleUrl,
+  tintMutedLayers,
+} from "@/lib/mapbox-style";
 
 /**
  * Scrub hero: 350vh'lik ray boyunca sayfa kaydırıldıkça Mapbox kamerası
@@ -90,24 +94,7 @@ export function ScrubHero() {
       const theme = () => {
         if (cancelled || !map) return;
         applyEmlakflowMapTheme(map);
-        for (const layer of map.getStyle()?.layers ?? []) {
-          try {
-            if (layer.type === "line" && /road|bridge|tunnel|street/.test(layer.id)) {
-              map.setPaintProperty(
-                layer.id,
-                "line-color",
-                /motorway|trunk/.test(layer.id) ? "#97ab9d" : "#bcc7bf",
-              );
-            } else if (
-              layer.type === "fill" &&
-              /landuse|park|pitch|grass|wood|scrub/.test(layer.id)
-            ) {
-              map.setPaintProperty(layer.id, "fill-color", "#dfe7df");
-            }
-          } catch {
-            /* katman bu stilde farklı olabilir */
-          }
-        }
+        tintMutedLayers(map);
       };
 
       map.on("load", () => {
@@ -257,19 +244,18 @@ export function ScrubHero() {
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/25 bg-white/70 px-4 py-1.5 text-sm font-medium text-brand-700 backdrop-blur">
                 <Sparkles size={14} className="text-brand-600" />
-                Türk emlak ofisleri için tek panel
+                Emlak ofisleri için işletim sistemi
               </div>
               <h1 className="mt-6 font-display text-[clamp(2.75rem,7.5vw,5.5rem)] font-extrabold leading-[1.02] tracking-tight">
-                Portföyden
-                <br />
-                komisyona,
+                İlandan tahsilata,
                 <br />
                 <span className="bg-gradient-to-r from-brand-700 via-brand-600 to-brand-500 bg-clip-text text-transparent">
-                  tek akış.
+                  her şey bir arada.
                 </span>
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink/65 sm:text-xl">
-                Kaydırın — ofisinizin haritada nasıl yaşadığını görün.
+                Vitrin, CRM, satış hattı ve komisyon — ayrı ayrı yazılım değil,
+                tek panel. Kaydırın, ofisinizin haritada nasıl çalıştığını görün.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                 <Link
@@ -305,13 +291,13 @@ export function ScrubHero() {
                 Harita vitrini
               </p>
               <h2 className="mt-4 font-display text-[clamp(2.25rem,5.5vw,4.25rem)] font-extrabold leading-[1.04] tracking-tight">
-                Bütün portföyünüz
+                Portföyünüz haritada,
                 <br />
-                haritada yaşar.
+                müşteriniz evinde.
               </h2>
               <p className="mt-5 max-w-md text-lg leading-relaxed text-ink/65">
-                Müşteriniz vitrini gezer, fiyat plakasına tıklar, künyeli detayı
-                görür. Sizin markanız, sizin linkiniz.
+                Fiyat plakaları, künyeli detaylar, canlı konum — müşteri
+                vitrininizde gezerken siz ofiste kalırsınız.
               </p>
             </div>
           </div>
@@ -325,14 +311,14 @@ export function ScrubHero() {
           <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
             <div className="max-w-xl">
               <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.25em] text-brand-600">
-                Ve sistem devreye girer
+                Arka planda otomasyon
               </p>
               <h2 className="mt-4 font-display text-[clamp(2.25rem,5.5vw,4.25rem)] font-extrabold leading-[1.04] tracking-tight">
-                Pin&apos;e tıklanır,
+                Tıklama lead olur,
                 <br />
-                lead düşer,
+                lead eşleşir,
                 <br />
-                <span className="text-brand-600">gerisi akar.</span>
+                <span className="text-brand-600">satış kapanır.</span>
               </h2>
             </div>
           </div>

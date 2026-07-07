@@ -205,6 +205,162 @@ body {
   color: rgba(23, 32, 28, 0.45);
 }
 
+/* ── Dashboard — Apple-tarzı sade panel ── */
+.dash-shell {
+  --dash-radius: 20px;
+}
+
+.dash-card {
+  border-radius: var(--dash-radius);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 0 0 1px rgba(23, 32, 28, 0.04),
+    0 1px 2px rgba(23, 32, 28, 0.03),
+    0 4px 16px -4px rgba(23, 32, 28, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dash-kpi {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--dash-radius);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 0 0 1px rgba(23, 32, 28, 0.04),
+    0 1px 2px rgba(23, 32, 28, 0.03);
+  padding: 1.125rem 1.25rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.dash-kpi:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(23, 32, 28, 0.06),
+    0 4px 20px -6px rgba(23, 32, 28, 0.1);
+}
+
+.dash-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: rgba(23, 32, 28, 0.85);
+}
+
+.dash-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-brand-600);
+  transition: color 0.15s;
+}
+.dash-link:hover {
+  color: var(--color-brand-700);
+}
+
+.dash-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  border-radius: 9999px;
+  background: var(--color-brand-600);
+  padding: 0.5rem 1rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  transition: background-color 0.15s, transform 0.15s;
+}
+.dash-btn-primary:hover {
+  background: var(--color-brand-700);
+}
+
+.dash-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  border-radius: 9999px;
+  background: rgba(23, 32, 28, 0.05);
+  padding: 0.5rem 1rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(23, 32, 28, 0.75);
+  transition: background-color 0.15s;
+}
+.dash-btn-secondary:hover {
+  background: rgba(23, 32, 28, 0.08);
+  color: var(--color-ink);
+}
+
+.dash-empty {
+  border-radius: 14px;
+  border: 1px dashed rgba(23, 32, 28, 0.12);
+  background: rgba(255, 255, 255, 0.5);
+  padding: 1.5rem 1rem;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(23, 32, 28, 0.45);
+}
+
+.dash-listing-card {
+  overflow: hidden;
+  border-radius: var(--dash-radius);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 0 0 1px rgba(23, 32, 28, 0.04),
+    0 1px 2px rgba(23, 32, 28, 0.03);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.dash-listing-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 1px rgba(23, 32, 28, 0.06),
+    0 8px 24px -8px rgba(23, 32, 28, 0.12);
+}
+.dash-listing-card:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+.dash-timeline-item {
+  position: relative;
+  padding-left: 1rem;
+  border-left: 2px solid rgba(23, 32, 28, 0.08);
+}
+.dash-timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-brand-600);
+  box-shadow: 0 0 0 3px rgba(30, 91, 62, 0.12);
+}
+
+/* ── Dashboard giriş animasyonları ── */
+.dash-in {
+  animation: dash-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+@keyframes dash-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+.dash-bar {
+  transform-origin: left;
+  animation: dash-bar 0.9s 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+@keyframes dash-bar {
+  from {
+    transform: scaleX(0);
+  }
+}
+
 /* ── Landing page ── */
 .landing-hero-grid {
   background-image:

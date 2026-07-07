@@ -26,6 +26,31 @@ function safePaint(
  * streets-v12 / light-v11 üzerine PARSEL vitrin teması.
  * Mapbox Studio'da ayrı stil yayınlamadan marka görünümü verir.
  */
+/**
+ * applyEmlakflowMapTheme'in kaçırdığı yol/park katmanlarını da adaçayına çeker
+ * (streets-v12 katman adları sürüme göre değişebildiği için regex ile).
+ */
+export function tintMutedLayers(map: mapboxgl.Map) {
+  for (const layer of map.getStyle()?.layers ?? []) {
+    try {
+      if (layer.type === "line" && /road|bridge|tunnel|street/.test(layer.id)) {
+        map.setPaintProperty(
+          layer.id,
+          "line-color",
+          /motorway|trunk/.test(layer.id) ? "#97ab9d" : "#bcc7bf",
+        );
+      } else if (
+        layer.type === "fill" &&
+        /landuse|park|pitch|grass|wood|scrub/.test(layer.id)
+      ) {
+        map.setPaintProperty(layer.id, "fill-color", "#dfe7df");
+      }
+    } catch {
+      /* katman bu stilde farklı olabilir */
+    }
+  }
+}
+
 export function applyEmlakflowMapTheme(map: mapboxgl.Map) {
   // Zemin — paper tonu
   safePaint(map, "background", "background-color", "#eff1ec");

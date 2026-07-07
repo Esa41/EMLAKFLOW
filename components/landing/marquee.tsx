@@ -5,12 +5,13 @@ const ITEMS = [
   "Otomatik komisyon",
   "Portal XML feed",
   "Canlı vitrin sohbeti",
-  "SEO AI",
+  "SEO yapay zekâ",
   "Sözleşme taslağı",
   "Ajanda & randevu",
   "Ekip yönetimi",
   "Lead yakalama",
-  "Analitik",
+  "Kira takibi",
+  "Analitik panel",
 ];
 
 export function FeatureMarquee() {

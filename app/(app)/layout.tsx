@@ -28,16 +28,16 @@ export default async function AppLayout({
   });
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#f5f6f3]">
       <Sidebar
         tenantName={session.tenantName}
         userName={session.name}
         showcaseSlug={showcaseSlug}
         vertical={vertical}
       />
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 border-b border-ink bg-paper">
-          <div className="flex h-16 items-center gap-3 px-4 lg:px-8">
+      <div className="lg:pl-[260px]">
+        <header className="sticky top-0 z-30 border-b border-ink/[0.06] bg-white/70 backdrop-blur-2xl backdrop-saturate-150">
+          <div className="flex h-[52px] items-center gap-3 px-4 lg:px-8">
             <MobileNav
               tenantName={session.tenantName}
               userName={session.name}
@@ -50,14 +50,14 @@ export default async function AppLayout({
             <input
               type="search"
               placeholder="İlan, müşteri veya künye ara…"
-              className="hidden w-72 rounded-lg border border-ink/20 bg-white px-4 py-2 text-sm outline-none placeholder:text-ink/35 focus:border-brand-600 focus:ring-2 focus:ring-brand-500/25 sm:block"
+              className="hidden w-72 rounded-full border-0 bg-ink/[0.05] px-4 py-2 text-[13px] outline-none placeholder:text-ink/35 focus:bg-ink/[0.07] focus:ring-2 focus:ring-brand-500/20 sm:block"
             />
             <div className="ml-auto flex items-center gap-3">
               <NotificationBell />
-              <div className="hidden text-right font-mono text-[10px] uppercase leading-relaxed tracking-[0.14em] text-ink/45 sm:block">
+              <div className="hidden text-right text-[11px] font-medium leading-relaxed text-ink/40 sm:block">
                 {session.tenantName}
                 <br />
-                {today} · Günlük
+                {today}
               </div>
             </div>
           </div>
