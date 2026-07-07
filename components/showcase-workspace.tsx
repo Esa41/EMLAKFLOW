@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
@@ -50,9 +50,7 @@ export function ShowcaseWorkspace({
   searchParams: Record<string, string | undefined>;
   districts: string[];
 }) {
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const cardRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const favSet = new Set(favoriteIds);
   const router = useRouter();
   const pathname = usePathname();
@@ -69,19 +67,23 @@ export function ShowcaseWorkspace({
   const minArea = searchParams.get("minArea") ?? "";
   const sort = searchParams.get("sort") ?? "date_desc";
 
-  const mapListings: MapListing[] = listings
-    .filter((l) => l.lat != null && l.lng != null)
-    .map((l) => ({
-      id: l.id,
-      lat: l.lat!,
-      lng: l.lng!,
-      price: l.price,
-      purpose: l.purpose,
-      title: l.title,
-      image: l.image,
-      rooms: l.rooms,
-      area: l.netArea ?? l.grossArea ?? null,
-    }));
+  const mapListings: MapListing[] = useMemo(
+    () =>
+      listings
+        .filter((l) => l.lat != null && l.lng != null)
+        .map((l) => ({
+          id: l.id,
+          lat: l.lat!,
+          lng: l.lng!,
+          price: l.price,
+          purpose: l.purpose,
+          title: l.title,
+          image: l.image,
+          rooms: l.rooms,
+          area: l.netArea ?? l.grossArea ?? null,
+        })),
+    [listings],
+  );
 
   const handlePinClick = useCallback(
     (listingId: string) => {
@@ -181,13 +183,12 @@ export function ShowcaseWorkspace({
     <div className="flex flex-col">
       {/* 1. Tam Genişlik Harita (Hero) */}
       <div className="-mx-4 mb-6 sm:-mx-6 lg:mx-0 lg:mb-8">
-        <div className="relative h-[350px] w-full border-y border-ink/10 bg-brand-50 lg:h-[500px] lg:rounded-2xl lg:border lg:shadow-sm overflow-hidden">
+        <div className="relative h-[min(52vh,420px)] w-full overflow-hidden bg-brand-50/80 sm:h-[min(56vh,480px)] lg:h-[500px] lg:rounded-2xl lg:shadow-[0_8px_32px_-8px_rgba(23,32,28,0.12)] lg:ring-1 lg:ring-black/[0.06]">
           {mapListings.length > 0 ? (
             <ShowcaseMap
               listings={mapListings}
               slug={slug}
               height={500}
-              highlightedId={hoveredId}
               onPinClick={handlePinClick}
             />
           ) : (
@@ -303,12 +304,9 @@ export function ShowcaseWorkspace({
           {listings.map((l) => (
             <Link
               key={l.id}
-              ref={(el) => { cardRefs.current[l.id] = el; }}
               href={`/ofis/${slug}/ilan/${l.slug ? `${l.id}-${l.slug}` : l.id}`}
               data-imp={l.id}
               className="group overflow-hidden rounded-xl border border-ink/15 bg-white transition-all hover:border-ink/40 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
-              onMouseEnter={() => setHoveredId(l.id)}
-              onMouseLeave={() => setHoveredId(null)}
             >
               <div className="relative">
                 <FavoriteButton slug={slug} listingId={l.id} initialFavorited={favSet.has(l.id)} loggedIn={loggedIn} />

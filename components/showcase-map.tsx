@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { applyEmlakflowMapTheme, getMapboxStyleUrl } from "@/lib/mapbox-style";
@@ -11,7 +11,6 @@ export interface MapListing {
   lng: number;
   price: number;
   purpose: string;
-  // Browse modunda pin'e tıklayınca açılan önizleme kartı için (opsiyonel)
   title?: string;
   image?: string | null;
   rooms?: string | null;
@@ -30,10 +29,15 @@ function shortMoney(n: number) {
   return `₺${(n / 1_000).toLocaleString("tr-TR", { maximumFractionDigits: 0 })}B`;
 }
 
+function listingsFingerprint(listings: MapListing[]) {
+  return listings
+    .map((l) => `${l.id}:${l.lat}:${l.lng}:${l.price}:${l.purpose}`)
+    .join("|");
+}
+
 /**
- * Vitrin haritası (Mapbox GL). mode="browse": tüm ilanlar fiyat plakasıyla,
- * tıkla → detay, ilk yüklemede tüm noktalara şık bir uçuşla (flyTo/fitBounds)
- * odaklanır. mode="single": tek ilanın konumu (detay sayfası mini haritası).
+ * Vitrin haritası — sabit görünüm, pin tıklayınca detay.
+ * Harita yakınlaştırma / hover animasyonu yok.
  */
 export function ShowcaseMap({
   listings,
@@ -41,20 +45,25 @@ export function ShowcaseMap({
   mode = "browse",
   height = 480,
   parcelGeo,
-  highlightedId,
   onPinClick,
 }: {
   listings: MapListing[];
   slug: string;
   mode?: "browse" | "single";
   height?: number;
-  parcelGeo?: unknown; // tek ilan modunda çizilen alan sınırı
-  highlightedId?: string | null; // split view: vurgulanan ilan
-  onPinClick?: (listingId: string) => void; // split view: pin tıklanma callbackı
+  parcelGeo?: unknown;
+  onPinClick?: (listingId: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const onPinClickRef = useRef(onPinClick);
   const router = useRouter();
   const [failed, setFailed] = useState(false);
+
+  const listingsKey = useMemo(() => listingsFingerprint(listings), [listings]);
+
+  useEffect(() => {
+    onPinClickRef.current = onPinClick;
+  }, [onPinClick]);
 
   useEffect(() => {
     if (!ref.current || listings.length === 0) return;
@@ -62,8 +71,8 @@ export function ShowcaseMap({
     const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
     if (!token) return;
 
-    let map: mapboxgl.Map | null = null;
     let cancelled = false;
+    let map: mapboxgl.Map | null = null;
 
     (async () => {
       const mapboxgl = (await import("mapbox-gl")).default;
@@ -89,11 +98,10 @@ export function ShowcaseMap({
           attributionControl: false,
         });
       } catch {
-        // WebGL yok / token reddi → harita yerine fallback göster
         setFailed(true);
         return;
       }
-      // Token geçersiz / stil yüklenemedi gibi runtime hataları
+
       map.on("error", () => setFailed(true));
 
       if (!single) {
@@ -110,13 +118,14 @@ export function ShowcaseMap({
         applyEmlakflowMapTheme(map);
 
         const bounds = new mapboxgl.LngLatBounds();
+
         for (const l of listings) {
           bounds.extend([l.lng, l.lat]);
 
           if (single) {
             new mapboxgl.Marker({ color: "#1e5b3e" })
               .setLngLat([l.lng, l.lat])
-              .addTo(map);
+              .addTo(map!);
             continue;
           }
 
@@ -126,17 +135,14 @@ export function ShowcaseMap({
           el.style.cursor = "pointer";
           el.textContent = `${shortMoney(l.price)}${l.purpose === "RENT" ? "/ay" : ""}`;
 
-          el.addEventListener("mouseenter", () => el.classList.add("fiyat-pin-active"));
-          el.addEventListener("mouseleave", () => el.classList.remove("fiyat-pin-active"));
           el.addEventListener("click", () => {
             document
               .querySelectorAll(".fiyat-pin-active-select")
               .forEach((n) => n.classList.remove("fiyat-pin-active-select"));
             el.classList.add("fiyat-pin-active-select");
-            onPinClick?.(l.id);
+            onPinClickRef.current?.(l.id);
           });
 
-          // Pin'e tıklayınca önizleme kartı (foto + başlık + oda/m² + İncele)
           const specs = [l.rooms, l.area ? `${l.area} m²` : null]
             .filter(Boolean)
             .join(" · ");
@@ -169,9 +175,8 @@ export function ShowcaseMap({
           const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
             .setLngLat([l.lng, l.lat])
             .setPopup(popup)
-            .addTo(map);
+            .addTo(map!);
 
-          // Kartın herhangi bir yerine tıklama → detaya git (SPA gezinme)
           popup.on("open", () => {
             popup
               .getElement()
@@ -184,7 +189,6 @@ export function ShowcaseMap({
           void marker;
         }
 
-        // Tek ilan modunda çizilen alan sınırı (arsa/tarla)
         if (single && parcelGeo && !map.getSource("parcel")) {
           map.addSource("parcel", {
             type: "geojson",
@@ -214,16 +218,12 @@ export function ShowcaseMap({
           map.fitBounds(bounds, {
             padding: 56,
             maxZoom: 14,
-            duration: 1400,
+            duration: 0,
             pitch: 28,
             bearing: -8,
           });
         } else {
-          map.flyTo({
-            center: [listings[0].lng, listings[0].lat],
-            zoom: 14,
-            duration: 1200,
-          });
+          map.jumpTo({ center: [listings[0].lng, listings[0].lat], zoom: 14 });
         }
       });
     })();
@@ -232,20 +232,7 @@ export function ShowcaseMap({
       cancelled = true;
       map?.remove();
     };
-  }, [listings, slug, mode, router, parcelGeo, onPinClick]);
-
-  // Dışarıdan gelen highlight değişikliklerini uygula (split view hover)
-  useEffect(() => {
-    if (!ref.current) return;
-    const pins = ref.current.querySelectorAll<HTMLElement>(".fiyat-pin");
-    pins.forEach((pin) => {
-      if (pin.dataset.listingId === highlightedId) {
-        pin.classList.add("fiyat-pin-active");
-      } else {
-        pin.classList.remove("fiyat-pin-active");
-      }
-    });
-  }, [highlightedId]);
+  }, [listingsKey, slug, mode, parcelGeo, router]);
 
   if (listings.length === 0) return null;
 
@@ -267,7 +254,7 @@ export function ShowcaseMap({
     <div
       ref={ref}
       style={{ height }}
-      className="z-0 w-full overflow-hidden rounded-2xl border border-ink/15 shadow-lg ring-1 ring-ink/5"
+      className="z-0 h-full w-full overflow-hidden lg:rounded-2xl"
       aria-label="İlan haritası"
     />
   );

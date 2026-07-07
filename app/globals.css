@@ -158,7 +158,6 @@ body {
   box-shadow: 0 4px 14px rgba(23, 32, 28, 0.14);
   position: relative;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 .fiyat-pin::after {
   content: "";
@@ -169,16 +168,9 @@ body {
   border: 5px solid transparent;
   border-top-color: var(--color-brand-600);
 }
-.fiyat-pin:hover,
-.fiyat-pin-active {
-  transform: scale(1.08) translateY(-2px);
-  box-shadow: 0 6px 18px rgba(23, 32, 28, 0.2);
-  z-index: 10;
-}
 .fiyat-pin-active-select {
   background: var(--color-brand-600);
   color: #fff;
-  transform: scale(1.1) translateY(-3px);
   z-index: 20;
 }
 .fiyat-pin-active-select::after {
@@ -211,4 +203,147 @@ body {
   font-size: 18px;
   padding: 4px 8px;
   color: rgba(23, 32, 28, 0.45);
+}
+
+/* ── Landing page ── */
+.landing-hero-grid {
+  background-image:
+    linear-gradient(rgba(30, 91, 62, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 91, 62, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 75%);
+}
+
+.landing-glow-orb {
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(46, 112, 80, 0.35) 0%, transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+.landing-glow-orb-a {
+  animation: landing-drift-a 14s ease-in-out infinite;
+}
+.landing-glow-orb-b {
+  animation: landing-drift-b 18s ease-in-out infinite;
+}
+
+@keyframes landing-drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(24px, -16px) scale(1.08); }
+}
+@keyframes landing-drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-20px, 20px) scale(1.05); }
+}
+
+.landing-float-a {
+  animation: landing-float-a 5s ease-in-out infinite;
+}
+.landing-float-b {
+  animation: landing-float-b 6s ease-in-out infinite;
+}
+.landing-float-c {
+  animation: landing-float-c 7s ease-in-out infinite;
+}
+
+@keyframes landing-float-a {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes landing-float-b {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes landing-float-c {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.landing-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.landing-reveal-left {
+  transform: translateX(-36px);
+}
+.landing-reveal-right {
+  transform: translateX(36px);
+}
+.landing-reveal-scale {
+  transform: scale(0.92) translateY(20px);
+}
+.landing-reveal-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Haritaya düşen fiyat pinleri */
+.landing-pin-drop {
+  opacity: 0;
+  animation: landing-pin-drop 0.65s cubic-bezier(0.2, 0.9, 0.3, 1.35) forwards;
+}
+@keyframes landing-pin-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-22px) scale(0.6);
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Sticky scroll-story görsel geçişleri */
+.landing-story-visual {
+  opacity: 0;
+  transform: translateY(28px) scale(0.96);
+  transition:
+    opacity 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none;
+}
+.landing-story-visual-active {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.landing-marquee-wrap {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+.landing-marquee-track {
+  width: max-content;
+  animation: landing-marquee 40s linear infinite;
+}
+@keyframes landing-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-reveal,
+  .landing-story-visual {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .landing-pin-drop {
+    opacity: 1;
+    animation: none !important;
+  }
+  .landing-marquee-track,
+  .landing-float-a,
+  .landing-float-b,
+  .landing-float-c,
+  .landing-glow-orb-a,
+  .landing-glow-orb-b {
+    animation: none !important;
+  }
 }

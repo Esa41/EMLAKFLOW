@@ -7,6 +7,7 @@ const { auth } = NextAuth(authConfig);
 // /api/chat: vitrin ziyaretçisi (auth yok) mesajlarını okuyabilsin diye public.
 // /api/chat/team kendi içinde getSession ile korunur (auth yoksa 401 döner).
 const PUBLIC_PATHS = [
+  "/",
   "/login",
   "/register",
   "/platform",
@@ -26,7 +27,20 @@ const PUBLIC_PATHS = [
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
-  const isPublic = pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const isPublic = PUBLIC_PATHS.some((p) =>
+    p === "/" ? pathname === "/" : pathname.startsWith(p),
+  );
+
+  // Giriş yapmış kullanıcı ana sayfada landing görmez — panele gider
+  if (req.auth && pathname === "/") {
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
+  }
+
+  // Eski /platform yönlendirmesi
+  if (pathname === "/platform") {
+    const dest = req.auth ? "/dashboard" : "/";
+    return NextResponse.redirect(new URL(dest, req.nextUrl.origin));
+  }
 
   if (!req.auth && !isPublic) {
     const url = new URL("/login", req.nextUrl.origin);
