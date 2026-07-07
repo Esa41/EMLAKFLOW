@@ -29,7 +29,7 @@ export function TeamChatTrigger() {
     <button
       type="button"
       onClick={toggle}
-      className="relative rounded-xl p-2 text-ink/45 transition hover:bg-ink/[0.04] hover:text-ink/70 dark:hover:bg-white/[0.08] dark:hover:text-white/70"
+      className="relative rounded-xl p-2 text-ink/45 transition hover:bg-[var(--app-input-bg)] hover:text-ink/70"
       aria-label="Ekip sohbeti"
       title="Ekip sohbeti"
     >

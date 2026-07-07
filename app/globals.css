@@ -1,56 +1,50 @@
 @import "tailwindcss";
 
-@custom-variant dark ([data-app-theme="dark"] &);
+@custom-variant dark (.app-shell[data-theme="dark"] &);
 
-:root {
-  color-scheme: light;
-  --app-bg: #f5f6f3;
-  --app-header-bg: rgba(255, 255, 255, 0.72);
-  --app-sidebar-bg: rgba(255, 255, 255, 0.82);
-  --app-border: rgba(23, 32, 28, 0.06);
-  --app-surface: rgba(255, 255, 255, 0.82);
-  --app-surface-hover: rgba(255, 255, 255, 0.92);
-  --app-muted: rgba(23, 32, 28, 0.45);
-  --app-shadow: rgba(23, 32, 28, 0.06);
-  --app-input-bg: rgba(23, 32, 28, 0.05);
-}
-
-[data-app-theme="dark"] {
-  color-scheme: dark;
-  --app-bg: #0e1210;
-  --app-header-bg: rgba(18, 24, 21, 0.82);
-  --app-sidebar-bg: rgba(16, 21, 18, 0.92);
-  --app-border: rgba(255, 255, 255, 0.07);
-  --app-surface: rgba(24, 30, 27, 0.88);
-  --app-surface-hover: rgba(30, 38, 34, 0.94);
-  --app-muted: rgba(228, 235, 230, 0.45);
-  --app-shadow: rgba(0, 0, 0, 0.35);
-  --app-input-bg: rgba(255, 255, 255, 0.06);
-
-  --color-ink: #e4ebe6;
-  --color-paper: #0e1210;
-  --color-brand-50: #152820;
-  --color-brand-100: #1c3529;
-  --color-brand-500: #4a9a72;
-  --color-brand-600: #5cb88a;
-  --color-brand-700: #7dcca6;
-}
-
-html.theme-transition,
-html.theme-transition * {
-  transition:
-    background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-    color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-    fill 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-    stroke 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
+/* ── Uygulama kabuğu — tema yalnızca .app-shell içinde geçerli ── */
 .app-shell {
+  --app-bg: #f5f6f3;
+  --app-header-bg: rgba(255, 255, 255, 0.78);
+  --app-sidebar-bg: rgba(255, 255, 255, 0.86);
+  --app-border: rgba(23, 32, 28, 0.07);
+  --app-surface: rgba(255, 255, 255, 0.88);
+  --app-surface-hover: #ffffff;
+  --app-muted: rgba(23, 32, 28, 0.45);
+  --app-shadow: rgba(23, 32, 28, 0.07);
+  --app-input-bg: rgba(23, 32, 28, 0.05);
+  --app-overlay: rgba(15, 23, 20, 0.35);
+  --app-danger-bg: rgba(193, 53, 21, 0.08);
+  --app-warn-bg: rgba(245, 158, 11, 0.08);
+  --app-warn-text: #92400e;
+
   min-height: 100vh;
   background: var(--app-bg);
   color: var(--color-ink);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.app-shell[data-theme="dark"] {
+  --app-bg: #101412;
+  --app-header-bg: rgba(16, 20, 18, 0.9);
+  --app-sidebar-bg: rgba(14, 18, 16, 0.94);
+  --app-border: rgba(255, 255, 255, 0.08);
+  --app-surface: rgba(22, 28, 25, 0.96);
+  --app-surface-hover: rgba(30, 38, 34, 0.98);
+  --app-muted: rgba(232, 238, 234, 0.48);
+  --app-shadow: rgba(0, 0, 0, 0.42);
+  --app-input-bg: rgba(255, 255, 255, 0.07);
+  --app-overlay: rgba(0, 0, 0, 0.58);
+  --app-danger-bg: rgba(248, 113, 113, 0.12);
+  --app-warn-bg: rgba(245, 158, 11, 0.14);
+  --app-warn-text: #fbbf24;
+
+  --color-ink: #e8eeea;
+  --color-brand-50: #182420;
+  --color-brand-100: #223329;
+  --color-brand-500: #3f8f68;
+  --color-brand-600: #52a67c;
+  --color-brand-700: #6fbf96;
 }
 
 @theme {
@@ -110,7 +104,7 @@ body {
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.04em;
-  background: #fff;
+  background: var(--app-surface-hover);
   position: relative;
   overflow: hidden;
 }
@@ -267,11 +261,6 @@ body {
     0 4px 16px -4px var(--app-shadow);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-}
-[data-app-theme="dark"] .dash-card {
-  box-shadow:
-    0 0 0 1px var(--app-border),
-    0 4px 24px -8px var(--app-shadow);
 }
 
 .dash-kpi {
@@ -442,12 +431,12 @@ body {
   padding: 0.375rem 0.875rem;
   font-size: 13px;
   font-weight: 600;
-  color: rgba(23, 32, 28, 0.55);
-  background: rgba(23, 32, 28, 0.04);
+  color: color-mix(in srgb, var(--color-ink) 55%, transparent);
+  background: var(--app-input-bg);
   transition: background-color 0.15s, color 0.15s;
 }
 .dash-filter-pill:hover {
-  background: rgba(23, 32, 28, 0.07);
+  background: color-mix(in srgb, var(--color-ink) 10%, transparent);
   color: var(--color-ink);
 }
 .dash-filter-pill-active {
@@ -463,38 +452,40 @@ body {
   width: 100%;
   border: 0;
   border-radius: 12px;
-  background: rgba(23, 32, 28, 0.05);
+  background: var(--app-input-bg);
   padding: 0.5rem 0.75rem;
   font-size: 13px;
+  color: var(--color-ink);
   outline: none;
   transition: background-color 0.15s, box-shadow 0.15s;
 }
 .dash-input::placeholder {
-  color: rgba(23, 32, 28, 0.35);
+  color: var(--app-muted);
 }
 .dash-input:focus {
-  background: rgba(23, 32, 28, 0.07);
-  box-shadow: 0 0 0 2px rgba(46, 112, 80, 0.2);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-500) 25%, transparent);
 }
 
 .dash-select {
   border: 0;
   border-radius: 12px;
-  background: rgba(23, 32, 28, 0.05);
+  background: var(--app-input-bg);
   padding: 0.5rem 0.75rem;
   font-size: 13px;
   font-weight: 500;
+  color: var(--color-ink);
   outline: none;
 }
 .dash-select:focus {
-  box-shadow: 0 0 0 2px rgba(46, 112, 80, 0.2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-500) 25%, transparent);
 }
 
 .dash-segmented {
   display: inline-flex;
   gap: 2px;
   border-radius: 12px;
-  background: rgba(23, 32, 28, 0.05);
+  background: var(--app-input-bg);
   padding: 3px;
 }
 .dash-segmented-btn {
@@ -502,11 +493,11 @@ body {
   padding: 0.375rem 0.875rem;
   font-size: 13px;
   font-weight: 600;
-  color: rgba(23, 32, 28, 0.45);
+  color: var(--app-muted);
   transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
 .dash-segmented-btn:hover {
-  color: rgba(23, 32, 28, 0.7);
+  color: color-mix(in srgb, var(--color-ink) 70%, transparent);
 }
 .dash-segmented-btn-active {
   background: var(--app-surface-hover);
@@ -519,11 +510,11 @@ body {
   align-items: flex-start;
   gap: 0.5rem;
   border-radius: 14px;
-  background: rgba(245, 158, 11, 0.08);
+  background: var(--app-warn-bg);
   padding: 0.875rem 1rem;
   font-size: 13px;
   line-height: 1.5;
-  color: #92400e;
+  color: var(--app-warn-text);
 }
 
 .dash-deal-card {
@@ -540,6 +531,54 @@ body {
 }
 .dash-deal-card-stale {
   box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35);
+}
+
+/* ── Ayarlar ve formlar ── */
+.settings-section {
+  border-radius: 1rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  padding: 1.25rem;
+  box-shadow: 0 1px 2px var(--app-shadow);
+}
+
+.settings-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-input-bg);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--color-ink);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.settings-input::placeholder {
+  color: var(--app-muted);
+}
+.settings-input:focus {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-500) 25%, transparent);
+}
+.settings-input:disabled {
+  background: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  color: var(--app-muted);
+}
+
+.settings-label {
+  margin-bottom: 0.25rem;
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--color-ink) 65%, transparent);
+}
+
+.settings-head {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--app-muted);
 }
 
 /* ── Ekip sohbeti — sağdan kayan panel ── */

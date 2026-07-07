@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Check } from "lucide-react";
-import { getVertical } from "@/lib/verticals";
+import { showcaseUrl } from "@/lib/url";
 
 export interface TenantSettings {
   name: string;
@@ -39,11 +39,10 @@ export interface TenantSettings {
   contractExtraClauses: string;
 }
 
-const inputCls =
-  "w-full rounded-xl border border-ink/20 bg-white px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500/40 disabled:bg-ink/[0.04] disabled:text-ink/45";
-const labelCls = "mb-1 block text-sm font-medium text-ink/65";
-const sectionCls = "rounded-2xl bg-white p-5 border border-ink/15";
-const headCls = "mb-4 text-sm font-bold uppercase tracking-wider text-ink/45";
+const inputCls = "settings-input";
+const labelCls = "settings-label";
+const sectionCls = "settings-section";
+const headCls = "settings-head";
 
 export function SettingsForm({
   initial,
@@ -72,8 +71,7 @@ export function SettingsForm({
   };
 
   const feedUrl = `${appUrl}/api/feed/${v.feedToken}.xml`;
-  const showcaseBase = getVertical(vertical).showcaseBase;
-  const showcaseUrl = `${appUrl}${showcaseBase}/${v.slug}`;
+  const vitrinUrl = showcaseUrl(v.slug, vertical);
   const [copiedShowcase, setCopiedShowcase] = useState(false);
 
   async function handleSave() {
@@ -123,7 +121,7 @@ export function SettingsForm({
   }
 
   async function copyShowcase() {
-    await navigator.clipboard.writeText(showcaseUrl);
+    await navigator.clipboard.writeText(vitrinUrl);
     setCopiedShowcase(true);
     setTimeout(() => setCopiedShowcase(false), 1500);
   }
@@ -366,12 +364,12 @@ export function SettingsForm({
           <div className="flex gap-2">
             <input
               className={`${inputCls} font-mono text-xs`}
-              value={showcaseUrl}
+              value={vitrinUrl}
               readOnly
             />
             <button
               onClick={copyShowcase}
-              className="shrink-0 rounded-lg border border-ink/20 bg-white px-3 text-ink/55 hover:border-ink/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+              className="shrink-0 rounded-lg border border-[var(--app-border)] bg-[var(--app-input-bg)] px-3 text-ink/55 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
               aria-label="Vitrin adresini kopyala"
             >
               {copiedShowcase ? (

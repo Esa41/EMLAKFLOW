@@ -16,7 +16,6 @@ import {
   Plus,
   CalendarPlus,
   UserPlus,
-  ExternalLink,
   Target,
   Landmark,
   CalendarDays,
@@ -73,7 +72,6 @@ export default async function DashboardPage() {
     monthDue,
     overdue,
     upcomingPayments,
-    tenant,
   ] = await Promise.all([
     db.deal.findMany({
       where: {
@@ -141,10 +139,6 @@ export default async function DashboardPage() {
         },
       },
     }),
-    prisma.tenant.findUnique({
-      where: { id: session.tenantId },
-      select: { slug: true, showcaseEnabled: true },
-    }),
   ]);
 
   const monthPaidTotal = Number(monthPaid._sum.amount ?? 0);
@@ -165,8 +159,6 @@ export default async function DashboardPage() {
     color: STAGE_COLOR[d.stage],
   }));
   const pipelineTotal = parselDeals.reduce((s, d) => s + d.value, 0);
-
-  const showcaseSlug = tenant?.showcaseEnabled ? tenant.slug : null;
 
   const hour = Number(
     new Intl.DateTimeFormat("tr-TR", {
@@ -260,15 +252,6 @@ export default async function DashboardPage() {
           <Link href="/ajanda" className="dash-btn-secondary">
             <CalendarPlus size={15} /> Randevu
           </Link>
-          {showcaseSlug && (
-            <Link
-              href={`/ofis/${showcaseSlug}`}
-              target="_blank"
-              className="dash-btn-secondary"
-            >
-              <ExternalLink size={15} /> Vitrini gör
-            </Link>
-          )}
         </div>
       </div>
 

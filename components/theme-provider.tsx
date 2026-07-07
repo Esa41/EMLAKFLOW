@@ -8,78 +8,69 @@ import {
   useState,
   type ReactNode,
 } from "react";
-
-export type Theme = "light" | "dark";
-
-const STORAGE_KEY = "emlakflow-theme";
+import {
+  parseAppTheme,
+  THEME_STORAGE_KEY,
+  themeCookieValue,
+  type AppTheme,
+} from "@/lib/theme";
 
 type ThemeContextValue = {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
+  theme: AppTheme;
+  setTheme: (theme: AppTheme) => void;
   toggleTheme: () => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function applyTheme(theme: Theme, animate = false) {
-  const root = document.documentElement;
-  root.setAttribute("data-app-theme", theme);
-  root.style.colorScheme = theme;
-
-  if (animate) {
-    root.classList.add("theme-transition");
-    window.setTimeout(() => root.classList.remove("theme-transition"), 400);
-  }
-}
-
-function readStoredTheme(): Theme {
+function persistTheme(theme: AppTheme) {
+  document.cookie = themeCookieValue(theme);
   try {
-    return localStorage.getItem(STORAGE_KEY) === "dark" ? "dark" : "light";
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
   } catch {
-    return "light";
+    /* ignore */
   }
 }
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "light";
-    return document.documentElement.getAttribute("data-app-theme") === "dark"
-      ? "dark"
-      : "light";
-  });
+export function ThemeProvider({
+  initialTheme,
+  children,
+}: {
+  initialTheme: AppTheme;
+  children: ReactNode;
+}) {
+  const [theme, setThemeState] = useState<AppTheme>(initialTheme);
 
   useEffect(() => {
-    const stored = readStoredTheme();
-    setThemeState(stored);
-    applyTheme(stored);
-  }, []);
-
-  const setTheme = useCallback((next: Theme) => {
-    setThemeState(next);
     try {
-      localStorage.setItem(STORAGE_KEY, next);
+      const stored = parseAppTheme(localStorage.getItem(THEME_STORAGE_KEY));
+      if (stored !== initialTheme) {
+        setThemeState(stored);
+        document.cookie = themeCookieValue(stored);
+      }
     } catch {
       /* ignore */
     }
-    applyTheme(next, true);
+  }, [initialTheme]);
+
+  const setTheme = useCallback((next: AppTheme) => {
+    setThemeState(next);
+    persistTheme(next);
   }, []);
 
   const toggleTheme = useCallback(() => {
     setThemeState((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      try {
-        localStorage.setItem(STORAGE_KEY, next);
-      } catch {
-        /* ignore */
-      }
-      applyTheme(next, true);
+      const next: AppTheme = prev === "dark" ? "light" : "dark";
+      persistTheme(next);
       return next;
     });
   }, []);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
-      {children}
+      <div className="app-shell" data-theme={theme}>
+        {children}
+      </div>
     </ThemeContext.Provider>
   );
 }

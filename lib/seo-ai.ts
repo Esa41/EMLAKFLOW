@@ -96,15 +96,21 @@ export async function generateListingSeo(l: SeoInput): Promise<SeoResult> {
   try {
     const { text } = await generateText({
       model: openai("gpt-4o-mini"),
-      system: `Sen Türkiye emlak sektöründe uzman bir SEO metin yazarısın. Verilen ilan bilgilerinden arama motoru dostu meta veriler üret.
-SADECE aşağıdaki JSON formatında yanıt ver, başka hiçbir şey yazma:
+      system: `Sen Türkiye emlak SEO uzmanısın. Verilen ilan bilgilerinden Google aramasına uygun meta veriler üret.
+
+Kurallar:
+- seoTitle: 52-65 karakter; konum + işlem + oda + tip sırası; tıklama tuzağı yok
+- seoDescription: 145-158 karakter; somut özellik + konum; doğal Türkçe
+- slug: küçük harf, tire, Türkçe karaktersiz, max 6 kelime
+
+SADECE JSON:
 {
-  "seoTitle": "Arama motoru başlığı — konum + işlem + oda + tip içermeli, 50-65 karakter, Türkçe",
-  "seoDescription": "Meta açıklama — ilanın en cazip yönlerini ve konumunu vurgula, 140-160 karakter, Türkçe, tıklamaya teşvik eden dil",
-  "slug": "url-dostu-slug (küçük harf, tire ile ayrılmış, Türkçe karaktersiz, max 8 kelime)"
+  "seoTitle": "...",
+  "seoDescription": "...",
+  "slug": "..."
 }`,
       prompt: facts,
-      temperature: 0.4,
+      temperature: 0.35,
       maxOutputTokens: 300,
     });
 

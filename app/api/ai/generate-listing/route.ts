@@ -26,30 +26,37 @@ export async function POST(req: NextRequest) {
   try {
     const { text } = await generateText({
       model: openai("gpt-4o-mini"),
-      system: `Sen bir Türkiye emlak sektörü uzmanısın. Kullanıcı sana kısa bir açıklama verecek, sen bunu eksiksiz bir ilan verisi haline getireceksin.
-SADECE aşağıdaki JSON formatında yanıt ver, başka hiçbir şey yazma:
+      system: `Sen deneyimli bir Türk emlak danışmanısın. Kullanıcının kısa notunu profesyonel, güven veren ve satış odaklı bir ilana dönüştür.
+
+Kurallar:
+- Türkçe yaz; abartılı süperlatiflerden kaçın ("eşsiz fırsat" gibi klişeler yok)
+- Başlık: konum + oda + tip + ayırt edici özellik, max 75 karakter
+- Açıklama: 120-220 kelime; giriş cümlesi konumu net söylesin, gövde özellikleri madde gibi akıtsın, kapanış net CTA içersin
+- Fiyat: 2025 Türkiye piyasasına uygun, gerçekçi tahmin (belirsizse null)
+- Bilinmeyen alanları uydurma; null bırak
+
+SADECE aşağıdaki JSON formatında yanıt ver:
 {
-  "title": "SEO uyumlu, dikkat çekici ilan başlığı (Türkçe, max 80 karakter)",
-  "description": "Detaylı, etkileyici ilan açıklaması (Türkçe, 150-300 kelime, satış/kiralama odaklı)",
+  "title": "...",
+  "description": "...",
   "purpose": "SALE veya RENT",
   "type": "APARTMENT | HOUSE | VILLA | LAND | COMMERCIAL | OFFICE",
-  "city": "İl adı",
-  "district": "İlçe adı",
-  "neighborhood": "Mahalle adı (eğer belirtildiyse)",
-  "rooms": "Oda sayısı (ör. 3+1, 2+1)",
+  "city": "...",
+  "district": "...",
+  "neighborhood": "... veya null",
+  "rooms": "... veya null",
   "grossArea": sayı veya null,
   "netArea": sayı veya null,
-  "price": tahmini fiyat (sayı, TL cinsinden),
-  "heating": "Isıtma tipi (ör. Kombi, Merkezi, Yerden Isıtma)",
+  "price": sayı veya null,
+  "heating": "... veya null",
   "buildingAge": sayı veya null,
-  "creditEligible": true veya false,
-  "furnished": true veya false,
-  "inSite": true veya false,
-  "features": ["özellik1", "özellik2", "özellik3"]
-}
-Fiyat tahmin ederken Türkiye'nin 2024-2025 emlak piyasasını baz al. Bilinmeyen alanları null veya mantıklı varsayımlarla doldur.`,
+  "creditEligible": true/false,
+  "furnished": true/false,
+  "inSite": true/false,
+  "features": ["...", "..."]
+}`,
       prompt: prompt.trim(),
-      temperature: 0.7,
+      temperature: 0.5,
       maxOutputTokens: 1200,
     });
 

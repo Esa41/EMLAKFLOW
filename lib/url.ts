@@ -1,12 +1,14 @@
+import { getVertical } from "./verticals";
+
 /**
- * Vercel-uyumlu base URL çözümleyici.
- * Öncelik: AUTH_URL > VERCEL_PROJECT_PRODUCTION_URL > VERCEL_URL > localhost
+ * Kamuya açık site adresi (vitrin, sitemap, canonical, feed).
+ * Tek kaynak: NEXT_PUBLIC_APP_URL → Vercel → localhost.
+ * AUTH_URL yalnızca NextAuth içindir; vitrin URL'sinde kullanılmaz.
  */
 export function getBaseUrl(): string {
-  if (process.env.AUTH_URL) {
-    return process.env.AUTH_URL.replace(/\/$/, "");
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   }
-  // Vercel, deploy edilen her URL'i VERCEL_URL olarak enjekte eder (protocol yok)
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
     return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
   }
@@ -14,4 +16,15 @@ export function getBaseUrl(): string {
     return `https://${process.env.VERCEL_URL}`;
   }
   return "http://localhost:3000";
+}
+
+/** Dikeye göre vitrin yolu — emlak: /ofis/slug, galeri: /galeri/slug */
+export function showcasePath(slug: string, vertical?: string | null): string {
+  const base = getVertical(vertical).showcaseBase;
+  return `${base}/${slug}`;
+}
+
+/** Tam vitrin URL'si (ayarlar, paylaşım, QR) */
+export function showcaseUrl(slug: string, vertical?: string | null): string {
+  return `${getBaseUrl()}${showcasePath(slug, vertical)}`;
 }
