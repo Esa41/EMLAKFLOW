@@ -2,16 +2,16 @@ const ITEMS = [
   "Harita vitrini",
   "Akıllı eşleştirme",
   "Kanban satış hattı",
-  "Otomatik komisyon",
-  "Portal XML feed",
+  "Otomatik kazanç paylaşımı",
+  "Portal entegrasyonu",
   "Canlı vitrin sohbeti",
-  "SEO yapay zekâ",
-  "Sözleşme taslağı",
-  "Ajanda & randevu",
+  "AI ilan yazarı",
+  "Tek tık sözleşme",
+  "Akıllı ajanda",
   "Ekip yönetimi",
   "Lead yakalama",
-  "Kira takibi",
-  "Analitik panel",
+  "Kira yönetimi",
+  "Canlı analitik",
 ];
 
 export function FeatureMarquee() {

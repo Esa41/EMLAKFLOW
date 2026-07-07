@@ -113,7 +113,7 @@ export function Sidebar({
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="shrink-0 rounded-xl p-2 text-ink/30 transition-colors hover:bg-[var(--app-input-bg)] hover:text-[#c13515] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#c13515]"
+            className="shrink-0 rounded-xl p-2 text-ink/30 transition-colors hover:bg-[var(--app-input-bg)] hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500 dark:hover:text-red-400"
             aria-label="Çıkış yap"
           >
             <LogOut size={17} strokeWidth={1.75} />

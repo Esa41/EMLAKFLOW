@@ -90,7 +90,7 @@ const STORY_STEPS = [
   {
     no: "01 — YAYINLA",
     title: "İlan bir kez girilir, her yerde görünür.",
-    body: "Fotoğraf, künye ve konum — hepsi tek formda. Harita vitrininiz ve portal XML feed'iniz aynı anda güncellenir. Çift giriş, eski fiyat, kopuk ilan derdi biter.",
+    body: "Fotoğraf, detay ve konum — hepsi tek formda. Harita vitrininiz ve portal ilanlarınız aynı anda güncellenir. Çift giriş, eski fiyat, kopuk ilan derdi biter.",
     visual: <VitrinVisual />,
   },
   {
@@ -106,20 +106,20 @@ const STORY_STEPS = [
     visual: <KanbanMockup />,
   },
   {
-    no: "04 — TAHSİL ET",
-    title: "Komisyon hesabı satışla biter.",
-    body: "Anlaşma kapandığı an danışman payı, ofis kesintisi ve KDV tek tıkla bölüşülür. Ay sonu Excel ve WhatsApp hesabı tarihe karışır.",
+    no: "04 — KAZAN",
+    title: "Satış kapanır, herkesin payı ekranda.",
+    body: "İmza atıldığı an danışman payı ve ofis payı kendiliğinden hesaplanır. Ay sonu Excel'i, WhatsApp'ta pay hesabı, hesap makinesi — hepsi tarihe karışır.",
     visual: <CommissionVisual />,
   },
 ];
 
 const SMALL_FEATURES = [
-  { icon: Sparkles, title: "SEO AI", desc: "İlan başlığı ve açıklaması yapay zekâyla, saniyeler içinde ve SEO uyumlu." },
-  { icon: FileText, title: "Sözleşme taslağı", desc: "Ofis bilgilerinizle hazır, yazdırılabilir sözleşme metni — her seferinde sıfırdan yazmayın." },
-  { icon: Calendar, title: "Ajanda", desc: "Yer gösterimleri, görüşmeler ve randevular tek takvimde; çakışma uyarısı dahil." },
-  { icon: Bell, title: "Anlık bildirim", desc: "Yeni lead, eşleşme ve kapanan satış anında cebinizde — hiçbir fırsat kaçmaz." },
-  { icon: Users, title: "Ekip yönetimi", desc: "Danışman bazlı portföy, yetki ve performans — kim ne yaptı, tek bakışta." },
-  { icon: BarChart3, title: "Analitik", desc: "Vitrin trafiği, lead dönüşümü ve aylık ciro — karar vermek için rakamlar hazır." },
+  { icon: Sparkles, title: "AI ilan yazarı", desc: "Başlığı ve açıklamayı yapay zekâ yazar — saniyeler içinde, aramaya hazır." },
+  { icon: FileText, title: "Tek tık sözleşme", desc: "Ofis bilgilerinizle dolu, yazdırmaya hazır sözleşme — sıfırdan yazmak yok." },
+  { icon: Calendar, title: "Akıllı ajanda", desc: "Yer gösterimleri, görüşmeler ve randevular tek takvimde; çakışırsa haber verir." },
+  { icon: Bell, title: "Anlık bildirim", desc: "Yeni lead, taze eşleşme, kapanan satış — olduğu saniye cebinizde." },
+  { icon: Users, title: "Ekip yönetimi", desc: "Danışman bazlı portföy, yetki ve performans — kim neyi kapattı, tek bakışta." },
+  { icon: BarChart3, title: "Canlı analitik", desc: "Vitrin trafiği, dönüşüm ve aylık ciro — kararlarınızı his değil veri versin." },
 ];
 
 function CtaButton({
@@ -169,9 +169,9 @@ export function LandingContent() {
                 Nasıl çalışır
               </p>
               <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight sm:text-5xl">
-                İlandan tahsilata,
+                İlk tıktan imzaya,
                 <br />
-                dört adımda EmlakFlow.
+                dört adımda akış.
               </h2>
             </div>
           </ScrollReveal>
@@ -187,7 +187,7 @@ export function LandingContent() {
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-10 px-5 sm:px-8 lg:grid-cols-4">
           {[
             { to: 60, suffix: " sn", label: "İlan girişinden vitrine" },
-            { to: 3, suffix: "", label: "Portala tek XML feed" },
+            { to: 3, suffix: "", label: "Portal, tek kaynaktan güncel" },
             { to: 7, suffix: "+", label: "Modül, tek panelde" },
             { to: 14, suffix: "", label: "Gün ücretsiz deneme" },
           ].map((s, i) => (
@@ -212,12 +212,12 @@ export function LandingContent() {
                 Özellikler
               </p>
               <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight sm:text-5xl">
-                Beş ayrı yazılım yerine,
+                Beş ayrı uygulama değil.
                 <br />
-                tek ofis paneli.
+                Tek akıcı panel.
               </h2>
               <p className="mt-4 text-lg text-ink/55">
-                Vitrinden kasaya, ofisinizin her işi aynı ekranda birleşir.
+                Vitrinden ekip yönetimine, ofisinizin tüm ritmi aynı ekranda atar.
               </p>
             </div>
           </ScrollReveal>
@@ -262,7 +262,8 @@ export function LandingContent() {
                   Sahibinden, Hepsiemlak, Emlakjet — tek kaynak.
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink/55">
-                  İlanı bir kez girin; XML feed ile tüm portallara otomatik aksın.
+                  İlanı bir kez girin, portallarınız kendini güncellesin.
+                  Eski fiyat, kopuk link, unutulan ilan kalmaz.
                 </p>
                 <div className="mt-6 flex-1">
                   <PortalMockup />
@@ -295,17 +296,17 @@ export function LandingContent() {
         <div className="relative mx-auto max-w-4xl px-5 text-center sm:px-8">
           <ScrollReveal from="scale">
             <h2 className="font-display text-[clamp(2.5rem,7vw,5rem)] font-extrabold leading-[1.05] tracking-tight">
-              Dağınık tabloları kapatın.
+              Excel&apos;i kapatın.
               <br />
               <span className="bg-gradient-to-r from-brand-100 via-white to-brand-100 bg-clip-text text-transparent">
-                Ofisinizi birleştirin.
+                Akışa geçin.
               </span>
             </h2>
           </ScrollReveal>
           <ScrollReveal delay={120}>
             <p className="mx-auto mt-6 max-w-lg text-lg text-white/60">
-              14 gün boyunca tüm modülleri deneyin. Kredi kartı gerekmez,
-              kurulum beş dakika sürer.
+              14 gün boyunca tüm modüller açık. Kredi kartı yok,
+              kurulum 5 dakika.
             </p>
           </ScrollReveal>
           <ScrollReveal delay={220}>

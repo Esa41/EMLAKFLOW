@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -22,6 +23,14 @@ export function MobileNav({
   vertical?: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  // Portal hedefi — header'daki backdrop-filter, fixed paneli hapsettiği için
+  // çekmece app-shell köküne taşınır (tema değişkenleri korunur)
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setPortalTarget(
+      (document.querySelector(".app-shell") as HTMLElement) ?? document.body,
+    );
+  }, []);
   const pathname = usePathname();
   const nav = getNav(vertical);
   const v = getVertical(vertical);
@@ -36,7 +45,7 @@ export function MobileNav({
         <Menu size={22} />
       </button>
 
-      {open && (
+      {open && portalTarget && createPortal(
         <div className="fixed inset-0 z-50">
           <div
             className="absolute inset-0 bg-[var(--app-overlay)] backdrop-blur-sm"
@@ -105,7 +114,7 @@ export function MobileNav({
                 <p className="text-sm font-semibold text-ink">{userName}</p>
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}
-                  className="rounded-lg p-2 text-ink/45 hover:bg-rose-50 hover:text-rose-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-400"
+                  className="rounded-lg p-2 text-ink/45 hover:bg-red-500/10 hover:text-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-400"
                   aria-label="Çıkış yap"
                 >
                   <LogOut size={18} />
@@ -113,7 +122,8 @@ export function MobileNav({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        portalTarget,
       )}
     </div>
   );

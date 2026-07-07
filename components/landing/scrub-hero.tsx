@@ -244,18 +244,18 @@ export function ScrubHero() {
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-brand-500/25 bg-white/70 px-4 py-1.5 text-sm font-medium text-brand-700 backdrop-blur">
                 <Sparkles size={14} className="text-brand-600" />
-                Emlak ofisleri için işletim sistemi
+                Yeni nesil emlak ofisi platformu
               </div>
               <h1 className="mt-6 font-display text-[clamp(2.75rem,7.5vw,5.5rem)] font-extrabold leading-[1.02] tracking-tight">
-                İlandan tahsilata,
+                İlan sizden,
                 <br />
                 <span className="bg-gradient-to-r from-brand-700 via-brand-600 to-brand-500 bg-clip-text text-transparent">
-                  her şey bir arada.
+                  gerisi EmlakFlow&apos;dan.
                 </span>
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink/65 sm:text-xl">
-                Vitrin, CRM, satış hattı ve komisyon — ayrı ayrı yazılım değil,
-                tek panel. Kaydırın, ofisinizin haritada nasıl çalıştığını görün.
+                Harita vitrini, müşteri takibi, satış hattı ve kazanç — hepsi
+                tek akıcı panelde. Kaydırın, ofisinizin nasıl aktığını görün.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                 <Link
@@ -296,33 +296,18 @@ export function ScrubHero() {
                 müşteriniz evinde.
               </h2>
               <p className="mt-5 max-w-md text-lg leading-relaxed text-ink/65">
-                Fiyat plakaları, künyeli detaylar, canlı konum — müşteri
-                vitrininizde gezerken siz ofiste kalırsınız.
+                Fiyat etiketleri, zengin detaylar, gerçek konum — müşteriniz
+                vitrini gezer, her tık sizin için veriye dönüşür.
               </p>
             </div>
           </div>
         </div>
 
-        {/* ── Faz C: sistem devrede ── */}
+        {/* ── Faz C: harita sahnede, ürün kartları eşlik eder ── */}
         <div
           ref={phaseCRef}
-          className="absolute inset-0 flex items-center opacity-0 will-change-transform"
+          className="absolute inset-0 opacity-0 will-change-transform"
         >
-          <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
-            <div className="max-w-xl">
-              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.25em] text-brand-600">
-                Arka planda otomasyon
-              </p>
-              <h2 className="mt-4 font-display text-[clamp(2.25rem,5.5vw,4.25rem)] font-extrabold leading-[1.04] tracking-tight">
-                Tıklama lead olur,
-                <br />
-                lead eşleşir,
-                <br />
-                <span className="text-brand-600">satış kapanır.</span>
-              </h2>
-            </div>
-          </div>
-
           {/* Yüzen ürün kartları */}
           <div className="pointer-events-none absolute bottom-24 right-6 hidden w-[240px] flex-col gap-3 sm:flex lg:right-14">
             <div className="landing-float-b rounded-2xl border border-ink/10 bg-white/95 p-4 shadow-[0_20px_50px_-16px_rgba(23,32,28,0.35)] backdrop-blur">
@@ -339,10 +324,10 @@ export function ScrubHero() {
             </div>
             <div className="landing-float-c rounded-2xl bg-ink p-4 text-white shadow-[0_20px_50px_-16px_rgba(23,32,28,0.5)]">
               <p className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-wider text-white/50">
-                <Zap size={11} /> Komisyon
+                <Zap size={11} /> Kazanç
               </p>
               <p className="font-display text-xl font-extrabold">₺145.000</p>
-              <p className="text-[11px] text-white/60">Otomatik hesaplandı</p>
+              <p className="text-[11px] text-white/60">Payınız otomatik hesaplandı</p>
             </div>
           </div>
         </div>

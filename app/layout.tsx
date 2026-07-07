@@ -24,9 +24,9 @@ export const viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "EmlakFlow — Ofisinizin işletim sistemi",
+  title: "EmlakFlow — İlan sizden, gerisi EmlakFlow'dan",
   description:
-    "Türk emlak ofisleri için portföy, satış hattı ve hak ediş yönetimi. ESAPP vertikali.",
+    "Harita vitrini, akıllı eşleştirme, kanban satış hattı ve otomatik kazanç paylaşımı — modern emlak ofisinin tek paneli.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

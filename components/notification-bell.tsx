@@ -117,7 +117,7 @@ export function NotificationBell() {
                       <div className="flex gap-3 px-4 py-3">
                         <span
                           className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                            n.readAt ? "bg-slate-200" : "bg-brand-500"
+                            n.readAt ? "bg-ink/20" : "bg-brand-500"
                           }`}
                         />
                         <div className="min-w-0">
@@ -146,7 +146,7 @@ export function NotificationBell() {
           <Link
             href="/merkez"
             onClick={() => setOpen(false)}
-            className="block border-t border-ink/10 px-4 py-2.5 text-center text-xs font-semibold text-brand-600 transition-colors hover:bg-brand-50 hover:text-brand-700"
+            className="block border-t border-ink/10 px-4 py-2.5 text-center text-xs font-semibold text-brand-600 transition-colors hover:bg-brand-500/10 hover:text-brand-700"
           >
             Bildirimler &amp; Faaliyet&apos;e git →
           </Link>

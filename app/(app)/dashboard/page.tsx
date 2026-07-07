@@ -336,7 +336,7 @@ export default async function DashboardPage() {
                           </div>
                         )}
                       </div>
-                      <span className="absolute bottom-3 left-3 max-w-[85%] truncate rounded-lg bg-white/90 px-2.5 py-1 text-[11px] font-medium text-ink/70 shadow-sm backdrop-blur-sm dark:bg-ink/80 dark:text-white/80">
+                      <span className="absolute bottom-3 left-3 max-w-[85%] truncate rounded-lg bg-white/90 px-2.5 py-1 text-[11px] font-medium text-ink/70 shadow-sm backdrop-blur-sm dark:bg-black/60 dark:text-white/85">
                         {l.title}
                       </span>
                     </div>

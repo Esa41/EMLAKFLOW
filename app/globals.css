@@ -2,6 +2,12 @@
 
 @custom-variant dark (.app-shell[data-theme="dark"] &);
 
+/* Dolgu yeşili — app-shell dışında da (landing, vitrin) geçerli */
+:root {
+  --app-brand-fill: #1e5b3e;
+  --app-brand-fill-hover: #123b27;
+}
+
 /* ── Uygulama kabuğu — tema yalnızca .app-shell içinde geçerli ── */
 .app-shell {
   --app-bg: #f5f6f3;
@@ -12,12 +18,14 @@
   --app-surface-hover: #ffffff;
   --app-muted: rgba(23, 32, 28, 0.45);
   --app-shadow: rgba(23, 32, 28, 0.07);
+  --app-shadow-sm: rgba(23, 32, 28, 0.03);
   --app-input-bg: rgba(23, 32, 28, 0.05);
   --app-overlay: rgba(15, 23, 20, 0.35);
   --app-danger-bg: rgba(193, 53, 21, 0.08);
   --app-warn-bg: rgba(245, 158, 11, 0.08);
   --app-warn-text: #92400e;
 
+  color-scheme: light;
   min-height: 100vh;
   background: var(--app-bg);
   color: var(--color-ink);
@@ -25,26 +33,40 @@
 }
 
 .app-shell[data-theme="dark"] {
-  --app-bg: #101412;
-  --app-header-bg: rgba(16, 20, 18, 0.9);
-  --app-sidebar-bg: rgba(14, 18, 16, 0.94);
-  --app-border: rgba(255, 255, 255, 0.08);
-  --app-surface: rgba(22, 28, 25, 0.96);
-  --app-surface-hover: rgba(30, 38, 34, 0.98);
-  --app-muted: rgba(232, 238, 234, 0.48);
-  --app-shadow: rgba(0, 0, 0, 0.42);
+  /* Tek elevasyon merdiveni: zemin → yüzey → hover, hepsi aynı yeşil-gri ailesi.
+     Yüzeyler opak — yarı saydam gri karmaşası bitiyor. */
+  --app-bg: #0e1311;
+  --app-header-bg: rgba(14, 19, 17, 0.85);
+  --app-sidebar-bg: rgba(16, 21, 19, 0.92);
+  --app-border: rgba(255, 255, 255, 0.09);
+  --app-surface: #161c19;
+  --app-surface-hover: #1c2420;
+  --app-muted: rgba(233, 240, 236, 0.5);
+  --app-shadow: rgba(0, 0, 0, 0.45);
+  --app-shadow-sm: rgba(0, 0, 0, 0.28);
   --app-input-bg: rgba(255, 255, 255, 0.07);
   --app-overlay: rgba(0, 0, 0, 0.58);
   --app-danger-bg: rgba(248, 113, 113, 0.12);
   --app-warn-bg: rgba(245, 158, 11, 0.14);
   --app-warn-text: #fbbf24;
 
-  --color-ink: #e8eeea;
-  --color-brand-50: #182420;
-  --color-brand-100: #223329;
-  --color-brand-500: #3f8f68;
-  --color-brand-600: #52a67c;
-  --color-brand-700: #6fbf96;
+  /* Gece dolgusu: beyaz yazıyla 5:1 kontrast veren derin yeşil */
+  --app-brand-fill: #2e7550;
+  --app-brand-fill-hover: #35845c;
+
+  --color-ink: #e9f0ec;
+  --color-brand-50: #16221d;
+  --color-brand-100: #1f2f27;
+  --color-brand-500: #47996f;
+  --color-brand-600: #58ae83;
+  --color-brand-700: #79c69e;
+
+  color-scheme: dark;
+}
+
+/* Gece modunda overscroll/rubber-band alanı da koyu kalsın */
+body:has(.app-shell[data-theme="dark"]) {
+  background: #0e1311;
 }
 
 @theme {
@@ -82,13 +104,69 @@ body {
 
 /* Birincil buton — düz tapu yeşili, gölgesiz */
 .btn-selvi {
-  background: var(--color-brand-600);
+  background: var(--app-brand-fill);
   transition: background-color 0.15s;
 }
-.btn-selvi:hover { background: var(--color-brand-700); }
+.btn-selvi:hover { background: var(--app-brand-fill-hover); }
 
-/* Eski gradient sınıfları palete bağlandı (kalan kullanımlar kırılmasın) */
-.btn-selvi { background: var(--color-brand-600); }
+/* Beyaz yazılı dolgu utility'leri gece modunda derin yeşile döner
+   (text-brand-600 gibi metin kullanımları parlak kalır) */
+.app-shell[data-theme="dark"] .bg-brand-600 {
+  background-color: var(--app-brand-fill);
+}
+.app-shell[data-theme="dark"] .hover\:bg-brand-700:hover {
+  background-color: var(--app-brand-fill-hover);
+}
+
+/* ── Gece uyumluluk katmanı ──
+   Sayfalarda kalan açık-tema utility'leri gece modunda token karşılıklarına
+   bağlanır; tek tek dark: varyantı eklemek gerekmez. */
+.app-shell[data-theme="dark"] {
+  /* Kart yüzeyleri */
+  & .bg-white { background-color: var(--app-surface-hover); }
+  & .bg-white\/50,
+  & .bg-white\/60 { background-color: color-mix(in srgb, var(--app-surface) 55%, transparent); }
+  & .bg-white\/70,
+  & .bg-white\/75,
+  & .bg-white\/85,
+  & .bg-white\/90,
+  & .bg-white\/95 { background-color: rgba(10, 15, 13, 0.72); }
+  & .bg-slate-50,
+  & .bg-slate-50\/80 { background-color: var(--app-input-bg); }
+  & .bg-slate-100 { background-color: rgba(255, 255, 255, 0.08); }
+  & .bg-slate-200 { background-color: rgba(255, 255, 255, 0.14); }
+  & .hover\:bg-slate-50:hover { background-color: rgba(255, 255, 255, 0.06); }
+  & .hover\:bg-slate-100:hover { background-color: rgba(255, 255, 255, 0.08); }
+  & .hover\:bg-slate-200:hover { background-color: rgba(255, 255, 255, 0.14); }
+
+  /* Renkli zemin tonları */
+  & .bg-rose-50 { background-color: rgba(244, 63, 94, 0.12); }
+  & .hover\:bg-rose-50:hover { background-color: rgba(244, 63, 94, 0.17); }
+  & .bg-red-50 { background-color: rgba(239, 68, 68, 0.12); }
+  & .bg-amber-50 { background-color: rgba(245, 158, 11, 0.13); }
+  & .hover\:bg-amber-50:hover { background-color: rgba(245, 158, 11, 0.18); }
+  & .bg-emerald-50,
+  & .bg-emerald-50\/60 { background-color: rgba(16, 185, 129, 0.12); }
+  & .hover\:bg-emerald-50:hover { background-color: rgba(16, 185, 129, 0.17); }
+  & .bg-violet-50 { background-color: rgba(139, 92, 246, 0.14); }
+  & .bg-blue-50 { background-color: rgba(59, 130, 246, 0.13); }
+
+  /* Koyu renkli metinler aydınlanır */
+  & .text-rose-600, & .text-rose-700 { color: #fb7185; }
+  & .text-red-600, & .text-red-700 { color: #f87171; }
+  & .text-amber-600 { color: #fbbf24; }
+  & .text-amber-700, & .text-amber-800 { color: #fcd34d; }
+  & .text-emerald-600, & .text-emerald-700 { color: #34d399; }
+  & .text-violet-700 { color: #a78bfa; }
+  & .text-blue-700 { color: #93c5fd; }
+  & .text-slate-500, & .text-slate-600 { color: var(--app-muted); }
+
+  /* Açık kenarlıklar */
+  & .border-amber-200 { border-color: rgba(245, 158, 11, 0.3); }
+  & .border-rose-200 { border-color: rgba(244, 63, 94, 0.3); }
+  & .border-emerald-200 { border-color: rgba(16, 185, 129, 0.3); }
+  & .ring-emerald-100 { --tw-ring-color: rgba(16, 185, 129, 0.25); }
+}
 .stat-emerald { background: var(--color-brand-500); }
 .stat-amber { background: var(--color-copper); }
 .stat-rose { background: #c13515; }
@@ -119,7 +197,7 @@ body {
 }
 .kunye-satildi::before { border-top-color: var(--color-copper); }
 .kunye-bekliyor::before { border-top-color: #d9a21b; }
-.kunye-pasif::before { border-top-color: rgba(23, 32, 28, 0.3); }
+.kunye-pasif::before { border-top-color: color-mix(in srgb, var(--color-ink) 30%, transparent); }
 .kunye-iptal::before { border-top-color: #c13515; }
 
 /* ── Ölçü çizgisi — |— 3+1 · 140 m² —| ── */
@@ -128,12 +206,12 @@ body {
   align-items: center;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: rgba(23, 32, 28, 0.6);
+  color: color-mix(in srgb, var(--color-ink) 60%, transparent);
 }
 .olcu-cizgi {
   flex: 1;
   height: 1px;
-  background: rgba(23, 32, 28, 0.14);
+  background: color-mix(in srgb, var(--color-ink) 14%, transparent);
   position: relative;
 }
 .olcu-cizgi:first-child::before,
@@ -143,7 +221,7 @@ body {
   top: -3px;
   width: 1px;
   height: 7px;
-  background: rgba(23, 32, 28, 0.14);
+  background: color-mix(in srgb, var(--color-ink) 14%, transparent);
 }
 .olcu-cizgi:first-child::before { left: 0; }
 .olcu-cizgi:last-child::after { right: 0; }
@@ -159,13 +237,13 @@ body {
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(23, 32, 28, 0.5);
+  color: color-mix(in srgb, var(--color-ink) 50%, transparent);
 }
 .bolum::after {
   content: "";
   flex: 1;
   height: 1px;
-  background: rgba(23, 32, 28, 0.14);
+  background: color-mix(in srgb, var(--color-ink) 14%, transparent);
 }
 
 /* ── Parsel haritası dilimleri ── */
@@ -247,6 +325,20 @@ body {
   color: rgba(23, 32, 28, 0.45);
 }
 
+/* Uygulama içindeki haritalarda popup gece moduna uysun (vitrin hep gündüz kalır) */
+.app-shell[data-theme="dark"] .mapboxgl-popup-content {
+  background: var(--app-surface) !important;
+  color: var(--color-ink);
+  border-color: var(--app-border);
+  box-shadow: 0 8px 24px var(--app-shadow) !important;
+}
+.app-shell[data-theme="dark"] .mapboxgl-popup-close-button {
+  color: var(--app-muted);
+}
+.app-shell[data-theme="dark"] .mapboxgl-popup-tip {
+  border-top-color: var(--app-surface);
+}
+
 /* ── Dashboard — Apple-tarzı sade panel ── */
 .dash-shell {
   --dash-radius: 20px;
@@ -257,7 +349,7 @@ body {
   background: var(--app-surface);
   box-shadow:
     0 0 0 1px var(--app-border),
-    0 1px 2px rgba(23, 32, 28, 0.03),
+    0 1px 2px var(--app-shadow-sm),
     0 4px 16px -4px var(--app-shadow);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -270,7 +362,7 @@ body {
   background: var(--app-surface);
   box-shadow:
     0 0 0 1px var(--app-border),
-    0 1px 2px rgba(23, 32, 28, 0.03);
+    0 1px 2px var(--app-shadow-sm);
   padding: 1.125rem 1.25rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.35s ease;
 }
@@ -307,7 +399,7 @@ body {
   gap: 6px;
   white-space: nowrap;
   border-radius: 9999px;
-  background: var(--color-brand-600);
+  background: var(--app-brand-fill);
   padding: 0.5rem 1rem;
   font-size: 13px;
   font-weight: 600;
@@ -315,7 +407,7 @@ body {
   transition: background-color 0.15s, transform 0.15s;
 }
 .dash-btn-primary:hover {
-  background: var(--color-brand-700);
+  background: var(--app-brand-fill-hover);
 }
 
 .dash-btn-secondary {
@@ -352,7 +444,7 @@ body {
   background: var(--app-surface);
   box-shadow:
     0 0 0 1px var(--app-border),
-    0 1px 2px rgba(23, 32, 28, 0.03);
+    0 1px 2px var(--app-shadow-sm);
   transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.35s ease;
 }
 .dash-listing-card:hover {
@@ -418,7 +510,7 @@ body {
   background: var(--app-surface);
   box-shadow:
     0 0 0 1px var(--app-border),
-    0 1px 2px rgba(23, 32, 28, 0.03),
+    0 1px 2px var(--app-shadow-sm),
     0 4px 16px -4px var(--app-shadow);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -441,11 +533,11 @@ body {
 }
 .dash-filter-pill-active {
   background: var(--color-ink);
-  color: #fff;
+  color: var(--app-bg);
 }
 .dash-filter-pill-active:hover {
   background: var(--color-ink);
-  color: #fff;
+  color: var(--app-bg);
 }
 
 .dash-input {
@@ -527,7 +619,9 @@ body {
   transition: box-shadow 0.2s ease, transform 0.2s ease, background-color 0.35s ease;
 }
 .dash-deal-card:hover {
-  box-shadow: 0 4px 16px -6px rgba(23, 32, 28, 0.12);
+  box-shadow:
+    0 0 0 1px var(--app-border),
+    0 4px 16px -6px var(--app-shadow);
 }
 .dash-deal-card-stale {
   box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35);

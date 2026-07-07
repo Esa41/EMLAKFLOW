@@ -79,7 +79,7 @@ export function OnboardingTour() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md transform rounded-3xl border border-white/60 bg-white p-6 shadow-2xl transition-all animate-in zoom-in-95 duration-200">
+      <div className="w-full max-w-md transform rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-hover)] p-6 shadow-2xl transition-all animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between">
           <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-ink/40">

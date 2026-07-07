@@ -80,9 +80,9 @@ export function HeroProductMockup() {
         <p className="text-[10px] text-ink/50">3+1 talep ↔ yeni ilan</p>
       </div>
       <div className="landing-float-a absolute -right-2 bottom-12 hidden rounded-xl border border-ink/10 bg-ink px-4 py-3 text-white shadow-xl sm:block lg:-right-6">
-        <p className="font-mono text-[9px] uppercase tracking-wider text-white/50">Komisyon</p>
+        <p className="font-mono text-[9px] uppercase tracking-wider text-white/50">Kazanç</p>
         <p className="font-display text-xl font-extrabold">₺145.000</p>
-        <p className="text-[10px] text-white/60">Otomatik hesaplandı</p>
+        <p className="text-[10px] text-white/60">Payınız otomatik hesaplandı</p>
       </div>
     </div>
   );
@@ -156,7 +156,7 @@ export function PortalMockup() {
   const portals = ["Sahibinden", "Hepsiemlak", "Emlakjet"];
   return (
     <div className="rounded-xl border border-ink/10 bg-ink p-4 text-white">
-      <p className="font-mono text-[9px] uppercase tracking-wider text-white/45">XML Feed</p>
+      <p className="font-mono text-[9px] uppercase tracking-wider text-white/45">Portal senkron</p>
       <p className="mt-1 truncate font-mono text-[11px] text-brand-100">
         /api/feed/••••••.xml
       </p>
