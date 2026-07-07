@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
 import { TeamManager, type TeamMember } from "@/components/team-manager";
-import { TeamChat } from "@/components/team-chat";
+import { OpenTeamChatButton } from "@/components/open-team-chat-button";
 
 export default async function TeamPage() {
   const session = (await getSession())!;
@@ -25,24 +25,26 @@ export default async function TeamPage() {
   });
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2 space-y-6">
+    <div className="app-page dash-in space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-[27px] font-extrabold tracking-tight">Ekip Yönetimi</h1>
-          <p className="mt-1 text-sm text-ink/55">
-            {users.filter((u) => u.isActive).length} aktif üye — roller, portföy ve
-            fırsat yükleri.
+          <p className="app-page-meta">
+            {users.filter((u) => u.isActive).length} aktif üye
+          </p>
+          <h1 className="app-page-title">Ekip Yönetimi</h1>
+          <p className="app-page-desc">
+            Roller, portföy ve fırsat yükleri — sohbet sağ üstteki mesaj
+            simgesinden açılır.
           </p>
         </div>
-        <TeamManager
-          initialUsers={users as TeamMember[]}
-          isOwner={session.role === "OWNER"}
-          currentUserId={session.userId}
-        />
+        <OpenTeamChatButton />
       </div>
-      <div className="lg:col-span-1">
-        <TeamChat currentUserId={session.userId} />
-      </div>
+
+      <TeamManager
+        initialUsers={users as TeamMember[]}
+        isOwner={session.role === "OWNER"}
+        currentUserId={session.userId}
+      />
     </div>
   );
 }

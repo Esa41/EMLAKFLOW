@@ -20,7 +20,7 @@ const mono = Spline_Sans_Mono({
 });
 
 export const viewport = {
-  colorScheme: "only light" as const,
+  colorScheme: "light dark" as const,
 };
 
 export const metadata: Metadata = {
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+    <html lang="tr" className={`${display.variable} ${sans.variable} ${mono.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased">{children}</body>
     </html>
   );

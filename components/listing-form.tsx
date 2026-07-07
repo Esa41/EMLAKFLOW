@@ -157,9 +157,6 @@ export function ListingForm({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [matched, setMatched] = useState<number | null>(null);
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
   const [featureInput, setFeatureInput] = useState("");
   const [seoLoading, setSeoLoading] = useState(false);
 
@@ -220,61 +217,6 @@ export function ListingForm({
     }
   }
 
-  async function generateWithAI() {
-    if (!aiPrompt.trim() || aiPrompt.trim().length < 5) {
-      setAiError(
-        "En az 5 karakter girin. Örn: 'Kadıköy Moda 3+1 deniz manzaralı'",
-      );
-      return;
-    }
-    setAiLoading(true);
-    setAiError(null);
-    try {
-      const res = await fetch("/api/ai/generate-listing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: aiPrompt.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Bir hata oluştu.");
-      const l = data.listing;
-      setV((prev) => ({
-        ...prev,
-        title: l.title ?? prev.title,
-        description: l.description ?? prev.description,
-        purpose: l.purpose ?? prev.purpose,
-        type: l.type ?? prev.type,
-        city: l.city ?? prev.city,
-        district: l.district ?? prev.district,
-        neighborhood: l.neighborhood ?? prev.neighborhood,
-        rooms: l.rooms ?? prev.rooms,
-        grossArea: l.grossArea?.toString() ?? prev.grossArea,
-        netArea: l.netArea?.toString() ?? prev.netArea,
-        price: l.price?.toString() ?? prev.price,
-        heating: l.heating ?? prev.heating,
-        buildingAge: l.buildingAge?.toString() ?? prev.buildingAge,
-        creditEligible: l.creditEligible ?? prev.creditEligible,
-        furnished: l.furnished ?? prev.furnished,
-        inSite: l.inSite ?? prev.inSite,
-        features: Array.isArray(l.features)
-          ? [
-              ...prev.features,
-              ...l.features.filter(
-                (f: string) =>
-                  !prev.features.some(
-                    (x) => x.toLowerCase() === String(f).toLowerCase(),
-                  ),
-              ),
-            ]
-          : prev.features,
-      }));
-    } catch (err: unknown) {
-      setAiError(err instanceof Error ? err.message : "AI hatası.");
-    } finally {
-      setAiLoading(false);
-    }
-  }
-
   async function handleSubmit() {
     if (!v.title || !v.price || !v.district) {
       setError("Başlık, fiyat ve ilçe zorunlu.");
@@ -324,53 +266,6 @@ export function ListingForm({
 
   return (
     <div className="max-w-3xl space-y-6">
-      {/* ✨ Yapay Zeka Sihirli Ekleme */}
-      <section className="overflow-hidden rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 via-white to-indigo-50 p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-indigo-500 text-white text-sm">
-            ✦
-          </span>
-          <h2 className="text-sm font-bold text-ink/80">
-            Yapay Zeka ile Sihirli Ekleme
-          </h2>
-        </div>
-        <p className="mb-3 text-xs text-ink/50">
-          Kısa bir açıklama yaz, AI tüm formu otomatik doldursun. Örn:
-          &quot;Kadıköy Moda 3+1 deniz manzaralı daire 150m2&quot;
-        </p>
-        <div className="flex gap-2">
-          <input
-            className="flex-1 rounded-xl border border-brand-200 bg-white px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/35 focus:ring-2 focus:ring-brand-500/40"
-            placeholder="İlanı birkaç kelimeyle anlat..."
-            value={aiPrompt}
-            onChange={(e) => setAiPrompt(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !aiLoading) generateWithAI();
-            }}
-            disabled={aiLoading}
-          />
-          <button
-            onClick={generateWithAI}
-            disabled={aiLoading}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:shadow-lg hover:brightness-110 disabled:opacity-60"
-          >
-            {aiLoading ? (
-              <>
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                Üretiliyor…
-              </>
-            ) : (
-              <>✦ Oluştur</>
-            )}
-          </button>
-        </div>
-        {aiError && (
-          <p className="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-600">
-            {aiError}
-          </p>
-        )}
-      </section>
-
       {/* Temel bilgiler */}
       <section className="rounded-2xl bg-white p-5 border border-ink/15">
         <h2 className="bolum mb-4">Temel Bilgiler</h2>

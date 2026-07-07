@@ -19,7 +19,7 @@ export function ParselMap({ deals }: { deals: ParselDeal[] }) {
 
   if (deals.length === 0) {
     return (
-      <div className="mt-5 rounded-lg border border-dashed border-ink/25 bg-white/50 px-4 py-8 text-center text-sm text-ink/50">
+      <div className="dash-empty mt-5 py-8">
         Henüz açık fırsat yok — ilki Kanban'dan eklendiğinde harita burada belirir.
       </div>
     );
@@ -69,7 +69,7 @@ export function ParselMap({ deals }: { deals: ParselDeal[] }) {
       </div>
 
       {selected && (
-        <div className="mt-4 rounded-lg border border-ink/15 bg-white px-4 py-3">
+        <div className="mt-4 rounded-lg border border-ink/[0.12] bg-[var(--app-surface)] px-4 py-3 dark:border-white/[0.1]">
           <p className="text-sm font-bold">{selected.name}</p>
           <p className="mt-0.5 font-mono text-xs text-ink/55">
             {selected.listing} · {selected.stageLabel}

@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
-import { deleteObject } from "@/lib/r2";
+import { deleteObject, publicUrl } from "@/lib/r2";
+import type { ContractType } from "@prisma/client";
+
+const TYPES: ContractType[] = [
+  "AUTHORIZATION",
+  "VIEWING_FORM",
+  "SALE_CONTRACT",
+  "RENT_CONTRACT",
+];
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -15,11 +23,20 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const body = await req.json().catch(() => ({}));
 
+  const fileUrl =
+    body.fileUrl !== undefined
+      ? body.fileUrl || null
+      : body.fileKey
+        ? publicUrl(body.fileKey)
+        : undefined;
+
   try {
     const contract = await db.contract.update({
       where: { id },
       data: {
-        ...(body.fileUrl !== undefined && { fileUrl: body.fileUrl || null }),
+        ...(body.type !== undefined &&
+          TYPES.includes(body.type) && { type: body.type }),
+        ...(fileUrl !== undefined && { fileUrl }),
         ...(body.fileKey !== undefined && { fileKey: body.fileKey || null }),
         ...(body.signedAt !== undefined && {
           signedAt: body.signedAt ? new Date(body.signedAt) : null,

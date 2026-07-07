@@ -53,68 +53,48 @@ export default async function PortfolioPage({
 
   const filters = [
     { href: "/portfoy", label: "Tümü", active: !sp.status && !sp.purpose },
-    {
-      href: "/portfoy?purpose=SALE",
-      label: "Satılık",
-      active: sp.purpose === "SALE",
-    },
-    {
-      href: "/portfoy?purpose=RENT",
-      label: "Kiralık",
-      active: sp.purpose === "RENT",
-    },
-    {
-      href: "/portfoy?status=SOLD",
-      label: "Satılan",
-      active: sp.status === "SOLD",
-    },
-    {
-      href: "/portfoy?status=PASSIVE",
-      label: "Pasif",
-      active: sp.status === "PASSIVE",
-    },
+    { href: "/portfoy?purpose=SALE", label: "Satılık", active: sp.purpose === "SALE" },
+    { href: "/portfoy?purpose=RENT", label: "Kiralık", active: sp.purpose === "RENT" },
+    { href: "/portfoy?status=SOLD", label: "Satılan", active: sp.status === "SOLD" },
+    { href: "/portfoy?status=PASSIVE", label: "Pasif", active: sp.status === "PASSIVE" },
   ];
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="app-page dash-in space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-brand-600">
+          <p className="app-page-meta">
             {listings.length} kayıt
             {!usage.isPro && (
-              <span className="ml-2 text-ink/40">
+              <span className="text-ink/35">
+                {" "}
                 · {usage.count}/{FREE_LISTING_LIMIT} ilan
               </span>
             )}
           </p>
-          <h1 className="mt-1 font-display text-[27px] font-extrabold tracking-tight">
-            Portföy
-          </h1>
+          <h1 className="app-page-title">Portföy</h1>
         </div>
         {usage.canCreate ? (
-          <Link
-            href="/portfoy/yeni"
-            className="btn-selvi flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700"
-          >
-            <Plus size={16} /> Yeni ilan
+          <Link href="/portfoy/yeni" className="dash-btn-primary">
+            <Plus size={15} /> Yeni ilan
           </Link>
         ) : (
           <Link
             href="/ayarlar"
             title={`Ücretsiz planda en fazla ${FREE_LISTING_LIMIT} ilan. Pro'ya geç.`}
-            className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700 hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-500"
+            className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-4 py-2 text-[13px] font-semibold text-amber-800 transition hover:bg-amber-500/15"
           >
-            <Lock size={15} /> Limit doldu · Pro&apos;ya geç
+            <Lock size={14} /> Limit doldu · Pro&apos;ya geç
           </Link>
         )}
       </div>
 
       {!usage.canCreate && (
-        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="dash-alert-warn">
           <Lock size={16} className="mt-0.5 shrink-0" />
           <p>
-            Ücretsiz planın {FREE_LISTING_LIMIT} ilan limitine ulaştın. Yeni
-            ilan eklemek için mevcut bir ilanı sil ya da{" "}
+            Ücretsiz planın {FREE_LISTING_LIMIT} ilan limitine ulaştın. Yeni ilan eklemek için
+            mevcut bir ilanı sil ya da{" "}
             <Link href="/ayarlar" className="font-semibold underline">
               Pro&apos;ya geç
             </Link>
@@ -128,11 +108,7 @@ export default async function PortfolioPage({
           <Link
             key={f.label}
             href={f.href}
-            className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-              f.active
-                ? "border-ink bg-ink text-white"
-                : "border-ink/20 bg-white text-ink/65 hover:border-ink/50"
-            }`}
+            className={`dash-filter-pill ${f.active ? "dash-filter-pill-active" : ""}`}
           >
             {f.label}
           </Link>
@@ -140,30 +116,26 @@ export default async function PortfolioPage({
       </div>
 
       {listings.length === 0 ? (
-        <div className="rounded-[10px] border border-dashed border-ink/25 bg-white/50 p-12 text-center">
-          <Building2 className="mx-auto mb-3 h-9 w-9 text-ink/20" />
-          <p className="text-sm text-ink/55">
+        <div className="dash-empty py-16">
+          <Building2 className="mx-auto mb-3 h-8 w-8 text-ink/15" strokeWidth={1.5} />
+          <p>
             Bu filtreyle eşleşen ilan yok.{" "}
-            <Link href="/portfoy/yeni" className="font-semibold text-brand-600">
+            <Link href="/portfoy/yeni" className="font-semibold text-brand-600 hover:underline">
               İlk ilanını ekle
             </Link>
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {listings.map((l) => {
             const plaka =
               l.status === "ACTIVE"
                 ? l.title
                 : `${l.title} — ${KUNYE_TXT[l.status] ?? l.status}`;
             return (
-              <Link
-                key={l.id}
-                href={`/portfoy/${l.id}`}
-                className="group overflow-hidden rounded-[10px] border border-ink/15 bg-white transition-colors hover:border-ink/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
-              >
+              <Link key={l.id} href={`/portfoy/${l.id}`} className="dash-listing-card group">
                 <div className="relative">
-                  <div className="relative h-44 overflow-hidden bg-brand-50">
+                  <div className="relative h-40 overflow-hidden rounded-t-[18px] bg-ink/[0.03]">
                     {l.media[0] ? (
                       <Image
                         src={l.media[0].cardUrl ?? l.media[0].url}
@@ -171,42 +143,32 @@ export default async function PortfolioPage({
                         fill
                         loading="lazy"
                         sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                        className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                        className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-ink/20">
-                        <Building2 size={30} />
+                      <div className="flex h-full items-center justify-center text-ink/15">
+                        <Building2 size={28} strokeWidth={1.5} />
                       </div>
                     )}
                   </div>
                   <span
-                    className={`kunye absolute -bottom-3 left-3 max-w-[85%] truncate ${KUNYE_CLS[l.status] ?? ""}`}
+                    className={`kunye absolute bottom-3 left-3 max-w-[85%] truncate shadow-sm ${KUNYE_CLS[l.status] ?? ""}`}
                   >
                     {plaka}
                   </span>
                 </div>
-                <div className="px-4 pb-4 pt-6">
-                  <h3 className="line-clamp-1 text-[15px] font-bold">
-                    {l.title}
-                  </h3>
-                  <p className="mt-1.5 font-display text-lg font-extrabold tracking-tight">
+                <div className="px-4 pb-4 pt-3">
+                  <h3 className="line-clamp-1 text-[14px] font-semibold">{l.title}</h3>
+                  <p className="mt-1 font-display text-[17px] font-bold tracking-tight tabular-nums">
                     {trMoney.format(Number(l.price))}
                     {l.purpose === "RENT" && (
-                      <span className="text-sm font-medium text-ink/45">
-                        {" "}
-                        /ay
-                      </span>
+                      <span className="text-[13px] font-medium text-ink/40"> /ay</span>
                     )}
                   </p>
-                  <div className="olcu mt-2.5">
-                    <span className="olcu-cizgi" />
-                    <span>
-                      {l.rooms ?? l.grossArea + " m²"} · net {l.netArea ?? "—"}{" "}
-                      m²
-                    </span>
-                    <span className="olcu-cizgi" />
-                  </div>
-                  <p className="mt-2.5 font-mono text-[9.5px] uppercase tracking-[0.12em] text-ink/40">
+                  <p className="mt-1 text-[12px] text-ink/45">
+                    {l.rooms ?? l.grossArea + " m²"} · net {l.netArea ?? "—"} m²
+                  </p>
+                  <p className="mt-2 text-[11px] font-medium text-ink/35">
                     {l.agent?.name ?? "—"}
                   </p>
                 </div>

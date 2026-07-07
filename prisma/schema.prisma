@@ -569,17 +569,18 @@ model Notification {
   @@index([tenantId, userId, category])
 }
 
-// Kullanıcı başına ekip sohbeti okuma imleci — okunmamış mesaj sayacı için.
+// Kullanıcı başına sohbet okuma imleci — grup (TEAM) ve DM oturumları.
 model TeamChatRead {
   id         String   @id @default(cuid())
   tenantId   String
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId  String   @default("TEAM")
   lastReadAt DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  @@unique([tenantId, userId])
+  @@unique([tenantId, userId, sessionId])
 }
 
 // Vitrin funnel olayları (Impression → View → Click → Contact).

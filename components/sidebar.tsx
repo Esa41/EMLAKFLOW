@@ -51,7 +51,7 @@ export function Sidebar({
     href === "/merkez" ? unread : href === "/ekip" ? teamUnread : 0;
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[260px] flex-col border-r border-ink/[0.06] bg-white/80 backdrop-blur-2xl lg:flex">
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[260px] flex-col border-r border-ink/[0.06] bg-[var(--app-sidebar-bg)] backdrop-blur-2xl dark:border-white/[0.07] lg:flex">
       <div className="px-5 pb-4 pt-7">
         <BrandLogo vertical={vertical} className="text-xl" />
         <p className="mt-1.5 truncate text-[12px] font-medium text-ink/40">
@@ -69,8 +69,8 @@ export function Sidebar({
               href={href}
               className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-[14px] font-medium transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500 ${
                 active
-                  ? "bg-ink/[0.06] text-ink shadow-sm"
-                  : "text-ink/55 hover:bg-ink/[0.03] hover:text-ink"
+                  ? "bg-ink/[0.06] text-ink shadow-sm dark:bg-white/[0.08] dark:shadow-none"
+                  : "text-ink/55 hover:bg-ink/[0.03] hover:text-ink dark:hover:bg-white/[0.05]"
               }`}
             >
               <Icon size={17} strokeWidth={active ? 2.25 : 1.75} />
@@ -95,7 +95,7 @@ export function Sidebar({
             href={`${v.showcaseBase}/${showcaseSlug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2.5 rounded-xl border border-brand-600/15 bg-brand-50/50 px-3 py-2.5 text-[13px] font-medium text-brand-700 transition-colors hover:bg-brand-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+            className="flex items-center gap-2.5 rounded-xl border border-brand-600/15 bg-brand-50/50 px-3 py-2.5 text-[13px] font-medium text-brand-700 transition-colors hover:bg-brand-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500 dark:border-brand-500/25 dark:bg-brand-500/10 dark:text-brand-500 dark:hover:bg-brand-500/15"
           >
             <Store size={16} />
             {v.labels.showcase} Gör
@@ -104,7 +104,7 @@ export function Sidebar({
         </div>
       )}
 
-      <div className="border-t border-ink/[0.06] p-4">
+      <div className="border-t border-ink/[0.06] p-4 dark:border-white/[0.07]">
         <div className="flex items-center justify-between">
           <div className="min-w-0">
             <p className="truncate text-[14px] font-semibold">{userName}</p>
@@ -112,7 +112,7 @@ export function Sidebar({
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="shrink-0 rounded-xl p-2 text-ink/30 transition-colors hover:bg-ink/[0.04] hover:text-[#c13515] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#c13515]"
+            className="shrink-0 rounded-xl p-2 text-ink/30 transition-colors hover:bg-ink/[0.04] hover:text-[#c13515] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#c13515] dark:hover:bg-white/[0.06]"
             aria-label="Çıkış yap"
           >
             <LogOut size={17} strokeWidth={1.75} />

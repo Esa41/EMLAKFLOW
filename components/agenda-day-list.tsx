@@ -45,8 +45,8 @@ export function AgendaDayList({
 
   if (!hasAny) {
     return (
-      <div className="rounded-2xl border border-dashed border-ink/25 bg-white/70 p-12 text-center text-sm text-ink/55">
-        Bu aralıkta randevu veya görev yok. Üstten yeni ekleyebilirsiniz.
+      <div className="dash-empty py-16">
+        Bu aralıkta randevu veya görev yok. Alttan yeni ekleyebilirsiniz.
       </div>
     );
   }
@@ -58,7 +58,7 @@ export function AgendaDayList({
         return (
           <section key={key}>
             {key !== "undated" && (
-              <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-ink/45">
+              <h2 className="mb-2 text-[13px] font-semibold text-ink/45">
                 {dayLabelTr(key)}
               </h2>
             )}
@@ -109,9 +109,9 @@ function AppointmentCard({
   return (
     <article
       id={`agenda-${a.id}`}
-      className={`flex flex-wrap items-start gap-3 rounded-2xl border border-ink/15 bg-white p-4 transition-shadow ${highlightCls(highlighted)}`}
+      className={`dash-surface flex flex-wrap items-start gap-3 p-4 transition-shadow ${highlightCls(highlighted)}`}
     >
-      <span className="rounded-lg bg-brand-50 px-2 py-1 font-mono text-xs font-bold text-brand-700">
+      <span className="rounded-lg bg-brand-50 px-2 py-1 text-[12px] font-semibold tabular-nums text-brand-700">
         {new Date(a.startsAt).toLocaleTimeString("tr-TR", {
           hour: "2-digit",
           minute: "2-digit",
@@ -228,8 +228,8 @@ function TaskCard({
   return (
     <article
       id={`agenda-${t.id}`}
-      className={`flex items-start gap-3 rounded-2xl border bg-white p-4 transition-shadow ${
-        overdue ? "border-rose-300" : "border-amber-200/80"
+      className={`dash-surface flex items-start gap-3 p-4 transition-shadow ${
+        overdue ? "ring-1 ring-rose-400/30" : ""
       } ${highlightCls(highlighted)}`}
     >
       <CheckSquare size={16} className="mt-0.5 shrink-0 text-amber-600" />

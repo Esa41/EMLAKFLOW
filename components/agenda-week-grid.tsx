@@ -35,22 +35,22 @@ export function AgendaWeekGrid({
   const days = weekDays(weekStart);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-ink/15 bg-white shadow-sm">
-      <div className="grid grid-cols-7 border-b border-ink/10 bg-ink/[0.02]">
+    <div className="dash-surface overflow-hidden">
+      <div className="grid grid-cols-7 border-b border-ink/[0.06] bg-ink/[0.02]">
         {days.map((day) => (
           <button
             key={dateKey(day)}
             type="button"
             onClick={() => onDayClick?.(day)}
-            className={`border-r border-ink/10 px-2 py-3 text-center last:border-r-0 ${
-              isToday(day) ? "bg-brand-50/80" : ""
+            className={`border-r border-ink/[0.06] px-2 py-3 text-center last:border-r-0 transition ${
+              isToday(day) ? "bg-brand-50/60" : "hover:bg-ink/[0.02]"
             }`}
           >
-            <p className="text-[10px] font-bold uppercase tracking-wider text-ink/45">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-ink/40">
               {day.toLocaleDateString("tr-TR", { weekday: "short" })}
             </p>
             <p
-              className={`mt-0.5 text-lg font-bold ${
+              className={`mt-0.5 text-[17px] font-bold tabular-nums ${
                 isToday(day) ? "text-brand-700" : "text-ink"
               }`}
             >
@@ -60,7 +60,7 @@ export function AgendaWeekGrid({
         ))}
       </div>
 
-      <div className="grid min-h-[420px] grid-cols-7 divide-x divide-ink/10">
+      <div className="grid min-h-[420px] grid-cols-7 divide-x divide-ink/[0.06]">
         {days.map((day) => {
           const key = dateKey(day);
           const dayAppts = appointments
@@ -116,7 +116,7 @@ export function AgendaWeekGrid({
         })}
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 border-t border-ink/10 px-4 py-2 text-[11px] text-ink/50">
+      <div className="flex flex-wrap items-center gap-4 border-t border-ink/[0.06] px-4 py-2.5 text-[11px] text-ink/45">
         <span className="flex items-center gap-1.5">
           <Calendar size={12} className="text-brand-600" /> Randevu
         </span>
@@ -165,12 +165,12 @@ function EventBlock({
     </>
   );
 
-  const cls = `block rounded-lg border p-1.5 text-left transition-shadow ${
+  const cls = `block rounded-xl border p-1.5 text-left transition-shadow ${
     kind === "appointment"
-      ? "border-brand-200/60 bg-brand-50/70 hover:bg-brand-50"
+      ? "border-brand-500/15 bg-brand-50/50 hover:bg-brand-50/80"
       : overdue
-        ? "border-rose-300 bg-rose-50/80"
-        : "border-amber-200/60 bg-amber-50/70 hover:bg-amber-50"
+        ? "border-rose-400/25 bg-rose-500/6"
+        : "border-amber-500/15 bg-amber-500/6 hover:bg-amber-500/10"
   } ${highlighted ? "ring-2 ring-brand-500 ring-offset-1" : ""}`;
 
   return (

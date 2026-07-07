@@ -6,10 +6,7 @@ import { findMatchingLeads } from "@/lib/matching";
 import { ListingForm } from "@/components/listing-form";
 import { DeleteListingButton } from "@/components/delete-listing-button";
 import { ContractPanel } from "@/components/contract-panel";
-import { PriceAdvisor } from "@/components/price-advisor";
 import { OwnerReport } from "@/components/owner-report";
-import { EnvironmentPanel } from "@/components/environment-panel";
-import type { EnvironmentResult } from "@/lib/environment";
 import { STATUS_TR, STATUS_BADGE } from "@/lib/labels";
 import { getVertical } from "@/lib/verticals";
 import { Eye } from "lucide-react";
@@ -131,20 +128,6 @@ export default async function ListingDetailPage({
           </ul>
         </section>
       )}
-
-      <PriceAdvisor
-        listingId={listing.id}
-        currentPrice={Number(listing.price)}
-      />
-
-      <EnvironmentPanel
-        listingId={listing.id}
-        hasLocation={listing.lat != null && listing.lng != null}
-        initialScore={listing.environmentScore}
-        initialData={
-          listing.environmentData as unknown as EnvironmentResult | null
-        }
-      />
 
       <OwnerReport
         listingId={listing.id}

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { notificationLinks } from "@/lib/notification-links";
 import { revalidatePath } from "next/cache";
+import { TEAM_SESSION, dmSessionId } from "@/lib/chat-sessions";
 
 const MAX_BODY_LEN = 2000;
 
@@ -34,7 +35,7 @@ export async function sendTeamMessage(formData: FormData): Promise<ChatResult> {
         tenantId: session.tenantId,
         senderId: session.userId,
         senderName: session.name,
-        sessionId: "TEAM",
+        sessionId: TEAM_SESSION,
         body: check.value,
       },
     });
@@ -71,6 +72,64 @@ export async function sendTeamMessage(formData: FormData): Promise<ChatResult> {
     return { ok: true };
   } catch (err) {
     console.error("sendTeamMessage hata:", err);
+    return { ok: false, error: "Mesaj gönderilemedi. Lütfen tekrar deneyin." };
+  }
+}
+
+export async function sendDirectMessage(
+  peerId: string,
+  body: string,
+): Promise<ChatResult> {
+  try {
+    const session = await getSession();
+    if (!session) return { ok: false, error: "Oturum bulunamadı." };
+    if (!peerId || peerId === session.userId) {
+      return { ok: false, error: "Geçersiz alıcı." };
+    }
+
+    const check = validateBody(body);
+    if (!check.ok) return check;
+
+    const peer = await prisma.user.findFirst({
+      where: {
+        id: peerId,
+        tenantId: session.tenantId,
+        isActive: true,
+      },
+      select: { id: true, name: true },
+    });
+    if (!peer) return { ok: false, error: "Kullanıcı bulunamadı." };
+
+    const sessionId = dmSessionId(session.userId, peer.id);
+
+    await prisma.message.create({
+      data: {
+        tenantId: session.tenantId,
+        senderId: session.userId,
+        senderName: session.name,
+        sessionId,
+        body: check.value,
+      },
+    });
+
+    try {
+      await prisma.notification.create({
+        data: {
+          tenantId: session.tenantId,
+          userId: peer.id,
+          category: "team",
+          title: `${session.name} size mesaj gönderdi`,
+          body: check.value.slice(0, 120),
+          href: notificationLinks.team(),
+        },
+      });
+    } catch (err) {
+      console.error("DM bildirimi oluşturulamadı:", err);
+    }
+
+    return { ok: true };
+  } catch (err) {
+    console.error("sendDirectMessage hata:", err);
     return { ok: false, error: "Mesaj gönderilemedi. Lütfen tekrar deneyin." };
   }
 }

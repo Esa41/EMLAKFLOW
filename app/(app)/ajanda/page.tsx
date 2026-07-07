@@ -70,18 +70,28 @@ export default async function AgendaPage() {
     listing: t.listing,
   }));
 
+  const todayCount = items.filter((a) => {
+    const d = new Date(a.startsAt);
+    const now = new Date();
+    return d.toDateString() === now.toDateString();
+  }).length;
+
   return (
-    <div className="space-y-6">
+    <div className="app-page dash-in space-y-6">
       <div>
-        <h1 className="font-display text-[27px] font-extrabold tracking-tight">Ajanda</h1>
-        <p className="mt-1 text-sm text-ink/55">
+        <p className="app-page-meta">
+          {items.length} randevu · {taskRows.filter((t) => t.status === "OPEN").length} açık görev
+          {todayCount > 0 && ` · ${todayCount} bugün`}
+        </p>
+        <h1 className="app-page-title">Ajanda</h1>
+        <p className="app-page-desc">
           Randevu ve görevler tek takvimde — haftalık görünüm veya günlük liste.
         </p>
       </div>
 
       <Suspense
         fallback={
-          <div className="rounded-2xl border border-ink/10 bg-white p-12 text-center text-sm text-ink/50">
+          <div className="dash-surface p-12 text-center text-[13px] text-ink/45">
             Ajanda yükleniyor…
           </div>
         }

@@ -73,7 +73,7 @@ export function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="relative rounded-xl p-2 text-ink/55 transition-colors hover:bg-white hover:text-ink/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+        className="relative rounded-xl p-2 text-ink/55 transition-colors hover:bg-ink/[0.05] hover:text-ink/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500 dark:hover:bg-white/[0.08]"
         aria-label={`Bildirimler${unread ? ` (${unread} okunmamış)` : ""}`}
       >
         <Bell size={20} />
@@ -85,8 +85,8 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="glass absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-white/60 shadow-lg">
-          <div className="flex items-center justify-between border-b border-ink/10 px-4 py-3">
+        <div className="glass absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-ink/[0.08] shadow-lg dark:border-white/[0.08]">
+          <div className="flex items-center justify-between border-b border-ink/[0.08] px-4 py-3 dark:border-white/[0.08]">
             <h3 className="text-sm font-bold">Bildirimler</h3>
             {unread > 0 && (
               <button

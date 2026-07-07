@@ -4,7 +4,6 @@ import { forTenant } from "@/lib/tenant";
 import { deleteObject } from "@/lib/r2";
 import { variantKeys } from "@/lib/images";
 import { ensureListingSeo } from "@/lib/seo-ai";
-import { ensureEnvironmentAnalysis } from "@/lib/environment";
 import { listingDataFromBody } from "@/lib/listing-payload";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -37,16 +36,11 @@ export async function PATCH(req: Request, ctx: Ctx) {
       data: listingDataFromBody(body),
     });
 
-    // SEO ve çevre analizi eksikse arka planda otomatik tamamla (kayıt bloklanmaz).
+    // SEO eksikse arka planda otomatik tamamla (kayıt bloklanmaz).
     after(async () => {
-      await Promise.allSettled([
-        ensureListingSeo(listing).catch((err) =>
-          console.error("[listings] otomatik SEO üretilemedi:", err),
-        ),
-        ensureEnvironmentAnalysis(listing).catch((err) =>
-          console.error("[listings] çevre analizi yapılamadı:", err),
-        ),
-      ]);
+      await ensureListingSeo(listing).catch((err) =>
+        console.error("[listings] otomatik SEO üretilemedi:", err),
+      );
     });
 
     return NextResponse.json({ listing });

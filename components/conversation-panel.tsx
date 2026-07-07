@@ -110,8 +110,8 @@ export function ConversationPanel({
   }
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-ink/15 bg-white">
-      <div className={`flex-1 space-y-3 overflow-y-auto bg-slate-50 p-3 ${heightClass}`}>
+    <div className={`flex h-full flex-col overflow-hidden rounded-2xl border border-ink/[0.06] bg-[var(--app-surface)] shadow-sm dark:border-white/[0.07] ${heightClass.includes("h-full") ? "h-full" : ""}`}>
+      <div className={`flex-1 space-y-3 overflow-y-auto bg-ink/[0.02] p-3 ${heightClass.includes("h-full") ? "min-h-0" : heightClass}`}>
         {entries.length === 0 ? (
           <p className="mt-8 text-center text-xs text-ink/40">{emptyText}</p>
         ) : variant === "chat" ? (
@@ -126,10 +126,10 @@ export function ConversationPanel({
                 </span>
               )}
               <div
-                className={`max-w-[85%] whitespace-pre-wrap break-words rounded-xl px-3 py-2 text-sm ${
+                className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-[13px] leading-relaxed ${
                   m.mine
                     ? "bg-brand-600 text-white"
-                    : "border border-ink/10 bg-white text-ink"
+                    : "bg-[var(--app-surface-hover)] text-ink shadow-sm ring-1 ring-ink/[0.05] dark:ring-white/[0.06]"
                 }`}
               >
                 {m.body}
@@ -150,7 +150,7 @@ export function ConversationPanel({
                 >
                   <Icon size={13} />
                 </span>
-                <div className="min-w-0 flex-1 rounded-lg bg-white px-3 py-2 shadow-sm">
+                <div className="min-w-0 flex-1 rounded-lg bg-[var(--app-surface-hover)] px-3 py-2 shadow-sm">
                   <p className="whitespace-pre-wrap break-words text-sm text-ink/80">
                     {a.body}
                   </p>
@@ -167,7 +167,7 @@ export function ConversationPanel({
         <div ref={endRef} />
       </div>
 
-      <div className="border-t border-ink/15 bg-white p-2.5">
+      <div className="border-t border-ink/[0.06] bg-[var(--app-surface)] p-2.5 dark:border-white/[0.07]">
         {showTypePicker && (
           <div className="mb-2 flex flex-wrap gap-1">
             {NOTE_TYPES.map((t) => {
@@ -199,7 +199,7 @@ export function ConversationPanel({
             onChange={(e) => setBody(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className="flex-1 resize-none rounded-lg border border-ink/20 px-3 py-2 text-sm outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-500/25"
+            className="dash-input flex-1 resize-none py-2"
           />
           <button
             type="button"

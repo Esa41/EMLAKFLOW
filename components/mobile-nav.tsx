@@ -29,7 +29,7 @@ export function MobileNav({
     <div className="lg:hidden">
       <button
         onClick={() => setOpen(true)}
-        className="rounded-xl p-2 text-ink/65 transition-colors hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+        className="rounded-xl p-2 text-ink/65 transition-colors hover:bg-ink/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500 dark:hover:bg-white/[0.08]"
         aria-label="Menüyü aç"
       >
         <Menu size={22} />
@@ -42,7 +42,7 @@ export function MobileNav({
             onClick={() => setOpen(false)}
             aria-hidden
           />
-          <div className="glass absolute inset-y-0 left-0 flex w-72 flex-col border-r border-white/60 shadow-2xl">
+          <div className="glass absolute inset-y-0 left-0 flex w-72 flex-col border-r border-ink/[0.08] shadow-2xl dark:border-white/[0.08]">
             <div className="flex items-center justify-between px-5 pb-4 pt-5">
               <div className="flex items-center gap-3">
                 <BrandMark vertical={vertical} size="sm" />
@@ -55,7 +55,7 @@ export function MobileNav({
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="rounded-lg p-2 text-ink/55 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+                className="rounded-lg p-2 text-ink/55 hover:bg-ink/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500 dark:hover:bg-white/[0.08]"
                 aria-label="Menüyü kapat"
               >
                 <X size={20} />
@@ -72,8 +72,8 @@ export function MobileNav({
                     onClick={() => setOpen(false)}
                     className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500 ${
                       active
-                        ? "bg-brand-600 text-white"
-                        : "text-ink/65 hover:bg-white hover:text-slate-900"
+                        ? "bg-brand-600 text-white dark:bg-brand-500"
+                        : "text-ink/65 hover:bg-ink/[0.05] hover:text-ink dark:hover:bg-white/[0.06]"
                     }`}
                   >
                     <Icon size={18} strokeWidth={active ? 2.4 : 2} />
@@ -90,7 +90,7 @@ export function MobileNav({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-xl border border-dashed border-brand-600/40 px-3 py-3 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+                  className="flex items-center gap-3 rounded-xl border border-dashed border-brand-600/40 px-3 py-3 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500 dark:border-brand-500/30 dark:text-brand-500 dark:hover:bg-brand-500/10"
                 >
                   <Store size={18} />
                   {v.labels.showcase} Gör
@@ -99,7 +99,7 @@ export function MobileNav({
               </div>
             )}
 
-            <div className="border-t border-ink/15 p-4">
+            <div className="border-t border-ink/[0.08] p-4 dark:border-white/[0.08]">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-ink">{userName}</p>
                 <button

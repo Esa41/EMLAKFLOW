@@ -219,12 +219,12 @@ export function AgendaHub({
   return (
     <div className="space-y-5">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1">
+      <div className="dash-surface flex flex-wrap items-center justify-between gap-3 p-3">
+        <div className="flex items-center gap-0.5">
           <button
             type="button"
             onClick={() => setWeekStart((w) => addDays(w, -7))}
-            className="rounded-lg p-2 text-ink/50 hover:bg-ink/5"
+            className="rounded-xl p-2 text-ink/40 transition hover:bg-ink/[0.04] hover:text-ink/70"
             aria-label="Önceki hafta"
           >
             <ChevronLeft size={18} />
@@ -236,34 +236,34 @@ export function AgendaHub({
               setWeekStart(now);
               setListDay(dateKey(new Date()));
             }}
-            className="rounded-lg px-3 py-1.5 text-sm font-semibold text-brand-700 hover:bg-brand-50"
+            className="rounded-xl px-3 py-1.5 text-[13px] font-semibold text-brand-700 transition hover:bg-brand-50"
           >
             Bugün
           </button>
           <button
             type="button"
             onClick={() => setWeekStart((w) => addDays(w, 7))}
-            className="rounded-lg p-2 text-ink/50 hover:bg-ink/5"
+            className="rounded-xl p-2 text-ink/40 transition hover:bg-ink/[0.04] hover:text-ink/70"
             aria-label="Sonraki hafta"
           >
             <ChevronRight size={18} />
           </button>
-          <span className="ml-2 text-sm font-bold text-ink">{formatWeekRange(weekStart)}</span>
+          <span className="ml-2 text-[14px] font-semibold text-ink">{formatWeekRange(weekStart)}</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-xl border border-ink/15 bg-white p-0.5 text-xs font-semibold">
+          <div className="dash-segmented">
             <button
               type="button"
               onClick={() => setView("week")}
-              className={`rounded-lg px-3 py-1.5 ${view === "week" ? "bg-brand-600 text-white" : "text-ink/55"}`}
+              className={`dash-segmented-btn ${view === "week" ? "dash-segmented-btn-active" : ""}`}
             >
               Hafta
             </button>
             <button
               type="button"
               onClick={() => setView("list")}
-              className={`rounded-lg px-3 py-1.5 ${view === "list" ? "bg-brand-600 text-white" : "text-ink/55"}`}
+              className={`dash-segmented-btn ${view === "list" ? "dash-segmented-btn-active" : ""}`}
             >
               Liste
             </button>
@@ -271,7 +271,7 @@ export function AgendaHub({
 
           {canFilterTeam && (
             <select
-              className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-xs font-medium"
+              className="dash-select text-[12px]"
               value={agentId}
               onChange={(e) => setAgentId(e.target.value)}
             >
@@ -285,7 +285,7 @@ export function AgendaHub({
           )}
 
           <select
-            className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-xs font-medium"
+            className="dash-select text-[12px]"
             value={showFilter}
             onChange={(e) => setShowFilter(e.target.value as ShowFilter)}
           >
@@ -306,12 +306,12 @@ export function AgendaHub({
                 key={key}
                 type="button"
                 onClick={() => setListDay(key)}
-                className={`shrink-0 rounded-xl px-3 py-2 text-xs font-semibold ${
+                className={`shrink-0 rounded-xl px-3 py-2 text-[12px] font-semibold transition ${
                   listDay === key
                     ? "bg-brand-600 text-white"
                     : isToday(day)
                       ? "bg-brand-50 text-brand-700"
-                      : "bg-white text-ink/60 border border-ink/10"
+                      : "bg-ink/[0.04] text-ink/55"
                 }`}
               >
                 {shortDayLabel(day)}
@@ -322,7 +322,7 @@ export function AgendaHub({
       )}
 
       {error && (
-        <p className="rounded-xl bg-rose-50 px-4 py-2.5 text-sm text-rose-600">{error}</p>
+        <p className="rounded-xl bg-rose-500/8 px-4 py-2.5 text-[13px] text-rose-600">{error}</p>
       )}
 
       {view === "week" ? (
@@ -347,7 +347,7 @@ export function AgendaHub({
           />
           {undatedTasks.length > 0 && (
             <section>
-              <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-ink/45">
+              <h2 className="mb-2 text-[13px] font-semibold text-ink/45">
                 Vadesiz görevler
               </h2>
               <AgendaDayList
@@ -363,8 +363,8 @@ export function AgendaHub({
       )}
 
       {/* Alt bar: hızlı ekle + özet */}
-      <div className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-ink/10 bg-white p-4">
-        <div className="text-sm text-ink/55">
+      <div className="dash-surface flex flex-wrap items-end justify-between gap-4 p-4">
+        <div className="text-[13px] text-ink/50">
           Bu hafta: <strong className="text-ink">{weekApptCount}</strong> randevu ·{" "}
           <strong className="text-ink">{weekTaskCount}</strong> görev
           {todayStats.ap + todayStats.tk > 0 && (
@@ -397,14 +397,14 @@ export function AgendaHub({
             <button
               type="button"
               onClick={() => setShowNewAppt(true)}
-              className="btn-selvi inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold text-white"
+              className="dash-btn-primary"
             >
               <Plus size={15} /> Randevu
             </button>
           )}
 
           <input
-            className="rounded-xl border border-ink/15 px-3 py-2 text-sm"
+            className="dash-input w-auto min-w-[140px]"
             placeholder="Yeni görev…"
             value={taskTitle}
             onChange={(e) => setTaskTitle(e.target.value)}
@@ -412,14 +412,14 @@ export function AgendaHub({
           />
           <input
             type="date"
-            className="rounded-xl border border-ink/15 px-3 py-2 text-sm"
+            className="dash-input w-auto"
             value={taskDue}
             onChange={(e) => setTaskDue(e.target.value)}
           />
           <button
             type="button"
             onClick={addTask}
-            className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100"
+            className="dash-btn-secondary"
           >
             Görev ekle
           </button>

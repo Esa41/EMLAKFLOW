@@ -15,9 +15,9 @@ export interface InsightItem {
 }
 
 const SEV_STYLE = {
-  URGENT: { icon: AlertTriangle, box: "bg-red-500/[0.06]", ic: "text-red-600" },
-  ACTION: { icon: Lightbulb, box: "bg-amber-500/[0.06]", ic: "text-amber-600" },
-  INFO: { icon: Info, box: "bg-white/80", ic: "text-brand-600" },
+  URGENT: { icon: AlertTriangle, box: "bg-red-500/[0.06] dark:bg-red-500/10", ic: "text-red-600 dark:text-red-400" },
+  ACTION: { icon: Lightbulb, box: "bg-amber-500/[0.06] dark:bg-amber-500/10", ic: "text-amber-600 dark:text-amber-400" },
+  INFO: { icon: Info, box: "bg-ink/[0.03] dark:bg-white/[0.05]", ic: "text-brand-600 dark:text-brand-500" },
 } as const;
 
 export function InsightList({ insights }: { insights: InsightItem[] }) {
@@ -34,7 +34,7 @@ export function InsightList({ insights }: { insights: InsightItem[] }) {
           return (
             <div
               key={i.id}
-              className={`flex items-start gap-3 rounded-2xl p-3.5 ${s.box} ring-1 ring-inset ring-black/[0.04]`}
+              className={`flex items-start gap-3 rounded-2xl p-3.5 ${s.box} ring-1 ring-inset ring-black/[0.04] dark:ring-white/[0.06]`}
             >
               <s.icon size={16} strokeWidth={1.75} className={`mt-0.5 shrink-0 ${s.ic}`} />
               <div className="min-w-0 flex-1">

@@ -1,8 +1,56 @@
 @import "tailwindcss";
 
-/* Karanlık mod tamamen kapalı — tarayıcı/OS zorla karartamaz */
+@custom-variant dark ([data-app-theme="dark"] &);
+
 :root {
-  color-scheme: only light;
+  color-scheme: light;
+  --app-bg: #f5f6f3;
+  --app-header-bg: rgba(255, 255, 255, 0.72);
+  --app-sidebar-bg: rgba(255, 255, 255, 0.82);
+  --app-border: rgba(23, 32, 28, 0.06);
+  --app-surface: rgba(255, 255, 255, 0.82);
+  --app-surface-hover: rgba(255, 255, 255, 0.92);
+  --app-muted: rgba(23, 32, 28, 0.45);
+  --app-shadow: rgba(23, 32, 28, 0.06);
+  --app-input-bg: rgba(23, 32, 28, 0.05);
+}
+
+[data-app-theme="dark"] {
+  color-scheme: dark;
+  --app-bg: #0e1210;
+  --app-header-bg: rgba(18, 24, 21, 0.82);
+  --app-sidebar-bg: rgba(16, 21, 18, 0.92);
+  --app-border: rgba(255, 255, 255, 0.07);
+  --app-surface: rgba(24, 30, 27, 0.88);
+  --app-surface-hover: rgba(30, 38, 34, 0.94);
+  --app-muted: rgba(228, 235, 230, 0.45);
+  --app-shadow: rgba(0, 0, 0, 0.35);
+  --app-input-bg: rgba(255, 255, 255, 0.06);
+
+  --color-ink: #e4ebe6;
+  --color-paper: #0e1210;
+  --color-brand-50: #152820;
+  --color-brand-100: #1c3529;
+  --color-brand-500: #4a9a72;
+  --color-brand-600: #5cb88a;
+  --color-brand-700: #7dcca6;
+}
+
+html.theme-transition,
+html.theme-transition * {
+  transition:
+    background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    fill 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: var(--app-bg);
+  color: var(--color-ink);
 }
 
 @theme {
@@ -33,9 +81,9 @@ body {
 
 /* Eski cam efekti → düz kağıt + mürekkep çizgisi (tüm header/popover otomatik güncellenir) */
 .glass {
-  background: var(--color-paper);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  background: var(--app-sidebar-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 /* Birincil buton — düz tapu yeşili, gölgesiz */
@@ -212,38 +260,43 @@ body {
 
 .dash-card {
   border-radius: var(--dash-radius);
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--app-surface);
   box-shadow:
-    0 0 0 1px rgba(23, 32, 28, 0.04),
+    0 0 0 1px var(--app-border),
     0 1px 2px rgba(23, 32, 28, 0.03),
-    0 4px 16px -4px rgba(23, 32, 28, 0.06);
+    0 4px 16px -4px var(--app-shadow);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
+[data-app-theme="dark"] .dash-card {
+  box-shadow:
+    0 0 0 1px var(--app-border),
+    0 4px 24px -8px var(--app-shadow);
 }
 
 .dash-kpi {
   position: relative;
   overflow: hidden;
   border-radius: var(--dash-radius);
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--app-surface);
   box-shadow:
-    0 0 0 1px rgba(23, 32, 28, 0.04),
+    0 0 0 1px var(--app-border),
     0 1px 2px rgba(23, 32, 28, 0.03);
   padding: 1.125rem 1.25rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.35s ease;
 }
 .dash-kpi:hover {
   transform: translateY(-1px);
   box-shadow:
-    0 0 0 1px rgba(23, 32, 28, 0.06),
-    0 4px 20px -6px rgba(23, 32, 28, 0.1);
+    0 0 0 1px var(--app-border),
+    0 4px 20px -6px var(--app-shadow);
 }
 
 .dash-section-title {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: rgba(23, 32, 28, 0.85);
+  color: color-mix(in srgb, var(--color-ink) 85%, transparent);
 }
 
 .dash-link {
@@ -282,42 +335,42 @@ body {
   gap: 6px;
   white-space: nowrap;
   border-radius: 9999px;
-  background: rgba(23, 32, 28, 0.05);
+  background: var(--app-input-bg);
   padding: 0.5rem 1rem;
   font-size: 13px;
   font-weight: 600;
-  color: rgba(23, 32, 28, 0.75);
-  transition: background-color 0.15s;
+  color: color-mix(in srgb, var(--color-ink) 75%, transparent);
+  transition: background-color 0.15s, color 0.15s;
 }
 .dash-btn-secondary:hover {
-  background: rgba(23, 32, 28, 0.08);
+  background: color-mix(in srgb, var(--color-ink) 10%, transparent);
   color: var(--color-ink);
 }
 
 .dash-empty {
   border-radius: 14px;
-  border: 1px dashed rgba(23, 32, 28, 0.12);
-  background: rgba(255, 255, 255, 0.5);
+  border: 1px dashed color-mix(in srgb, var(--color-ink) 14%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 60%, transparent);
   padding: 1.5rem 1rem;
   text-align: center;
   font-size: 13px;
-  color: rgba(23, 32, 28, 0.45);
+  color: var(--app-muted);
 }
 
 .dash-listing-card {
   overflow: hidden;
   border-radius: var(--dash-radius);
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--app-surface);
   box-shadow:
-    0 0 0 1px rgba(23, 32, 28, 0.04),
+    0 0 0 1px var(--app-border),
     0 1px 2px rgba(23, 32, 28, 0.03);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.35s ease;
 }
 .dash-listing-card:hover {
   transform: translateY(-2px);
   box-shadow:
-    0 0 0 1px rgba(23, 32, 28, 0.06),
-    0 8px 24px -8px rgba(23, 32, 28, 0.12);
+    0 0 0 1px var(--app-border),
+    0 8px 24px -8px var(--app-shadow);
 }
 .dash-listing-card:focus-visible {
   outline: 2px solid var(--color-brand-500);
@@ -327,7 +380,7 @@ body {
 .dash-timeline-item {
   position: relative;
   padding-left: 1rem;
-  border-left: 2px solid rgba(23, 32, 28, 0.08);
+  border-left: 2px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
 }
 .dash-timeline-item::before {
   content: "";
@@ -338,7 +391,170 @@ body {
   height: 8px;
   border-radius: 50%;
   background: var(--color-brand-600);
-  box-shadow: 0 0 0 3px rgba(30, 91, 62, 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-600) 20%, transparent);
+}
+
+/* ── App sayfaları — ortak kabuk ── */
+.app-page {
+  --dash-radius: 20px;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 1200px;
+}
+
+.app-page-meta {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--app-muted);
+}
+
+.app-page-title {
+  margin-top: 2px;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.app-page-desc {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--color-ink) 55%, transparent);
+}
+
+.dash-surface {
+  border-radius: var(--dash-radius);
+  background: var(--app-surface);
+  box-shadow:
+    0 0 0 1px var(--app-border),
+    0 1px 2px rgba(23, 32, 28, 0.03),
+    0 4px 16px -4px var(--app-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dash-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.375rem 0.875rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(23, 32, 28, 0.55);
+  background: rgba(23, 32, 28, 0.04);
+  transition: background-color 0.15s, color 0.15s;
+}
+.dash-filter-pill:hover {
+  background: rgba(23, 32, 28, 0.07);
+  color: var(--color-ink);
+}
+.dash-filter-pill-active {
+  background: var(--color-ink);
+  color: #fff;
+}
+.dash-filter-pill-active:hover {
+  background: var(--color-ink);
+  color: #fff;
+}
+
+.dash-input {
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(23, 32, 28, 0.05);
+  padding: 0.5rem 0.75rem;
+  font-size: 13px;
+  outline: none;
+  transition: background-color 0.15s, box-shadow 0.15s;
+}
+.dash-input::placeholder {
+  color: rgba(23, 32, 28, 0.35);
+}
+.dash-input:focus {
+  background: rgba(23, 32, 28, 0.07);
+  box-shadow: 0 0 0 2px rgba(46, 112, 80, 0.2);
+}
+
+.dash-select {
+  border: 0;
+  border-radius: 12px;
+  background: rgba(23, 32, 28, 0.05);
+  padding: 0.5rem 0.75rem;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+}
+.dash-select:focus {
+  box-shadow: 0 0 0 2px rgba(46, 112, 80, 0.2);
+}
+
+.dash-segmented {
+  display: inline-flex;
+  gap: 2px;
+  border-radius: 12px;
+  background: rgba(23, 32, 28, 0.05);
+  padding: 3px;
+}
+.dash-segmented-btn {
+  border-radius: 9px;
+  padding: 0.375rem 0.875rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(23, 32, 28, 0.45);
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.dash-segmented-btn:hover {
+  color: rgba(23, 32, 28, 0.7);
+}
+.dash-segmented-btn-active {
+  background: var(--app-surface-hover);
+  color: var(--color-ink);
+  box-shadow: 0 1px 3px var(--app-shadow);
+}
+
+.dash-alert-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border-radius: 14px;
+  background: rgba(245, 158, 11, 0.08);
+  padding: 0.875rem 1rem;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #92400e;
+}
+
+.dash-deal-card {
+  overflow: hidden;
+  cursor: pointer;
+  border-radius: 14px;
+  background: var(--app-surface-hover);
+  box-shadow: 0 0 0 1px var(--app-border);
+  font-size: 13px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease, background-color 0.35s ease;
+}
+.dash-deal-card:hover {
+  box-shadow: 0 4px 16px -6px rgba(23, 32, 28, 0.12);
+}
+.dash-deal-card-stale {
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35);
+}
+
+/* ── Ekip sohbeti — sağdan kayan panel ── */
+.team-chat-panel {
+  animation: team-chat-slide-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes team-chat-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 /* ── Dashboard giriş animasyonları ── */

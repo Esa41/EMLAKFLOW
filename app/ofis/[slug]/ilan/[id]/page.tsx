@@ -7,8 +7,6 @@ import { prisma } from "@/lib/prisma";
 import { InfoForm } from "@/components/showcase-forms";
 import { ShowcaseMap } from "@/components/showcase-map";
 import { DroneMapFlyover } from "@/components/drone-map-flyover";
-import { EnvironmentScorecard } from "@/components/environment-scorecard";
-import type { EnvironmentResult } from "@/lib/environment";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ShareButton } from "@/components/share-button";
 import { ListingGallery } from "@/components/listing-gallery";
@@ -234,19 +232,6 @@ export default async function ListingShowcasePage({
                 parcelGeo={l.parcelGeo ?? undefined}
                 height={340}
               />
-
-              {/* Çevresel Değerlendirme Puanı */}
-              {l.environmentScore != null && l.environmentData != null && (
-                <>
-                  <h2 className="bolum mt-8">Çevresel Değerlendirme</h2>
-                  <div className="mt-4">
-                    <EnvironmentScorecard
-                      score={l.environmentScore}
-                      data={l.environmentData as unknown as EnvironmentResult}
-                    />
-                  </div>
-                </>
-              )}
 
               <h2 className="bolum mt-8">Konum</h2>
               <div className="mt-4">

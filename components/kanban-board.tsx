@@ -261,20 +261,20 @@ export function KanbanBoard({
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-[200px] flex-1">
           <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35"
+            size={15}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/30"
           />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Müşteri veya ilan ara…"
-            className="w-full rounded-xl border border-ink/15 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-brand-500/30"
+            className="dash-input py-2 pl-9 pr-3"
           />
         </div>
         <select
           value={agentFilter}
           onChange={(e) => setAgentFilter(e.target.value)}
-          className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
+          className="dash-select"
         >
           <option value="">Tüm danışmanlar</option>
           {agents.map((a) => (
@@ -283,7 +283,7 @@ export function KanbanBoard({
             </option>
           ))}
         </select>
-        <label className="flex items-center gap-2 text-sm text-ink/60">
+        <label className="flex items-center gap-2 text-[13px] text-ink/50">
           <input
             type="checkbox"
             checked={mineOnly}
@@ -294,7 +294,7 @@ export function KanbanBoard({
         </label>
       </div>
 
-      <div className="flex gap-1 rounded-lg bg-ink/[0.04] p-1 w-fit">
+      <div className="dash-segmented w-fit">
         {(
           [
             ["board", "Pano"],
@@ -305,9 +305,7 @@ export function KanbanBoard({
           <button
             key={k}
             onClick={() => setTab(k)}
-            className={`rounded-md px-4 py-1.5 text-sm font-semibold transition-colors ${
-              tab === k ? "bg-white text-ink shadow-sm" : "text-ink/50"
-            }`}
+            className={`dash-segmented-btn ${tab === k ? "dash-segmented-btn-active" : ""}`}
           >
             {label}
           </button>
@@ -315,7 +313,7 @@ export function KanbanBoard({
       </div>
 
       {error && (
-        <p className="rounded-xl bg-rose-50 px-4 py-2.5 text-sm text-rose-600">
+        <p className="rounded-xl bg-rose-500/8 px-4 py-2.5 text-[13px] text-rose-600">
           {error}
         </p>
       )}
@@ -366,12 +364,12 @@ export function KanbanBoard({
             </DragOverlay>
           </DndContext>
 
-          <div className="mt-6 rounded-xl border border-ink/15 bg-ink/[0.02] p-2">
+          <div className="dash-surface mt-6 p-2">
             <button
               onClick={() => setShowClosed(!showClosed)}
-              className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-bold text-ink/60 transition-colors hover:bg-ink/[0.04] hover:text-ink/80"
+              className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[13px] font-semibold text-ink/50 transition-colors hover:bg-ink/[0.03] hover:text-ink/70"
             >
-              <span>BİTTİ (Kazanılan / Kaybedilen)</span>
+              <span>Bitti — kazanılan / kaybedilen</span>
               <ChevronDown size={18} className={`transition-transform ${showClosed ? "rotate-180" : ""}`} />
             </button>
             <div className={`grid grid-cols-2 gap-3 transition-all ${showClosed ? "mt-2" : "mt-2 opacity-80"}`}>
@@ -464,17 +462,17 @@ function Column({
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-72 shrink-0 flex-col rounded-lg p-2 transition-colors ${
-        isOver ? "bg-brand-50 ring-2 ring-brand-500/40" : ""
+      className={`flex w-72 shrink-0 flex-col rounded-2xl p-2 transition-colors ${
+        isOver ? "bg-brand-50 ring-2 ring-brand-500/30" : ""
       }`}
     >
-      <div className="mb-3 flex items-baseline justify-between gap-2 border-b-2 border-ink px-1 pb-2">
+      <div className="mb-3 flex items-baseline justify-between gap-2 px-1 pb-2">
         <div className="flex items-baseline gap-2">
-          <h3 className="text-[13px] font-bold">{col.label}</h3>
-          <span className="font-mono text-[10px] text-ink/50">{deals.length}</span>
+          <h3 className="text-[13px] font-semibold">{col.label}</h3>
+          <span className="text-[11px] tabular-nums text-ink/40">{deals.length}</span>
         </div>
         {total > 0 && (
-          <span className="font-mono text-[10px] font-semibold text-ink/50">
+          <span className="text-[11px] font-medium tabular-nums text-ink/40">
             {trMoney.format(total)}
           </span>
         )}
@@ -548,9 +546,9 @@ function Card({
       tabIndex={0}
       onClick={onClick}
       onKeyDown={(e) => e.key === "Enter" && onClick?.()}
-      className={`cursor-pointer overflow-hidden rounded-lg border bg-white text-sm active:cursor-grabbing ${
-        stale ? "border-amber-300" : "border-ink/15"
-      } ${overlay ? "rotate-2 border-ink shadow-lg" : ""}`}
+      className={`dash-deal-card active:cursor-grabbing ${
+        stale ? "dash-deal-card-stale" : ""
+      } ${overlay ? "rotate-2 shadow-lg" : ""}`}
     >
       <div className="h-1" style={{ background: col ?? "#c7d6c2" }} />
       <div className="p-3">
@@ -561,20 +559,18 @@ function Card({
           <GripVertical size={14} className="mt-0.5 shrink-0 text-ink/25" />
         </div>
         {stale && (
-          <span className="mt-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+          <span className="mt-1 inline-block rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
             {days} gün
           </span>
         )}
         {deal.listing && (
-          <p className="mt-1 line-clamp-1 text-xs text-ink/55">
-            <span className="font-mono text-[10px] text-ink/45">
-              {deal.listing.refCode}
-            </span>{" "}
+          <p className="mt-1 line-clamp-1 text-[11px] text-ink/45">
+            <span className="text-[10px] text-ink/35">{deal.listing.refCode}</span>{" "}
             {deal.listing.title}
           </p>
         )}
         <div className="mt-2 flex items-center justify-between">
-          <span className="font-display font-extrabold text-brand-700">
+          <span className="font-display text-[14px] font-bold tabular-nums text-brand-700">
             {deal.value != null ? trMoney.format(deal.value) : "—"}
           </span>
           {deal.contact?.phone && (
@@ -590,9 +586,7 @@ function Card({
           )}
         </div>
         {deal.agent && (
-          <p className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-ink/40">
-            {deal.agent.name}
-          </p>
+          <p className="mt-1.5 text-[10px] font-medium text-ink/35">{deal.agent.name}</p>
         )}
       </div>
     </div>
@@ -622,8 +616,8 @@ function DropCloseZone({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col gap-2 rounded-xl border-2 border-dashed p-3 transition-colors ${
-        isOver ? "border-brand-500 bg-brand-50" : "border-ink/20 bg-white"
+      className={`flex flex-col gap-2 rounded-2xl border-2 border-dashed p-3 transition-colors ${
+        isOver ? "border-brand-500 bg-brand-50/50" : "border-ink/10 bg-white/60"
       }`}
       style={{ borderColor: isOver ? undefined : color + "66", minHeight: "68px" }}
     >
@@ -724,18 +718,17 @@ function QuickCreate({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-ink/25 py-2.5 text-xs font-semibold text-ink/45 hover:border-brand-500 hover:text-brand-600"
+        className="flex items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-ink/15 py-2.5 text-[12px] font-semibold text-ink/40 hover:border-brand-500/40 hover:text-brand-600"
       >
         <Plus size={14} /> Fırsat ekle
       </button>
     );
   }
 
-  const sel =
-    "w-full rounded-lg border border-ink/15 bg-white px-2.5 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-500/40";
+  const sel = "dash-input text-[12px]";
 
   return (
-    <div className="space-y-2 rounded-xl bg-white p-3 shadow-sm ring-1 ring-ink/15">
+    <div className="space-y-2 rounded-2xl bg-white/90 p-3 shadow-sm ring-1 ring-ink/[0.05]">
       <select className={sel} value={contactId} onChange={(e) => setContactId(e.target.value)}>
         <option value="">Müşteri seç *</option>
         <option value="__new">＋ Yeni müşteri</option>
@@ -758,10 +751,10 @@ function QuickCreate({
       <input type="number" className={sel} placeholder="Beklenen bedel (₺)" value={value} onChange={(e) => setValue(e.target.value)} min={0} />
       {formError && <p className="text-[11px] text-rose-600">{formError}</p>}
       <div className="flex gap-2">
-        <button onClick={handleCreate} disabled={saving || !canSubmit} className="btn-selvi flex-1 rounded-lg py-1.5 text-xs font-semibold text-white disabled:opacity-50">
+        <button onClick={handleCreate} disabled={saving || !canSubmit} className="dash-btn-primary flex-1 justify-center py-1.5 text-[12px] disabled:opacity-50">
           {saving ? "…" : "Ekle"}
         </button>
-        <button onClick={reset} className="flex-1 rounded-lg bg-brand-50/60 py-1.5 text-xs font-semibold text-ink/65">Vazgeç</button>
+        <button onClick={reset} className="dash-btn-secondary flex-1 justify-center py-1.5 text-[12px]">Vazgeç</button>
       </div>
     </div>
   );

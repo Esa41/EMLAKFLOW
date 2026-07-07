@@ -4,7 +4,6 @@ import { forTenant } from "@/lib/tenant";
 import { findMatchingLeads } from "@/lib/matching";
 import { getListingUsage, FREE_LISTING_LIMIT } from "@/lib/plans";
 import { ensureListingSeo } from "@/lib/seo-ai";
-import { ensureEnvironmentAnalysis } from "@/lib/environment";
 import { nextRefCode } from "@/lib/ref-code";
 import { listingDataFromBody } from "@/lib/listing-payload";
 import { notificationLinks } from "@/lib/notification-links";
@@ -92,16 +91,11 @@ export async function POST(req: Request) {
     },
   });
 
-  // Otomatik SEO + çevre analizi — yanıtı bloklamadan arka planda çalışır.
+  // Otomatik SEO — yanıtı bloklamadan arka planda çalışır.
   after(async () => {
-    await Promise.allSettled([
-      ensureListingSeo(listing).catch((err) =>
-        console.error("[listings] otomatik SEO üretilemedi:", err),
-      ),
-      ensureEnvironmentAnalysis(listing).catch((err) =>
-        console.error("[listings] çevre analizi yapılamadı:", err),
-      ),
-    ]);
+    await ensureListingSeo(listing).catch((err) =>
+      console.error("[listings] otomatik SEO üretilemedi:", err),
+    );
   });
 
   // Akıllı eşleştirme: yeni ilana uyan açık lead'ler

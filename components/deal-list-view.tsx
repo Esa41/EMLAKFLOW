@@ -21,17 +21,15 @@ export function DealListView({
 }) {
   if (deals.length === 0) {
     return (
-      <p className="rounded-xl border border-dashed border-ink/20 py-12 text-center text-sm text-ink/45">
-        Bu filtrede fırsat yok.
-      </p>
+      <div className="dash-empty py-12">Bu filtrede fırsat yok.</div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-ink/15 bg-white">
-      <table className="w-full text-sm">
+    <div className="dash-surface overflow-hidden">
+      <table className="w-full text-[13px]">
         <thead>
-          <tr className="border-b border-ink/10 bg-ink/[0.02] text-left text-xs font-semibold uppercase tracking-wider text-ink/45">
+          <tr className="border-b border-ink/[0.06] bg-ink/[0.02] text-left text-[11px] font-semibold text-ink/40">
             <th className="px-4 py-3">Müşteri</th>
             <th className="hidden px-4 py-3 sm:table-cell">Aşama</th>
             <th className="hidden px-4 py-3 md:table-cell">İlan</th>
@@ -46,8 +44,8 @@ export function DealListView({
               <tr
                 key={d.id}
                 onClick={() => onSelect(d)}
-                className={`cursor-pointer border-b border-ink/5 transition-colors hover:bg-brand-50/40 ${
-                  stale ? "bg-amber-50/50" : ""
+                className={`cursor-pointer border-b border-ink/[0.04] transition-colors hover:bg-brand-50/30 ${
+                  stale ? "bg-amber-500/5" : ""
                 }`}
               >
                 <td className="px-4 py-3">
@@ -55,7 +53,7 @@ export function DealListView({
                     {d.contact?.fullName ?? "İsimsiz"}
                   </p>
                   {stale && (
-                    <span className="mt-0.5 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                    <span className="mt-0.5 inline-block rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
                       {days} gündür bu aşamada
                     </span>
                   )}

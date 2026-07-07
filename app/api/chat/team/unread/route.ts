@@ -1,43 +1,94 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { TEAM_SESSION, isInternalSession } from "@/lib/chat-sessions";
 
-/**
- * Okunmamış ekip sohbeti mesaj sayısı.
- * Kullanıcının lastReadAt imlecinden sonra gelen, kendisine ait olmayan
- * TEAM mesajları sayılır.
- */
+async function unreadSince(
+  tenantId: string,
+  userId: string,
+  sessionId: string,
+  since: Date,
+) {
+  return prisma.message.count({
+    where: {
+      tenantId,
+      sessionId,
+      createdAt: { gt: since },
+      senderId: { not: userId },
+    },
+  });
+}
+
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const read = await prisma.teamChatRead.findUnique({
-    where: { tenantId_userId: { tenantId: session.tenantId, userId: session.userId } },
-    select: { lastReadAt: true },
+  const reads = await prisma.teamChatRead.findMany({
+    where: { tenantId: session.tenantId, userId: session.userId },
+    select: { sessionId: true, lastReadAt: true },
   });
-  const since = read?.lastReadAt ?? new Date(0);
+  const readMap = new Map(reads.map((r) => [r.sessionId, r.lastReadAt]));
 
-  const unread = await prisma.message.count({
+  const sessions = await prisma.message.findMany({
     where: {
       tenantId: session.tenantId,
-      sessionId: "TEAM",
-      createdAt: { gt: since },
-      senderId: { not: session.userId },
+      OR: [
+        { sessionId: TEAM_SESSION },
+        { sessionId: { startsWith: `DM:${session.userId}:` } },
+        {
+          sessionId: { startsWith: "DM:", endsWith: `:${session.userId}` },
+        },
+      ],
     },
+    distinct: ["sessionId"],
+    select: { sessionId: true },
   });
 
-  return NextResponse.json({ unread });
+  let total = 0;
+  for (const { sessionId } of sessions) {
+    if (!sessionId || !isInternalSession(sessionId)) continue;
+    const since = readMap.get(sessionId) ?? new Date(0);
+    total += await unreadSince(
+      session.tenantId,
+      session.userId,
+      sessionId,
+      since,
+    );
+  }
+
+  return NextResponse.json({ unread: total });
 }
 
-/** Ekip sohbetini "okundu" işaretle — lastReadAt = şimdi. */
-export async function POST() {
+/** Sohbeti "okundu" işaretle — body: { sessionId?: string } */
+export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  let sessionId = TEAM_SESSION;
+  try {
+    const body = await req.json();
+    if (body?.sessionId && isInternalSession(body.sessionId)) {
+      sessionId = body.sessionId;
+    }
+  } catch {
+    /* varsayılan TEAM */
+  }
+
   const now = new Date();
   await prisma.teamChatRead.upsert({
-    where: { tenantId_userId: { tenantId: session.tenantId, userId: session.userId } },
-    create: { tenantId: session.tenantId, userId: session.userId, lastReadAt: now },
+    where: {
+      tenantId_userId_sessionId: {
+        tenantId: session.tenantId,
+        userId: session.userId,
+        sessionId,
+      },
+    },
+    create: {
+      tenantId: session.tenantId,
+      userId: session.userId,
+      sessionId,
+      lastReadAt: now,
+    },
     update: { lastReadAt: now },
   });
 

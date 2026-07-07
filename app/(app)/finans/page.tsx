@@ -2,34 +2,27 @@ import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
 import { trMoney } from "@/lib/labels";
 import { MarkPaidButton } from "@/components/mark-paid-button";
-import { FinansTabs } from "@/components/finans-tabs";
-import { ContractPanel } from "@/components/contract-panel";
 import { Wallet, Hourglass, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
 
 export default async function FinancePage() {
   const session = (await getSession())!;
   const db = forTenant(session.tenantId);
   const canManage = ["OWNER", "BROKER"].includes(session.role);
 
-  const [commissions, contacts] = await Promise.all([
-    db.commission.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        agent: { select: { name: true } },
-        deal: {
-          select: {
-            value: true,
-            contact: { select: { fullName: true } },
-            listing: { select: { refCode: true, title: true, purpose: true } },
-          },
+  const commissions = await db.commission.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      agent: { select: { name: true } },
+      deal: {
+        select: {
+          value: true,
+          contact: { select: { fullName: true, id: true } },
+          listing: { select: { refCode: true, title: true, purpose: true } },
         },
       },
-    }),
-    db.contact.findMany({
-      orderBy: { fullName: "asc" },
-      select: { id: true, fullName: true, phone: true },
-    }),
-  ]);
+    },
+  });
 
   const sum = (rows: typeof commissions) =>
     rows.reduce((s, c) => s + Number(c.gross), 0);
@@ -37,30 +30,34 @@ export default async function FinancePage() {
   const paid = commissions.filter((c) => c.paidAt);
 
   const stats = [
-    {
-      label: "Toplam Komisyon",
-      value: trMoney.format(sum(commissions)),
-      icon: Wallet,
-    },
+    { label: "Toplam komisyon", value: trMoney.format(sum(commissions)), icon: Wallet },
     { label: "Bekleyen", value: trMoney.format(sum(pending)), icon: Hourglass },
     { label: "Ödenen", value: trMoney.format(sum(paid)), icon: CheckCircle2 },
   ];
 
-  const commissionsTab = (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {stats.map(({ label, value, icon: Icon }, i) => (
-          <div
-            key={label}
-            className="relative overflow-hidden rounded-[10px] border border-ink bg-white p-5"
-          >
-            <Icon className="absolute -right-3 -top-3 h-16 w-16 text-ink opacity-[0.06]" />
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink/50">
-              {label}
-            </p>
-            <p
-              className={`mt-2 font-display text-xl font-extrabold tracking-tight ${i === 0 ? "text-copper" : ""}`}
-            >
+  return (
+    <div className="app-page dash-in space-y-6">
+      <div>
+        <p className="app-page-meta">{commissions.length} hak ediş kaydı</p>
+        <h1 className="app-page-title">Kasa</h1>
+        <p className="app-page-desc">
+          Komisyon ve ödeme takibi. Sözleşmeleri müşteri kartından yükleyin ve
+          düzenleyin —{" "}
+          <Link href="/kisiler" className="font-semibold text-brand-600 hover:underline">
+            Müşteriler
+          </Link>
+          .
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {stats.map(({ label, value, icon: Icon }) => (
+          <div key={label} className="dash-kpi">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink/[0.04] text-ink/50">
+              <Icon size={17} strokeWidth={1.75} />
+            </span>
+            <p className="mt-3 text-[12px] font-medium text-ink/45">{label}</p>
+            <p className="font-display text-[22px] font-bold tracking-tight tabular-nums text-copper">
               {value}
             </p>
           </div>
@@ -68,70 +65,75 @@ export default async function FinancePage() {
       </div>
 
       {commissions.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-ink/25 bg-white/70 p-12 text-center text-sm text-ink/55">
-          Henüz hak ediş yok. İlk fırsatı Kanban'da "Kazanıldı"ya taşıdığında
-          burada otomatik belirecek.
+        <div className="dash-empty py-16">
+          Henüz hak ediş yok. Fırsatı kanbanda &quot;Kazanıldı&quot;ya taşıdığınızda
+          burada otomatik belirir.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl bg-white border border-ink/15">
-          <table className="w-full min-w-[720px] text-sm">
+        <div className="dash-surface overflow-x-auto">
+          <table className="w-full min-w-[720px] text-[13px]">
             <thead>
-              <tr className="border-b border-ink/10 text-left text-xs font-bold uppercase tracking-wider text-ink/45">
+              <tr className="border-b border-ink/[0.06] bg-ink/[0.02] text-left text-[11px] font-semibold text-ink/40">
                 <th className="px-4 py-3">İşlem</th>
                 <th className="px-4 py-3">Danışman</th>
                 <th className="px-4 py-3 text-right">Brüt</th>
-                <th className="px-4 py-3 text-right">Danışman Payı</th>
-                <th className="px-4 py-3 text-right">Ofis Payı</th>
+                <th className="px-4 py-3 text-right">Danışman payı</th>
+                <th className="px-4 py-3 text-right">Ofis payı</th>
                 <th className="px-4 py-3">Durum</th>
                 {canManage && <th className="px-4 py-3" />}
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink/[0.06]">
+            <tbody className="divide-y divide-ink/[0.04]">
               {commissions.map((c) => (
-                <tr key={c.id} className="hover:bg-ink/[0.03]">
+                <tr key={c.id} className="transition hover:bg-brand-50/20">
                   <td className="px-4 py-3">
                     <p className="font-semibold">
-                      {c.deal.contact?.fullName ?? "—"}
+                      {c.deal.contact ? (
+                        <Link
+                          href={`/kisiler/${c.deal.contact.id}`}
+                          className="hover:text-brand-700"
+                        >
+                          {c.deal.contact.fullName}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
                     </p>
-                    <p className="text-xs text-ink/55">
+                    <p className="text-[12px] text-ink/45">
                       {c.deal.listing ? (
                         <>
-                          <span className="font-mono text-[10px] text-ink/45">
+                          <span className="text-[10px] text-ink/35">
                             {c.deal.listing.refCode}
                           </span>{" "}
                           {c.deal.listing.title}
                           {" · "}
-                          {c.deal.listing.purpose === "SALE"
-                            ? "Satış"
-                            : "Kiralama"}
+                          {c.deal.listing.purpose === "SALE" ? "Satış" : "Kiralama"}
                         </>
                       ) : (
                         "İlansız işlem"
                       )}
                       {c.deal.value != null && (
-                        <> · bedel {trMoney.format(Number(c.deal.value))}</>
+                        <> · {trMoney.format(Number(c.deal.value))}</>
                       )}
                     </p>
                   </td>
-                  <td className="px-4 py-3 text-ink/65">
-                    {c.agent?.name ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right font-display font-extrabold text-copper">
+                  <td className="px-4 py-3 text-ink/55">{c.agent?.name ?? "—"}</td>
+                  <td className="px-4 py-3 text-right font-display font-bold tabular-nums text-copper">
                     {trMoney.format(Number(c.gross))}
                   </td>
-                  <td className="px-4 py-3 text-right text-ink/65">
+                  <td className="px-4 py-3 text-right tabular-nums text-ink/55">
                     {trMoney.format(Number(c.agentShare))}
                   </td>
-                  <td className="px-4 py-3 text-right text-ink/65">
+                  <td className="px-4 py-3 text-right tabular-nums text-ink/55">
                     {trMoney.format(Number(c.officeShare))}
                   </td>
                   <td className="px-4 py-3">
                     {c.paidAt ? (
-                      <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                      <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
                         Ödendi · {c.paidAt.toLocaleDateString("tr-TR")}
                       </span>
                     ) : (
-                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                      <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
                         Bekliyor
                       </span>
                     )}
@@ -147,23 +149,6 @@ export default async function FinancePage() {
           </table>
         </div>
       )}
-    </div>
-  );
-
-  const contractsTab = <ContractPanel scope={{}} contactOptions={contacts} />;
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-[27px] font-extrabold tracking-tight">
-          Kasa
-        </h1>
-        <p className="mt-1 text-sm text-ink/55">
-          Hak ediş defteri ve sözleşme arşivi.
-        </p>
-      </div>
-
-      <FinansTabs commissionsTab={commissionsTab} contractsTab={contractsTab} />
     </div>
   );
 }

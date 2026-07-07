@@ -51,26 +51,31 @@ export default async function CustomersPage() {
     agent: d.agent,
   }));
 
+  const openCount = cards.filter(
+    (c) => !["CLOSED_WON", "CLOSED_LOST"].includes(c.stage),
+  ).length;
   const pipelineValue = cards
     .filter((c) => !["CLOSED_WON", "CLOSED_LOST"].includes(c.stage))
     .reduce((s, c) => s + (c.value ?? 0), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="app-page dash-in space-y-6">
       <div>
-        <h1 className="font-display text-[27px] font-extrabold tracking-tight">
-          {v.labels.pipeline}
-        </h1>
-        <p className="mt-1 text-sm text-ink/55">
-          {cards.length} fırsat · Açık pipeline:{" "}
+        <p className="app-page-meta">
+          {openCount} açık fırsat ·{" "}
           {new Intl.NumberFormat("tr-TR", {
             style: "currency",
             currency: "TRY",
             maximumFractionDigits: 0,
-          }).format(pipelineValue)}
-          {" — "}kartlara tıklayarak detay açın veya sürükleyerek taşıyın.
+          }).format(pipelineValue)}{" "}
+          pipeline
+        </p>
+        <h1 className="app-page-title">{v.labels.pipeline}</h1>
+        <p className="app-page-desc">
+          Kartlara tıklayarak detay açın veya sürükleyerek aşama değiştirin.
         </p>
       </div>
+
       <KanbanBoard
         initialDeals={cards}
         contacts={contacts}

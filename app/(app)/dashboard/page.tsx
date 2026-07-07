@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { forTenant } from "@/lib/tenant";
 import { ParselMap, type ParselDeal } from "@/components/parsel-map";
 import { InsightList, type InsightItem } from "@/components/insight-list";
-import { DashboardMap, type DashMapListing } from "@/components/dashboard-map";
 import { CountUp } from "@/components/landing/count-up";
 import { STAGE_TR, STAGE_COLOR, trMoney } from "@/lib/labels";
 import {
@@ -18,7 +17,6 @@ import {
   CalendarPlus,
   UserPlus,
   ExternalLink,
-  MapPin,
   Target,
   Landmark,
   CalendarDays,
@@ -75,7 +73,6 @@ export default async function DashboardPage() {
     monthDue,
     overdue,
     upcomingPayments,
-    mapListings,
     tenant,
   ] = await Promise.all([
     db.deal.findMany({
@@ -144,12 +141,6 @@ export default async function DashboardPage() {
         },
       },
     }),
-    db.listing.findMany({
-      where: { status: "ACTIVE", lat: { not: null }, lng: { not: null } },
-      orderBy: { createdAt: "desc" },
-      take: 40,
-      select: { id: true, lat: true, lng: true, price: true, purpose: true },
-    }),
     prisma.tenant.findUnique({
       where: { id: session.tenantId },
       select: { slug: true, showcaseEnabled: true },
@@ -174,14 +165,6 @@ export default async function DashboardPage() {
     color: STAGE_COLOR[d.stage],
   }));
   const pipelineTotal = parselDeals.reduce((s, d) => s + d.value, 0);
-
-  const dashListings: DashMapListing[] = mapListings.map((l) => ({
-    id: l.id,
-    lat: l.lat!,
-    lng: l.lng!,
-    price: Number(l.price),
-    purpose: l.purpose,
-  }));
 
   const showcaseSlug = tenant?.showcaseEnabled ? tenant.slug : null;
 
@@ -260,48 +243,32 @@ export default async function DashboardPage() {
       <OnboardingTour />
 
       {/* ── Karşılama ── */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="dash-in flex flex-col justify-center">
-          <p className="text-[13px] font-medium text-ink/45">{dateLine}</p>
-          <h1 className="mt-1 font-display text-[clamp(1.75rem,4vw,2.5rem)] font-bold leading-[1.1] tracking-tight">
-            {greeting}, {firstName}
-          </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink/55">{statusLine}</p>
+      <div className="dash-in">
+        <p className="text-[13px] font-medium text-ink/45">{dateLine}</p>
+        <h1 className="mt-1 font-display text-[clamp(1.75rem,4vw,2.5rem)] font-bold leading-[1.1] tracking-tight">
+          {greeting}, {firstName}
+        </h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-ink/55">{statusLine}</p>
 
-          <div className="mt-6 flex flex-wrap items-center gap-2">
-            <Link href="/portfoy/yeni" className="dash-btn-primary">
-              <Plus size={15} /> Yeni ilan
+        <div className="mt-6 flex flex-wrap items-center gap-2">
+          <Link href="/portfoy/yeni" className="dash-btn-primary">
+            <Plus size={15} /> Yeni ilan
+          </Link>
+          <Link href="/kisiler" className="dash-btn-secondary">
+            <UserPlus size={15} /> Kişi ekle
+          </Link>
+          <Link href="/ajanda" className="dash-btn-secondary">
+            <CalendarPlus size={15} /> Randevu
+          </Link>
+          {showcaseSlug && (
+            <Link
+              href={`/ofis/${showcaseSlug}`}
+              target="_blank"
+              className="dash-btn-secondary"
+            >
+              <ExternalLink size={15} /> Vitrini gör
             </Link>
-            <Link href="/kisiler" className="dash-btn-secondary">
-              <UserPlus size={15} /> Kişi ekle
-            </Link>
-            <Link href="/ajanda" className="dash-btn-secondary">
-              <CalendarPlus size={15} /> Randevu
-            </Link>
-            {showcaseSlug && (
-              <Link
-                href={`/ofis/${showcaseSlug}`}
-                target="_blank"
-                className="dash-btn-secondary"
-              >
-                <ExternalLink size={15} /> Vitrini gör
-              </Link>
-            )}
-          </div>
-        </div>
-
-        <div className="dash-card dash-in overflow-hidden p-0" style={{ animationDelay: "60ms" }}>
-          <div className="flex items-center justify-between px-4 py-3">
-            <p className="flex items-center gap-1.5 text-[13px] font-semibold text-ink/55">
-              <MapPin size={14} className="text-brand-600" /> Portföy haritası
-            </p>
-            <span className="text-[12px] tabular-nums text-ink/40">
-              {dashListings.length} konum
-            </span>
-          </div>
-          <div className="h-[200px] px-1 pb-1">
-            <DashboardMap listings={dashListings} />
-          </div>
+          )}
         </div>
       </div>
 
@@ -386,7 +353,7 @@ export default async function DashboardPage() {
                           </div>
                         )}
                       </div>
-                      <span className="absolute bottom-3 left-3 max-w-[85%] truncate rounded-lg bg-white/90 px-2.5 py-1 text-[11px] font-medium text-ink/70 shadow-sm backdrop-blur-sm">
+                      <span className="absolute bottom-3 left-3 max-w-[85%] truncate rounded-lg bg-white/90 px-2.5 py-1 text-[11px] font-medium text-ink/70 shadow-sm backdrop-blur-sm dark:bg-ink/80 dark:text-white/80">
                         {l.title}
                       </span>
                     </div>
@@ -473,7 +440,7 @@ export default async function DashboardPage() {
                 {overdue._count > 0 && (
                   <Link
                     href="/kiralar"
-                    className="mt-3 flex items-center gap-2 rounded-xl bg-red-500/[0.08] px-3.5 py-2.5 text-[13px] font-medium text-red-700 transition hover:bg-red-500/[0.12]"
+                    className="mt-3 flex items-center gap-2 rounded-xl bg-red-500/[0.08] px-3.5 py-2.5 text-[13px] font-medium text-red-700 transition hover:bg-red-500/[0.12] dark:text-red-400"
                   >
                     <AlertTriangle size={14} />
                     {overdue._count} geciken · {trMoney.format(overdueTotal)}

@@ -5,6 +5,7 @@ import { forTenant } from "@/lib/tenant";
 import { ContactIcon, Phone, Mail, ArrowLeft, MessageCircle } from "lucide-react";
 import { STAGE_TR, STAGE_COLOR, trMoney, CONTACT_TYPE_TR } from "@/lib/labels";
 import { ActivityFeed } from "@/components/activity-feed";
+import { ContractPanel } from "@/components/contract-panel";
 import { AddDealModal } from "@/components/add-deal-modal";
 import { AddLeadModal } from "@/components/add-lead-modal";
 import { LeadCard, type LeadRow } from "@/components/lead-card";
@@ -248,6 +249,13 @@ export default async function ContactDetailPage(props: { params: Promise<{ id: s
                 ))}
               </div>
             )}
+          </section>
+
+          <section>
+            <ContractPanel
+              scope={{ contactId: contact.id }}
+              contactLabel={contact.fullName}
+            />
           </section>
         </div>
 
