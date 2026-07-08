@@ -331,6 +331,9 @@ export function LandingContent() {
           </p>
           <p className="text-sm text-ink/45">© {new Date().getFullYear()} · ESAPP PropTech</p>
           <div className="flex gap-6 text-sm text-ink/50">
+            <Link href="/blog" className="hover:text-ink">
+              Blog
+            </Link>
             <Link href="/login" className="hover:text-ink">
               Giriş
             </Link>
