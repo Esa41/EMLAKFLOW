@@ -34,6 +34,9 @@ export function LandingNav() {
           <a href="#ozellikler" className="transition-colors hover:text-ink">
             Özellikler
           </a>
+          <a href="#fiyatlar" className="transition-colors hover:text-ink">
+            Fiyatlar
+          </a>
           <Link
             href="/ofis/atlas-gayrimenkul"
             target="_blank"

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { currentUserIsSuperAdmin } from "@/lib/plans";
 import { getSession } from "@/lib/auth";
 
-const ALLOWED_PLANS = ["free", "trial", "starter", "pro"];
+const ALLOWED_PLANS = ["free", "trial", "starter", "pro", "premium"];
 
 // Tenant detayları - admin paneli için
 export async function GET(

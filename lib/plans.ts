@@ -5,9 +5,60 @@ import { getSession } from "./auth";
 /** Ücretsiz (Pro olmayan) planda izin verilen maksimum ilan sayısı. */
 export const FREE_LISTING_LIMIT = 3;
 
-/** Sınırsız ilan hakkı olan plan(lar). İleride "premium" eklenebilir. */
+/**
+ * Paket mimarisi — OFİS BAŞINA fiyat (danışman başına DEĞİL: Türkiye
+ * pazarında per-seat model hesap paylaşımıyla deliniyor; ayrıca kazanç
+ * paylaşımı modülü zaten her danışmana kendi hesabını açtırıyor).
+ * Fiyat gerekçeleri: docs/fiyatlandirma-calismasi.md
+ * Tenant.plan değerleri: trial | starter (eski, free sayılır) | pro | premium
+ */
+export const PLANS = {
+  free: {
+    key: "free",
+    name: "Başlangıç",
+    monthlyTRY: 0,
+    yearlyTRY: 0,
+    listingLimit: FREE_LISTING_LIMIT,
+    userLimit: 1,
+    tagline: "Tek başına çalışan danışman için",
+  },
+  pro: {
+    key: "pro",
+    name: "Pro",
+    monthlyTRY: 1490,
+    yearlyTRY: 14900, // 10 × aylık — 2 ay hediye
+    listingLimit: null, // sınırsız
+    userLimit: 10,
+    tagline: "Portföyünü büyüten ofis için",
+  },
+  premium: {
+    key: "premium",
+    name: "Premium",
+    monthlyTRY: 2990,
+    yearlyTRY: 29900,
+    listingLimit: null,
+    userLimit: null, // sınırsız
+    tagline: "AI ve analitikle satan ofis için",
+  },
+} as const;
+
+export type PlanKey = keyof typeof PLANS;
+
+/** Tenant.plan (serbest string) → paket anahtarı; bilinmeyenler free sayılır. */
+export function planKeyFromTenant(plan: string | null | undefined): PlanKey {
+  if (plan === "pro") return "pro";
+  if (plan === "premium") return "premium";
+  return "free"; // trial, starter, null…
+}
+
+/** Sınırsız ilan hakkı olan planlar — premium, pro'nun üst kümesidir. */
 export function isPro(plan: string | null | undefined): boolean {
-  return plan === "pro";
+  return plan === "pro" || plan === "premium";
+}
+
+/** Premium'a özel özellikler (AI paketi, analitik, rapor) için kapı. */
+export function isPremium(plan: string | null | undefined): boolean {
+  return plan === "premium";
 }
 
 /**

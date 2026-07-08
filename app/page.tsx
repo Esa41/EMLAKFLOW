@@ -16,11 +16,15 @@ const softwareJsonLd = {
   inLanguage: "tr",
   description:
     "Türkiye'deki emlak ofisleri için portföy yönetimi, CRM, harita vitrini ve otomatik kazanç paylaşımı sunan B2B SaaS platformu.",
+  // Paket yapısıyla senkron tut: lib/plans.ts PLANS
   offers: {
-    "@type": "Offer",
-    price: "0",
+    "@type": "AggregateOffer",
+    lowPrice: "0",
+    highPrice: "2990",
     priceCurrency: "TRY",
-    description: "Ücretsiz başlangıç planı",
+    offerCount: 3,
+    description:
+      "Başlangıç ücretsiz; Pro ve Premium paketler ofis başına aylık abonelik",
   },
   publisher: { "@type": "Organization", name: "EmlakFlow", url: BASE_URL },
 };

@@ -13,6 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import { LandingNav } from "./landing-nav";
+import { PricingSection } from "./pricing-section";
 import { ScrubHero } from "./scrub-hero";
 import { ScrollReveal } from "./scroll-reveal";
 import { ScrollStory } from "./scroll-story";
@@ -288,6 +289,9 @@ export function LandingContent() {
           </div>
         </div>
       </section>
+
+      {/* ── Fiyatlandırma ── */}
+      <PricingSection />
 
       {/* ── Final CTA ── */}
       <section className="relative overflow-hidden bg-ink py-28 text-white sm:py-36">
