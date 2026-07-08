@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import type { Vertical } from "@prisma/client";
 
 function slugify(s: string) {
@@ -22,6 +23,13 @@ function slugify(s: string) {
  * Body: { officeName, city?, name, email, password, phone?, vertical? }
  */
 export async function POST(req: Request) {
+  // Toplu sahte hesap açılışına karşı: IP başına 10 dakikada 5 kayıt denemesi
+  const limited = enforceRateLimit(req, "register", {
+    limit: 5,
+    windowMs: 10 * 60_000,
+  });
+  if (limited) return limited;
+
   const body = await req.json().catch(() => null);
   if (!body?.officeName || !body?.name || !body?.email || !body?.password) {
     return NextResponse.json(

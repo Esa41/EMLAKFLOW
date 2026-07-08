@@ -2,11 +2,19 @@ import { NextResponse } from "next/server";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { createSiteSession } from "@/lib/site-auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
 /** Vitrin üyeliği — alıcı/kiracı girişi. Body: { email, password } */
 export async function POST(req: Request, ctx: Ctx) {
+  // Brute-force koruması: IP başına dakikada 10 giriş denemesi
+  const limited = enforceRateLimit(req, "site-login", {
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
+
   const { slug } = await ctx.params;
   const tenant = await prisma.tenant.findUnique({
     where: { slug },

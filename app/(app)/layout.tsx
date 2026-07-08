@@ -13,6 +13,11 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { parseAppTheme, THEME_COOKIE } from "@/lib/theme";
 
+// CRM auth arkasında — robots.txt disallow'a ek olarak sayfa seviyesinde noindex
+export const metadata = {
+  robots: { index: false, follow: false },
+};
+
 export default async function AppLayout({
   children,
 }: {

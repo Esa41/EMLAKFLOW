@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { forTenant } from "@/lib/tenant";
 import { findMatchingListings } from "@/lib/matching";
 import { notificationLinks } from "@/lib/notification-links";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 /**
  * Public vitrin formu → CRM.
@@ -11,6 +12,10 @@ import { notificationLinks } from "@/lib/notification-links";
  * Spam önlemi: honeypot ("website" dolu gelirse sessizce kabul edilmiş gibi yanıtlanır).
  */
 export async function POST(req: Request, ctx: { params: Promise<{ slug: string }> }) {
+  // Form spam koruması (honeypot'a ek katman): IP başına dakikada 5 gönderim
+  const limited = enforceRateLimit(req, "lead", { limit: 5, windowMs: 60_000 });
+  if (limited) return limited;
+
   const { slug } = await ctx.params;
   const body = await req.json().catch(() => null);
 

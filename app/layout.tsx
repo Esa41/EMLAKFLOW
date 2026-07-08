@@ -4,6 +4,8 @@ import {
   Schibsted_Grotesk,
   Spline_Sans_Mono,
 } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { getBaseUrl } from "@/lib/url";
 import "./globals.css";
 
 const display = Bricolage_Grotesque({
@@ -23,10 +25,46 @@ export const viewport = {
   colorScheme: "light" as const,
 };
 
+const BASE_URL = getBaseUrl();
+
 export const metadata: Metadata = {
-  title: "EmlakFlow — İlan sizden, gerisi EmlakFlow'dan",
+  // Göreli OG/canonical URL'leri mutlak URL'ye çevirir (vitrin sayfaları dahil)
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: "EmlakFlow — İlan sizden, gerisi EmlakFlow'dan",
+    // Alt sayfalar yalnızca kendi başlığını verir; marka eki buradan gelir
+    template: "%s | EmlakFlow",
+  },
   description:
     "Harita vitrini, akıllı eşleştirme, kanban satış hattı ve otomatik kazanç paylaşımı — modern emlak ofisinin tek paneli.",
+  applicationName: "EmlakFlow",
+  keywords: [
+    "emlak yazılımı",
+    "emlak CRM",
+    "portföy yönetim programı",
+    "emlak ofisi yazılımı",
+    "gayrimenkul danışmanı CRM",
+  ],
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    siteName: "EmlakFlow",
+    url: BASE_URL,
+    title: "EmlakFlow — İlan sizden, gerisi EmlakFlow'dan",
+    description:
+      "Harita vitrini, akıllı eşleştirme, kanban satış hattı ve otomatik kazanç paylaşımı — modern emlak ofisinin tek paneli.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "EmlakFlow — Modern emlak ofisinin tek paneli",
+    description:
+      "Portföy, müşteri ve satış hattını tek yerden yönetin; vitrin sitenizi dakikalar içinde yayınlayın.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -35,7 +73,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="tr"
       className={`${display.variable} ${sans.variable} ${mono.variable}`}
     >
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {children}
+        {/* Gerçek kullanıcı Core Web Vitals — yalnızca Vercel'de aktif, dev'de no-op */}
+        <SpeedInsights />
+      </body>
     </html>
   );
 }

@@ -21,8 +21,14 @@ const PUBLIC_PATHS = [
   "/api/cron",
   "/ofis",
   "/galeri",
+  "/blog",
   "/robots.txt",
   "/sitemap.xml",
+  // Dosya-tabanlı metadata görselleri — crawler'lar auth'suz erişebilmeli
+  "/opengraph-image",
+  "/twitter-image",
+  "/icon",
+  "/apple-icon",
 ];
 
 export default auth((req) => {
