@@ -12,12 +12,6 @@ export function listingDataFromBody(body: Record<string, unknown>) {
     ...(body.type !== undefined && { type: body.type as ListingType }),
     ...(body.status !== undefined && { status: body.status as ListingStatus }),
     ...(body.price !== undefined && { price: body.price as Prisma.Decimal | number | string }),
-    ...(body.currency !== undefined && {
-      // Allowlist — bilinmeyen kod TL'ye düşer
-      currency: ["TRY", "USD", "EUR"].includes(String(body.currency))
-        ? String(body.currency)
-        : "TRY",
-    }),
     ...(body.city !== undefined && { city: body.city as string }),
     ...(body.district !== undefined && { district: body.district as string }),
     ...(body.neighborhood !== undefined && { neighborhood: str(body.neighborhood) }),

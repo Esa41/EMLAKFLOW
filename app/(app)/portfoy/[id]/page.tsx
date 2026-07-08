@@ -159,7 +159,6 @@ export default async function ListingDetailPage({
           type: listing.type,
           status: listing.status,
           price: String(listing.price),
-          currency: listing.currency,
           city: listing.city,
           district: listing.district,
           neighborhood: listing.neighborhood ?? "",

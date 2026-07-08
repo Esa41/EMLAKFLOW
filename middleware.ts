@@ -1,10 +1,11 @@
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth.config";
-import { buildCspHeader } from "@/lib/security-headers";
 
 const { auth } = NextAuth(authConfig);
 
+// /api/chat: vitrin ziyaretçisi (auth yok) mesajlarını okuyabilsin diye public.
+// /api/chat/team kendi içinde getSession ile korunur (auth yoksa 401 döner).
 const PUBLIC_PATHS = [
   "/",
   "/login",
@@ -24,59 +25,37 @@ const PUBLIC_PATHS = [
   "/sitemap.xml",
 ];
 
-function applySecurityHeaders(res: NextResponse, nonce: string) {
-  res.headers.set("Content-Security-Policy", buildCspHeader(nonce));
-  return res;
-}
-
 export default auth((req) => {
   const { pathname } = req.nextUrl;
-  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-  const requestHeaders = new Headers(req.headers);
-  requestHeaders.set("x-nonce", nonce);
-
   const isPublic = PUBLIC_PATHS.some((p) =>
     p === "/" ? pathname === "/" : pathname.startsWith(p),
   );
 
+  // Giriş yapmış kullanıcı ana sayfada landing görmez — panele gider
   if (req.auth && pathname === "/") {
-    return applySecurityHeaders(
-      NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin)),
-      nonce,
-    );
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }
 
+  // Eski /platform yönlendirmesi
   if (pathname === "/platform") {
     const dest = req.auth ? "/dashboard" : "/";
-    return applySecurityHeaders(
-      NextResponse.redirect(new URL(dest, req.nextUrl.origin)),
-      nonce,
-    );
+    return NextResponse.redirect(new URL(dest, req.nextUrl.origin));
   }
 
   if (!req.auth && !isPublic) {
     const url = new URL("/login", req.nextUrl.origin);
     url.searchParams.set("callbackUrl", pathname);
-    return applySecurityHeaders(NextResponse.redirect(url), nonce);
+    return NextResponse.redirect(url);
   }
-
   if (req.auth && (pathname === "/login" || pathname === "/register")) {
-    return applySecurityHeaders(
-      NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin)),
-      nonce,
-    );
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
   }
-
   if (pathname === "/takvim" || pathname.startsWith("/takvim/")) {
     const url = new URL("/ajanda", req.nextUrl.origin);
     req.nextUrl.searchParams.forEach((v, k) => url.searchParams.set(k, v));
-    return applySecurityHeaders(NextResponse.redirect(url), nonce);
+    return NextResponse.redirect(url);
   }
-
-  return applySecurityHeaders(
-    NextResponse.next({ request: { headers: requestHeaders } }),
-    nonce,
-  );
+  return NextResponse.next();
 });
 
 export const config = {

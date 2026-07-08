@@ -3,17 +3,7 @@ import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
 import { CONTACT_TYPE_TR } from "@/lib/labels";
 import { AddContactButton } from "@/components/add-contact-button";
-import { Contact as ContactIcon, Phone, Mail, FileText, Globe, MessageCircle } from "lucide-react";
-import type { Prisma } from "@prisma/client";
-
-// Vitrin müşterisi = vitrine üye olmuş (siteUser) VEYA vitrin kanallarından
-// (sohbet, form) lead'i olan kişi
-const VITRIN_WHERE: Prisma.ContactWhereInput = {
-  OR: [
-    { siteUser: { isNot: null } },
-    { leads: { some: { source: { startsWith: "vitrin" } } } },
-  ],
-};
+import { Contact as ContactIcon, Phone, Mail, FileText, Globe } from "lucide-react";
 
 type Props = { searchParams: Promise<{ vitrin?: string }> };
 
@@ -24,18 +14,18 @@ export default async function KisilerPage({ searchParams }: Props) {
   const vitrinOnly = vitrin === "1";
 
   const contacts = await db.contact.findMany({
-    where: vitrinOnly ? VITRIN_WHERE : undefined,
+    where: vitrinOnly ? { siteUser: { isNot: null } } : undefined,
     orderBy: { updatedAt: "desc" },
     include: {
       deals: { select: { id: true } },
-      leads: { select: { id: true, source: true } },
+      leads: { select: { id: true } },
       siteUser: { select: { id: true } },
     },
   });
 
   const vitrinCount = vitrinOnly
     ? contacts.length
-    : await db.contact.count({ where: VITRIN_WHERE });
+    : await db.contact.count({ where: { siteUser: { isNot: null } } });
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -44,7 +34,7 @@ export default async function KisilerPage({ searchParams }: Props) {
           <h1 className="font-display text-[27px] font-extrabold tracking-tight">Müşteriler (Rehber)</h1>
           <p className="mt-1 text-sm text-ink/55">
             Toplam {contacts.length} kişi
-            {!vitrinOnly && vitrinCount > 0 ? ` · ${vitrinCount} vitrin müşterisi` : ""}
+            {!vitrinOnly && vitrinCount > 0 ? ` · ${vitrinCount} vitrin üyesi` : ""}
           </p>
         </div>
         <AddContactButton />
@@ -65,7 +55,7 @@ export default async function KisilerPage({ searchParams }: Props) {
             vitrinOnly ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
           }`}
         >
-          Vitrin müşterileri
+          Vitrin üyeleri
         </Link>
       </div>
 
@@ -73,7 +63,7 @@ export default async function KisilerPage({ searchParams }: Props) {
         {contacts.length === 0 ? (
           <div className="p-8 text-center text-sm text-ink/50">
             {vitrinOnly
-              ? "Henüz vitrin müşterisi yok. Vitrine üye olan veya vitrin sohbetinden kaydettiğiniz kişiler burada listelenir."
+              ? "Henüz vitrin üyesi yok. Vitrin kaydı olan müşteriler burada listelenir."
               : "Henüz kayıtlı müşteri yok. Vitrinden talep geldiğinde veya manuel eklediğinizde buraya düşer."}
           </div>
         ) : (
@@ -95,12 +85,6 @@ export default async function KisilerPage({ searchParams }: Props) {
                           <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
                             <Globe size={10} />
                             Vitrin üyesi
-                          </span>
-                        )}
-                        {!c.siteUser && c.leads.some((l) => l.source === "vitrin-sohbet") && (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                            <MessageCircle size={10} />
-                            Vitrin sohbeti
                           </span>
                         )}
                       </div>

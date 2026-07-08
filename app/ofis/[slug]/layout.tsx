@@ -4,9 +4,9 @@ import Image from "next/image";
 import { Phone } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSiteUser } from "@/lib/site-auth";
+import { LiveChatWidget } from "@/components/live-chat-widget";
 import { SiteAuthHeader } from "@/components/site-auth";
 import { brandPalette } from "@/lib/color";
-import { LiveChatWidgetLazy } from "@/components/live-chat-lazy";
 
 export default async function ShowcaseLayout({
   children,
@@ -36,6 +36,7 @@ export default async function ShowcaseLayout({
 
   return (
     <div className="min-h-screen" style={palette as React.CSSProperties}>
+      {/* Antet — müşteri yüzü */}
       <header className="sticky top-0 z-30 border-b border-ink bg-paper">
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 sm:px-6">
           <Link href={`/ofis/${slug}`} className="flex min-w-0 items-center gap-2.5">
@@ -73,6 +74,7 @@ export default async function ShowcaseLayout({
 
       <main className="mx-auto max-w-5xl px-4 py-8 pb-24 sm:px-6 md:pb-8">{children}</main>
 
+      {/* Mobil sticky CTA bar */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink/20 bg-paper/95 p-3 backdrop-blur-sm md:hidden">
         <div className="mx-auto flex max-w-5xl gap-2">
           {tenant.phone && (
@@ -97,8 +99,8 @@ export default async function ShowcaseLayout({
           {tenant.name} · Vitrin <span className="text-brand-600">EmlakFlow</span> ile hazırlandı
         </p>
       </footer>
-
-      <LiveChatWidgetLazy tenantId={tenant.id} />
+      
+      <LiveChatWidget tenantId={tenant.id} />
     </div>
   );
 }

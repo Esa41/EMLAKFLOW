@@ -3,8 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { forTenant } from "@/lib/tenant";
 import { findMatchingListings } from "@/lib/matching";
 import { notificationLinks } from "@/lib/notification-links";
-import { leadLimiter } from "@/lib/rate-limit";
-import { withRateLimit } from "@/lib/with-rate-limit";
 
 /**
  * Public vitrin formu → CRM.
@@ -13,7 +11,6 @@ import { withRateLimit } from "@/lib/with-rate-limit";
  * Spam önlemi: honeypot ("website" dolu gelirse sessizce kabul edilmiş gibi yanıtlanır).
  */
 export async function POST(req: Request, ctx: { params: Promise<{ slug: string }> }) {
-  return withRateLimit(req, leadLimiter, async () => {
   const { slug } = await ctx.params;
   const body = await req.json().catch(() => null);
 
@@ -216,5 +213,4 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string }
     });
   }
   return NextResponse.json({ ok: true }, { status: 201 });
-  });
 }

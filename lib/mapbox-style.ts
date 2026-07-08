@@ -16,11 +16,7 @@ function safePaint(
 ) {
   if (!map.getLayer(layerId)) return;
   try {
-    map.setPaintProperty(
-      layerId,
-      property as Parameters<mapboxgl.Map["setPaintProperty"]>[1],
-      value as Parameters<mapboxgl.Map["setPaintProperty"]>[2],
-    );
+    map.setPaintProperty(layerId, property, value);
   } catch {
     /* katman bu stilde farklı olabilir */
   }

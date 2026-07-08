@@ -5,7 +5,6 @@ import { deleteObject } from "@/lib/r2";
 import { variantKeys } from "@/lib/images";
 import { ensureListingSeo } from "@/lib/seo-ai";
 import { listingDataFromBody } from "@/lib/listing-payload";
-import { revalidateShowcaseForTenant } from "@/lib/revalidate-showcase";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -37,11 +36,11 @@ export async function PATCH(req: Request, ctx: Ctx) {
       data: listingDataFromBody(body),
     });
 
+    // SEO eksikse arka planda otomatik tamamla (kayıt bloklanmaz).
     after(async () => {
       await ensureListingSeo(listing).catch((err) =>
         console.error("[listings] otomatik SEO üretilemedi:", err),
       );
-      await revalidateShowcaseForTenant(session.tenantId, listing);
     });
 
     return NextResponse.json({ listing });
@@ -62,16 +61,13 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   });
   if (!listing) return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
 
+  // Önce R2'deki medya nesnelerini temizle (orijinal + varyantlar, best-effort)
   await Promise.allSettled(
     listing.media.flatMap((m) =>
       [m.key, ...variantKeys(m.key)].map((k) => deleteObject(k)),
     ),
   );
   await db.listing.delete({ where: { id } });
-
-  after(async () => {
-    await revalidateShowcaseForTenant(session.tenantId);
-  });
 
   return NextResponse.json({ ok: true });
 }

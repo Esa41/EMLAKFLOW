@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Building2, Car } from "lucide-react";
-import { fmtMoney } from "@/lib/labels";
+import { trMoney } from "@/lib/labels";
 import { listingCardMeta, rentPriceSuffix } from "@/lib/showcase-vertical";
 import { FavoriteButton } from "@/components/favorite-button";
 
@@ -13,7 +13,6 @@ type Props = {
     title: string;
     purpose: string;
     price: unknown;
-    currency?: string | null;
     type: string;
     rooms: string | null;
     netArea: number | null;
@@ -79,7 +78,7 @@ export function ShowcaseListingCard({
       <div className="px-4 pb-4 pt-6">
         <h3 className="line-clamp-1 text-[15px] font-bold">{l.title}</h3>
         <p className="mt-1.5 font-display text-lg font-extrabold tracking-tight">
-          {fmtMoney(Number(l.price), l.currency)}
+          {trMoney.format(Number(l.price))}
           {rentPriceSuffix(isAuto, l.purpose) && (
             <span className="text-sm font-medium text-ink/45">{rentPriceSuffix(isAuto, l.purpose)}</span>
           )}

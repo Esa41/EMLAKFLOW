@@ -104,17 +104,6 @@ export default async function SohbetPage() {
   }
   const sessions = [...map.values()];
 
-  // Rehbere zaten kaydedilmiş oturumlar: kişi notundaki [sohbet:v_...] iminden
-  const savedContacts = await prisma.contact.findMany({
-    where: { tenantId: session.tenantId, note: { contains: "[sohbet:v_" } },
-    select: { id: true, note: true },
-  });
-  const savedMap: Record<string, string> = {};
-  for (const c of savedContacts) {
-    const m = c.note?.match(/\[sohbet:(v_[^\]]+)\]/);
-    if (m) savedMap[m[1]] = c.id;
-  }
-
   return (
     <div className="space-y-6">
       <div>
@@ -130,7 +119,6 @@ export default async function SohbetPage() {
         tenantId={session.tenantId}
         sessions={sessions}
         trails={Object.fromEntries(trails)}
-        savedContacts={savedMap}
       />
     </div>
   );

@@ -10,7 +10,6 @@ export interface MapListing {
   lat: number;
   lng: number;
   price: number;
-  currency?: string | null;
   purpose: string;
   title?: string;
   image?: string | null;
@@ -24,22 +23,15 @@ function esc(s: string) {
   );
 }
 
-const MAP_CURRENCY_SYMBOL: Record<string, string> = {
-  TRY: "₺",
-  USD: "$",
-  EUR: "€",
-};
-
-function shortMoney(n: number, currency?: string | null) {
-  const sym = MAP_CURRENCY_SYMBOL[currency ?? "TRY"] ?? "₺";
+function shortMoney(n: number) {
   if (n >= 1_000_000)
-    return `${sym}${(n / 1_000_000).toLocaleString("tr-TR", { maximumFractionDigits: 2 })}M`;
-  return `${sym}${(n / 1_000).toLocaleString("tr-TR", { maximumFractionDigits: 0 })}B`;
+    return `₺${(n / 1_000_000).toLocaleString("tr-TR", { maximumFractionDigits: 2 })}M`;
+  return `₺${(n / 1_000).toLocaleString("tr-TR", { maximumFractionDigits: 0 })}B`;
 }
 
 function listingsFingerprint(listings: MapListing[]) {
   return listings
-    .map((l) => `${l.id}:${l.lat}:${l.lng}:${l.price}:${l.currency ?? "TRY"}:${l.purpose}`)
+    .map((l) => `${l.id}:${l.lat}:${l.lng}:${l.price}:${l.purpose}`)
     .join("|");
 }
 
@@ -141,7 +133,7 @@ export function ShowcaseMap({
           el.className = `fiyat-pin${l.purpose === "RENT" ? " fiyat-pin-kira" : ""}`;
           el.dataset.listingId = l.id;
           el.style.cursor = "pointer";
-          el.textContent = `${shortMoney(l.price, l.currency)}${l.purpose === "RENT" ? "/ay" : ""}`;
+          el.textContent = `${shortMoney(l.price)}${l.purpose === "RENT" ? "/ay" : ""}`;
 
           el.addEventListener("click", () => {
             document
@@ -169,7 +161,6 @@ export function ShowcaseMap({
                 ${specs ? `<div style="font-size:11px;color:#667">${esc(specs)}</div>` : ""}
                 <div style="font-weight:800;font-size:15px;margin-top:4px">${shortMoney(
                   l.price,
-                  l.currency,
                 )}${l.purpose === "RENT" ? "<span style='font-size:11px;font-weight:500;color:#889'>/ay</span>" : ""}</div>
                 <div style="margin-top:6px;font-size:11px;font-weight:700;color:#1e5b3e">İncele →</div>
               </div>

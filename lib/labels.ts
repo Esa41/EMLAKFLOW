@@ -71,29 +71,6 @@ export const trMoney = new Intl.NumberFormat("tr-TR", {
   maximumFractionDigits: 0,
 });
 
-/** İlan para birimleri — form seçeneği + gösterim simgesi tek kaynaktan. */
-export const CURRENCIES = ["TRY", "USD", "EUR"] as const;
-export const CURRENCY_SYMBOL: Record<string, string> = {
-  TRY: "₺",
-  USD: "$",
-  EUR: "€",
-};
-
-const moneyFmtCache: Record<string, Intl.NumberFormat> = { TRY: trMoney };
-
-/** İlan fiyatı gösterimi — para birimine göre biçimler (₺/$/€), bilinmeyen kod TL sayılır. */
-export function fmtMoney(n: number, currency?: string | null) {
-  const c = CURRENCIES.includes(currency as (typeof CURRENCIES)[number])
-    ? (currency as string)
-    : "TRY";
-  moneyFmtCache[c] ??= new Intl.NumberFormat("tr-TR", {
-    style: "currency",
-    currency: c,
-    maximumFractionDigits: 0,
-  });
-  return moneyFmtCache[c].format(n);
-}
-
 export const STAGE_TR: Record<string, string> = {
   NEW: "Yeni",
   CONTACTED: "İletişimde",
