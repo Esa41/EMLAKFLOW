@@ -40,6 +40,7 @@ export interface ListingFormValues {
   type: string;
   status: string;
   price: string;
+  currency: string;
   city: string;
   district: string;
   neighborhood: string;
@@ -88,6 +89,7 @@ const EMPTY: ListingFormValues = {
   type: "APARTMENT",
   status: "ACTIVE",
   price: "",
+  currency: "TRY",
   city: "Ankara",
   district: "",
   neighborhood: "",
@@ -133,6 +135,72 @@ const EMPTY: ListingFormValues = {
 const inputCls =
   "w-full rounded-xl border border-ink/20 bg-white px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500/40";
 const labelCls = "mb-1 block text-sm font-medium text-ink/65";
+
+/** Serbest metni rakam dizisine indirger; "9750000.50" gibi ondalıklı
+ *  başlangıç değerlerini tam TL'ye yuvarlar (emlakta kuruş kullanılmaz). */
+function toDigits(s: string): string {
+  if (!s) return "";
+  const n = Number(s);
+  if (Number.isFinite(n)) return n > 0 ? String(Math.trunc(n)) : "";
+  return s.replace(/\D/g, "");
+}
+
+const CURRENCY_OPTIONS = [
+  { code: "TRY", symbol: "₺", label: "TL" },
+  { code: "USD", symbol: "$", label: "USD" },
+  { code: "EUR", symbol: "€", label: "EUR" },
+] as const;
+
+/** Para girişi: para birimi öneki + yazarken binlik ayraç (9.750.000).
+ *  State'te daima rakam dizisi tutulur, gönderimde Number() ile sayıya çevrilir.
+ *  onCurrencyChange verilirse sağda para birimi seçici görünür. */
+function MoneyInput({
+  value,
+  onChange,
+  placeholder,
+  currency = "TRY",
+  onCurrencyChange,
+}: {
+  value: string;
+  onChange: (digits: string) => void;
+  placeholder?: string;
+  currency?: string;
+  onCurrencyChange?: (code: string) => void;
+}) {
+  const display = value ? Number(toDigits(value)).toLocaleString("tr-TR") : "";
+  const symbol =
+    CURRENCY_OPTIONS.find((c) => c.code === currency)?.symbol ?? "₺";
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm font-semibold text-ink/40">
+        {symbol}
+      </span>
+      <input
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        className={`${inputCls} pl-8 tabular-nums ${onCurrencyChange ? "pr-[76px]" : ""}`}
+        value={display}
+        onChange={(e) => onChange(toDigits(e.target.value))}
+        placeholder={placeholder}
+      />
+      {onCurrencyChange && (
+        <select
+          aria-label="Para birimi"
+          value={currency}
+          onChange={(e) => onCurrencyChange(e.target.value)}
+          className="absolute inset-y-1 right-1 rounded-lg border-0 bg-ink/[0.05] px-2 text-xs font-bold text-ink/70 outline-none focus:ring-2 focus:ring-brand-500/40"
+        >
+          {CURRENCY_OPTIONS.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+}
 
 export function ListingForm({
   listingId,
@@ -309,15 +377,14 @@ export function ListingForm({
           </div>
           <div>
             <label className={labelCls}>
-              Fiyat (₺{v.purpose === "RENT" ? "/ay" : ""}) *
+              Fiyat{v.purpose === "RENT" ? " (aylık)" : ""} *
             </label>
-            <input
-              type="number"
-              className={inputCls}
+            <MoneyInput
               value={v.price}
-              onChange={(e) => set("price", e.target.value)}
-              placeholder="9750000"
-              min={0}
+              onChange={(digits) => set("price", digits)}
+              placeholder="9.750.000"
+              currency={v.currency}
+              onCurrencyChange={(code) => set("currency", code)}
             />
           </div>
           <div>
@@ -470,22 +537,22 @@ export function ListingForm({
               <input className={inputCls} value={v.color} onChange={(e) => set("color", e.target.value)} />
             </div>
             <div>
-              <label className={labelCls}>Tramer (₺)</label>
-              <input type="number" className={inputCls} value={v.tramerAmount} onChange={(e) => set("tramerAmount", e.target.value)} min={0} />
+              <label className={labelCls}>Tramer (TL)</label>
+              <MoneyInput value={v.tramerAmount} onChange={(d) => set("tramerAmount", d)} />
             </div>
             {v.purpose === "RENT" && (
               <>
                 <div>
-                  <label className={labelCls}>Günlük kira (₺)</label>
-                  <input type="number" className={inputCls} value={v.rentDailyPrice} onChange={(e) => set("rentDailyPrice", e.target.value)} />
+                  <label className={labelCls}>Günlük kira (TL)</label>
+                  <MoneyInput value={v.rentDailyPrice} onChange={(d) => set("rentDailyPrice", d)} />
                 </div>
                 <div>
-                  <label className={labelCls}>Haftalık kira (₺)</label>
-                  <input type="number" className={inputCls} value={v.rentWeeklyPrice} onChange={(e) => set("rentWeeklyPrice", e.target.value)} />
+                  <label className={labelCls}>Haftalık kira (TL)</label>
+                  <MoneyInput value={v.rentWeeklyPrice} onChange={(d) => set("rentWeeklyPrice", d)} />
                 </div>
                 <div>
-                  <label className={labelCls}>Depozito (₺)</label>
-                  <input type="number" className={inputCls} value={v.rentDeposit} onChange={(e) => set("rentDeposit", e.target.value)} />
+                  <label className={labelCls}>Depozito (TL)</label>
+                  <MoneyInput value={v.rentDeposit} onChange={(d) => set("rentDeposit", d)} />
                 </div>
               </>
             )}
@@ -581,14 +648,8 @@ export function ListingForm({
             />
           </div>
           <div>
-            <label className={labelCls}>Aidat (₺)</label>
-            <input
-              type="number"
-              className={inputCls}
-              value={v.dues}
-              onChange={(e) => set("dues", e.target.value)}
-              min={0}
-            />
+            <label className={labelCls}>Aidat (TL)</label>
+            <MoneyInput value={v.dues} onChange={(d) => set("dues", d)} />
           </div>
           <div className="col-span-2">
             <label className={labelCls}>Tapu durumu</label>

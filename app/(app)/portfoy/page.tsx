@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Plus, Building2, Lock } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
-import { trMoney } from "@/lib/labels";
+import { fmtMoney } from "@/lib/labels";
 import { getListingUsage, FREE_LISTING_LIMIT } from "@/lib/plans";
 
 const KUNYE_CLS: Record<string, string> = {
@@ -160,7 +160,7 @@ export default async function PortfolioPage({
                 <div className="px-4 pb-4 pt-3">
                   <h3 className="line-clamp-1 text-[14px] font-semibold">{l.title}</h3>
                   <p className="mt-1 font-display text-[17px] font-bold tracking-tight tabular-nums">
-                    {trMoney.format(Number(l.price))}
+                    {fmtMoney(Number(l.price), l.currency)}
                     {l.purpose === "RENT" && (
                       <span className="text-[13px] font-medium text-ink/40"> /ay</span>
                     )}

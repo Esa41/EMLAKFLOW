@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Send, MessageSquare, User, Eye } from "lucide-react";
-import { sendAgentReply } from "@/app/actions/chat";
+import { Send, MessageSquare, User, Eye, UserPlus, Check, Loader2 } from "lucide-react";
+import { sendAgentReply, saveChatVisitorAsContact } from "@/app/actions/chat";
 
 type SessionRow = {
   sessionId: string;
@@ -62,10 +62,13 @@ export function VitrinInbox({
   tenantId,
   sessions,
   trails = {},
+  savedContacts = {},
 }: {
   tenantId: string;
   sessions: SessionRow[];
   trails?: Record<string, TrailItem[]>;
+  /** sessionId → rehberdeki Contact id (zaten kaydedilmiş oturumlar) */
+  savedContacts?: Record<string, string>;
 }) {
   // Yanıt bekleyen oturumlar listenin başında görünsün.
   const sortedSessions = [...sessions].sort((a, b) => {
@@ -79,10 +82,26 @@ export function VitrinInbox({
   const [messages, setMessages] = useState<Msg[]>([]);
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Rehbere kaydetme: sunucudan gelen harita + bu oturumda yapılan kayıtlar
+  const [saved, setSaved] = useState<Record<string, string>>(savedContacts);
+  const [saving, setSaving] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const active = sortedSessions.find((s) => s.sessionId === activeId);
+
+  async function handleSaveContact() {
+    if (!activeId || saving || saved[activeId]) return;
+    setSaving(true);
+    setError(null);
+    const result = await saveChatVisitorAsContact(activeId);
+    setSaving(false);
+    if (result.ok) {
+      setSaved((prev) => ({ ...prev, [activeId]: result.contactId }));
+    } else {
+      setError(result.error);
+    }
+  }
 
   const load = useCallback(() => {
     if (!activeId) return;
@@ -232,10 +251,35 @@ export function VitrinInbox({
 
       {/* Konuşma */}
       <div className="md:col-span-2 flex flex-col overflow-hidden rounded-xl border border-ink/15 bg-white shadow-sm">
-        <div className="border-b border-ink/15 bg-brand-600 px-4 py-3 text-white">
-          <h2 className="text-sm font-bold">
+        <div className="flex items-center justify-between gap-3 border-b border-ink/15 bg-brand-600 px-4 py-2.5 text-white">
+          <h2 className="min-w-0 truncate text-sm font-bold">
             {active?.visitorName || "Ziyaretçi"}
           </h2>
+          {activeId &&
+            (saved[activeId] ? (
+              <Link
+                href={`/kisiler/${saved[activeId]}`}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-white/25"
+              >
+                <Check size={13} strokeWidth={2.5} />
+                Müşteri kaydında
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSaveContact}
+                disabled={saving}
+                title="Bu ziyaretçiyi rehbere potansiyel müşteri olarak kaydet"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[12px] font-bold text-brand-700 transition-colors hover:bg-brand-50 disabled:opacity-60"
+              >
+                {saving ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <UserPlus size={13} strokeWidth={2.5} />
+                )}
+                Müşterilere ekle
+              </button>
+            ))}
         </div>
 
         {/* Ziyaretçi izi: vitrinde baktığı ilanlar + kalma süresi */}

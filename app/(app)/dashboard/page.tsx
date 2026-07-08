@@ -6,7 +6,7 @@ import { forTenant } from "@/lib/tenant";
 import { ParselMap, type ParselDeal } from "@/components/parsel-map";
 import { InsightList, type InsightItem } from "@/components/insight-list";
 import { CountUp } from "@/components/landing/count-up";
-import { STAGE_TR, STAGE_COLOR, trMoney } from "@/lib/labels";
+import { STAGE_TR, STAGE_COLOR, trMoney, fmtMoney } from "@/lib/labels";
 import {
   Building2,
   ArrowRight,
@@ -342,7 +342,7 @@ export default async function DashboardPage() {
                     </div>
                     <div className="px-4 pb-4 pt-3">
                       <p className="font-display text-[17px] font-bold tracking-tight tabular-nums">
-                        {trMoney.format(Number(l.price))}
+                        {fmtMoney(Number(l.price), l.currency)}
                         {l.purpose === "RENT" && (
                           <span className="text-[13px] font-medium text-ink/40"> /ay</span>
                         )}

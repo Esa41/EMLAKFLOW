@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Phone, ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { InfoForm } from "@/components/showcase-forms";
-import { ShowcaseMap } from "@/components/showcase-map";
-import { DroneMapFlyover } from "@/components/drone-map-flyover";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ShareButton } from "@/components/share-button";
 import { ListingGallery } from "@/components/listing-gallery";
@@ -14,13 +11,17 @@ import { ShowcaseListingCard } from "@/components/showcase-listing-card";
 import { getSiteUser } from "@/lib/site-auth";
 import { TrackListingView } from "@/components/vitrin-tracking";
 import {
+  DroneMapFlyover,
+  ShowcaseMapLazy,
+} from "@/components/showcase-maps-lazy";
+import {
   seoTitle,
   seoDescription,
   mediaAltText,
   listingJsonLd,
   breadcrumbJsonLd,
 } from "@/lib/seo";
-import { trMoney } from "@/lib/labels";
+import { fmtMoney } from "@/lib/labels";
 import { getBaseUrl } from "@/lib/url";
 import { isAutoVertical } from "@/lib/verticals";
 import {
@@ -29,14 +30,13 @@ import {
   showcaseHeroCopy,
 } from "@/lib/showcase-vertical";
 
+export const revalidate = 900;
+export const dynamicParams = true;
+
 const BASE_URL = getBaseUrl();
 
 type Params = Promise<{ slug: string; id: string }>;
 
-/**
- * URL "[id]-[seo-slug]" biçimini destekler (cuid tire içermez).
- * Eski "/ilan/[id]" bağlantıları da çalışmaya devam eder.
- */
 function parseListingId(param: string): string {
   return param.split("-")[0];
 }
@@ -78,11 +78,11 @@ export async function generateMetadata({
   const data = await getData(slug, parseListingId(id));
   if (!data) return {};
   const { listing, tenant } = data;
-  // AI ile üretilen SEO alanları öncelikli; yoksa şablon bazlı üretim (lib/seo.ts)
   const title = seoTitle(listing, tenant.name);
   const desc = seoDescription(listing, tenant.name);
   const publicId = listing.slug ? `${listing.id}-${listing.slug}` : listing.id;
   const canonical = `${BASE_URL}/ofis/${slug}/ilan/${publicId}`;
+  const cover = listing.media[0];
   return {
     title,
     description: desc,
@@ -92,7 +92,18 @@ export async function generateMetadata({
       description: desc,
       type: "website",
       url: canonical,
-      images: listing.media[0] ? [{ url: listing.media[0].url }] : [],
+      locale: "tr_TR",
+      siteName: tenant.name,
+      images: cover
+        ? [
+            {
+              url: cover.cardUrl ?? cover.url,
+              width: 960,
+              height: 640,
+              alt: mediaAltText(listing, 0),
+            },
+          ]
+        : [],
     },
     twitter: { card: "summary_large_image", title, description: desc },
   };
@@ -146,8 +157,9 @@ export default async function ListingShowcasePage({
   const baseUrl = BASE_URL;
   const jsonLd = listingJsonLd(
     { ...l, id: publicId, description: l.description, media: l.media },
-    { name: tenant.name, slug },
+    { name: tenant.name, slug, phone: tenant.phone },
     baseUrl,
+    l.agent ? { name: l.agent.name, phone: l.agent.phone } : undefined,
   );
   const breadcrumb = breadcrumbJsonLd([
     { name: tenant.name, url: `${baseUrl}/ofis/${slug}` },
@@ -172,7 +184,6 @@ export default async function ListingShowcasePage({
         <ArrowLeft size={13} /> {copy.portfolioLabel}
       </Link>
 
-      {/* Galeri */}
       <ListingGallery
         title={l.title}
         media={l.media.map((m, i) => ({
@@ -192,7 +203,7 @@ export default async function ListingShowcasePage({
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-4">
             <p className="font-display text-3xl font-extrabold tracking-tight text-brand-700">
-              {trMoney.format(Number(l.price))}
+              {fmtMoney(Number(l.price), l.currency)}
               {rentPriceSuffix(isAuto, l.purpose) && (
                 <span className="text-base font-medium text-ink/45">
                   {rentPriceSuffix(isAuto, l.purpose)}
@@ -218,7 +229,6 @@ export default async function ListingShowcasePage({
             </p>
           )}
 
-          {/* Konum / drone — emlak dikeyi */}
           {!isAuto && l.lat != null && l.lng != null && (
             <>
               <h2 className="bolum mt-8">3D Drone Görünümü</h2>
@@ -235,7 +245,7 @@ export default async function ListingShowcasePage({
 
               <h2 className="bolum mt-8">Konum</h2>
               <div className="mt-4">
-                <ShowcaseMap
+                <ShowcaseMapLazy
                   slug={slug}
                   mode="single"
                   height={200}
@@ -246,6 +256,7 @@ export default async function ListingShowcasePage({
                       lat: l.lat,
                       lng: l.lng,
                       price: Number(l.price),
+                      currency: l.currency,
                       purpose: l.purpose,
                     },
                   ]}
@@ -254,7 +265,6 @@ export default async function ListingShowcasePage({
             </>
           )}
 
-          {/* İlan detayları */}
           <h2 className="bolum mt-8">{copy.detailsTitle}</h2>
           <dl className="mt-4 grid grid-cols-2 gap-x-6 sm:grid-cols-3">
             {filled.map(([k, v]) => (
@@ -267,7 +277,6 @@ export default async function ListingShowcasePage({
             ))}
           </dl>
 
-          {/* Özellik rozetleri */}
           {l.features.length > 0 && (
             <>
               <h2 className="bolum mt-8">Özellikler</h2>
@@ -285,7 +294,6 @@ export default async function ListingShowcasePage({
           )}
         </div>
 
-        {/* Danışman kartı */}
         <aside>
           <div className="rounded-[10px] border border-ink bg-white p-5">
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink/50">
@@ -334,7 +342,6 @@ export default async function ListingShowcasePage({
         </aside>
       </div>
 
-      {/* Benzer ilanlar */}
       {similar.length > 0 && (
         <section>
           <h2 className="bolum">{copy.similarTitle}</h2>

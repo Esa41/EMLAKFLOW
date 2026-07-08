@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { Spline_Sans_Mono } from "next/font/google";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/sidebar";
@@ -12,6 +13,11 @@ import { TeamChatDrawer } from "@/components/team-chat-drawer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { parseAppTheme, THEME_COOKIE } from "@/lib/theme";
+
+const mono = Spline_Sans_Mono({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-mono",
+});
 
 export default async function AppLayout({
   children,
@@ -38,6 +44,7 @@ export default async function AppLayout({
   });
 
   return (
+    <div className={mono.variable}>
     <ThemeProvider initialTheme={initialTheme}>
       <TeamChatProvider>
         <Sidebar
@@ -83,5 +90,6 @@ export default async function AppLayout({
         />
       </TeamChatProvider>
     </ThemeProvider>
+    </div>
   );
 }

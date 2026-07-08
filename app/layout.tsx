@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import {
   Bricolage_Grotesque,
   Schibsted_Grotesk,
-  Spline_Sans_Mono,
 } from "next/font/google";
 import "./globals.css";
 
@@ -13,10 +12,6 @@ const display = Bricolage_Grotesque({
 const sans = Schibsted_Grotesk({
   subsets: ["latin", "latin-ext"],
   variable: "--font-sans",
-});
-const mono = Spline_Sans_Mono({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-mono",
 });
 
 export const viewport = {
@@ -33,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="tr"
-      className={`${display.variable} ${sans.variable} ${mono.variable}`}
+      className={`${display.variable} ${sans.variable}`}
     >
       <body className="font-sans antialiased">{children}</body>
     </html>

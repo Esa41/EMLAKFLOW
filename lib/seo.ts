@@ -19,6 +19,7 @@ type SeoListing = Pick<
   | "district"
   | "neighborhood"
   | "price"
+  | "currency"
   | "floor"
   | "buildingAge"
   | "creditEligible"
@@ -63,7 +64,15 @@ export function seoDescription(l: SeoListing, officeName?: string): string {
     parts.push(l.buildingAge === 0 ? "sıfır bina" : `${l.buildingAge} yaşında`);
   if (l.creditEligible && l.purpose === "SALE") parts.push("krediye uygun");
   if (l.furnished) parts.push("eşyalı");
-  parts.push(tl.format(Number(l.price)));
+  parts.push(
+    l.currency && l.currency !== "TRY"
+      ? new Intl.NumberFormat("tr-TR", {
+          style: "currency",
+          currency: l.currency,
+          maximumFractionDigits: 0,
+        }).format(Number(l.price))
+      : tl.format(Number(l.price)),
+  );
   const desc = parts.join(" · ");
   const suffix = officeName
     ? ` ${officeName} güvencesiyle — ilan kodu ${l.refCode}.`
@@ -79,28 +88,45 @@ export function mediaAltText(l: SeoListing, index: number): string {
     : `${base} — fotoğraf ${index + 1}`;
 }
 
-/** schema.org RealEstateListing JSON-LD — vitrin ilan detayına gömülür. */
+/** schema.org RealEstateListing + Product JSON-LD — vitrin ilan detayına gömülür. */
 export function listingJsonLd(
   l: SeoListing & {
     id: string;
     description: string | null;
     media: Pick<ListingMedia, "url">[];
+    lat?: number | null;
+    lng?: number | null;
   },
-  tenant: Pick<Tenant, "name" | "slug">,
+  tenant: Pick<Tenant, "name" | "slug" | "phone">,
   baseUrl: string,
+  agent?: { name: string; phone?: string | null },
 ) {
+  const url = `${baseUrl}/ofis/${tenant.slug}/ilan/${l.id}`;
   return {
     "@context": "https://schema.org",
-    "@type": "RealEstateListing",
+    "@type": ["RealEstateListing", "Product"],
+    "@id": url,
     name: seoTitle(l, tenant.name),
     description: l.description ?? seoDescription(l, tenant.name),
-    url: `${baseUrl}/ofis/${tenant.slug}/ilan/${l.id}`,
-    image: l.media.map((m) => m.url),
+    url,
+    sku: l.refCode,
+    image: l.media.slice(0, 5).map((m) => m.url),
+    brand: { "@type": "RealEstateAgent", name: tenant.name },
     offers: {
       "@type": "Offer",
+      url,
       price: Number(l.price),
-      priceCurrency: "TRY",
+      priceCurrency: l.currency ?? "TRY",
       availability: "https://schema.org/InStock",
+      seller: {
+        "@type": "RealEstateAgent",
+        name: tenant.name,
+        url: `${baseUrl}/ofis/${tenant.slug}`,
+        ...(tenant.phone ? { telephone: tenant.phone } : {}),
+      },
+      priceValidUntil: new Date(Date.now() + 30 * 86400000)
+        .toISOString()
+        .slice(0, 10),
     },
     address: {
       "@type": "PostalAddress",
@@ -109,6 +135,18 @@ export function listingJsonLd(
       ...(l.neighborhood ? { streetAddress: l.neighborhood } : {}),
       addressCountry: "TR",
     },
+    ...(l.lat != null && l.lng != null
+      ? { geo: { "@type": "GeoCoordinates", latitude: l.lat, longitude: l.lng } }
+      : {}),
+    ...(agent
+      ? {
+          broker: {
+            "@type": "Person",
+            name: agent.name,
+            ...(agent.phone ? { telephone: agent.phone } : {}),
+          },
+        }
+      : {}),
     ...(l.netArea
       ? {
           floorSize: {

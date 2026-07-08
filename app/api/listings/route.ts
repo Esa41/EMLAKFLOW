@@ -8,6 +8,7 @@ import { nextRefCode } from "@/lib/ref-code";
 import { listingDataFromBody } from "@/lib/listing-payload";
 import { notificationLinks } from "@/lib/notification-links";
 import { prisma } from "@/lib/prisma";
+import { revalidateShowcaseForTenant } from "@/lib/revalidate-showcase";
 
 export async function GET(req: Request) {
   const session = await getSession();
@@ -83,7 +84,6 @@ export async function POST(req: Request) {
       type: body.type ?? (tenant?.vertical === "AUTO_DEALER" ? "SEDAN" : "APARTMENT"),
       status: body.status ?? "ACTIVE",
       price: body.price,
-      currency: "TRY",
       city: body.city,
       district: body.district,
       agentId: session.userId,
@@ -96,6 +96,7 @@ export async function POST(req: Request) {
     await ensureListingSeo(listing).catch((err) =>
       console.error("[listings] otomatik SEO üretilemedi:", err),
     );
+    await revalidateShowcaseForTenant(session.tenantId, listing);
   });
 
   // Akıllı eşleştirme: yeni ilana uyan açık lead'ler

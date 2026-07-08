@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { Building2, Heart } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSiteUser } from "@/lib/site-auth";
-import { trMoney } from "@/lib/labels";
+import { fmtMoney } from "@/lib/labels";
 import { FavoriteButton } from "@/components/favorite-button";
 import { SiteAuthPrompt } from "@/components/site-auth";
 
@@ -122,7 +122,7 @@ export default async function FavoritesPage({
               <div className="p-4">
                 <h3 className="line-clamp-1 text-[15px] font-bold">{l.title}</h3>
                 <p className="mt-1.5 font-display text-lg font-extrabold tracking-tight">
-                  {trMoney.format(Number(l.price))}
+                  {fmtMoney(Number(l.price), l.currency)}
                   {l.purpose === "RENT" && (
                     <span className="text-sm font-medium text-ink/45"> /ay</span>
                   )}

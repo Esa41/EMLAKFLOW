@@ -199,6 +199,89 @@ export async function sendVitrinMessage(
   }
 }
 
+type SaveContactResult =
+  | { ok: true; contactId: string; existed: boolean }
+  | { ok: false; error: string };
+
+// Vitrin sohbeti ziyaretçisini rehbere (Contact + vitrin-sohbet kaynaklı Lead)
+// kaydeder. Aynı oturum ikinci kez kaydedilirse mevcut kişi döner — kişi
+// notundaki [sohbet:<sessionId>] imi tekilleştirme anahtarıdır.
+export async function saveChatVisitorAsContact(
+  sessionId: string,
+): Promise<SaveContactResult> {
+  try {
+    const session = await getSession();
+    if (!session) return { ok: false, error: "Oturum bulunamadı." };
+    if (!sessionId || !sessionId.startsWith("v_"))
+      return { ok: false, error: "Geçersiz sohbet oturumu." };
+
+    // Oturum bu tenant'a ait mi + ziyaretçi adı (en yeni ajan-olmayan mesaj)
+    const lastVisitorMsg = await prisma.message.findFirst({
+      where: { tenantId: session.tenantId, sessionId, senderId: null },
+      orderBy: { createdAt: "desc" },
+      select: { senderName: true },
+    });
+    if (!lastVisitorMsg) return { ok: false, error: "Sohbet bulunamadı." };
+
+    const marker = `[sohbet:${sessionId}]`;
+    const existing = await prisma.contact.findFirst({
+      where: { tenantId: session.tenantId, note: { contains: marker } },
+      select: { id: true },
+    });
+    if (existing) return { ok: true, contactId: existing.id, existed: true };
+
+    // Ziyaretçi izi: en çok baktığı 3 ilan lead notuna girsin
+    const views = await prisma.listingEvent.findMany({
+      where: {
+        tenantId: session.tenantId,
+        sessionId,
+        type: "VIEW",
+        listingId: { not: null },
+      },
+      orderBy: { durationMs: "desc" },
+      take: 12,
+      select: { listingId: true, listing: { select: { refCode: true, title: true } } },
+    });
+    const seen = new Set<string>();
+    const topListings: string[] = [];
+    for (const v of views) {
+      if (!v.listingId || !v.listing || seen.has(v.listingId)) continue;
+      seen.add(v.listingId);
+      topListings.push(`${v.listing.refCode} (${v.listing.title})`);
+      if (topListings.length >= 3) break;
+    }
+
+    const name = lastVisitorMsg.senderName?.trim() || "Vitrin Ziyaretçisi";
+    const today = new Date().toLocaleDateString("tr-TR");
+
+    const contact = await prisma.contact.create({
+      data: {
+        tenantId: session.tenantId,
+        type: "BUYER",
+        fullName: name,
+        note: `Vitrin sohbetinden eklendi (${today}). ${marker}`,
+        leads: {
+          create: {
+            tenantId: session.tenantId,
+            source: "vitrin-sohbet",
+            note: topListings.length
+              ? `Sohbette ilgilendiği ilanlar: ${topListings.join(" · ")}`
+              : "Vitrin canlı sohbetinden potansiyel müşteri.",
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    revalidatePath("/kisiler");
+    revalidatePath("/sohbet");
+    return { ok: true, contactId: contact.id, existed: false };
+  } catch (err) {
+    console.error("saveChatVisitorAsContact hata:", err);
+    return { ok: false, error: "Kaydedilemedi. Lütfen tekrar deneyin." };
+  }
+}
+
 // Ajanın vitrin ziyaretçisine verdiği yanıt. Kimlik doğrulamalı ve
 // tenant'a izole: sadece kendi ofisinin ziyaretçi oturumuna yazılabilir.
 // senderId dolu olduğu için widget bunu "danışman" balonu olarak gösterir.
