@@ -3,43 +3,35 @@
 import { useState } from "react";
 import { Heart } from "lucide-react";
 import { SiteAuthModal } from "./site-auth";
+import { useSiteSession } from "./site-session-context";
 
 /**
  * Kalp (favori) butonu — ilan kartlarında ve detay sayfasında.
- * Giriş yoksa üyelik modalını açar; girişliyse optimistic toggle yapar.
+ * Durum SiteSessionProvider'dan gelir; sayfalar ISR olduğundan sunucudan
+ * kullanıcıya özel prop geçilmez. Giriş yoksa üyelik modalını açar.
  */
 export function FavoriteButton({
   slug,
   listingId,
-  initialFavorited,
-  loggedIn,
   variant = "overlay",
 }: {
   slug: string;
   listingId: string;
-  initialFavorited: boolean;
-  loggedIn: boolean;
   variant?: "overlay" | "inline";
 }) {
-  const [fav, setFav] = useState(initialFavorited);
+  const { user, favorites, toggleFavorite } = useSiteSession();
   const [authOpen, setAuthOpen] = useState(false);
+  const fav = favorites.has(listingId);
 
   async function toggle(e: React.MouseEvent) {
     // Kart Link'inin navigasyonunu engelle
     e.preventDefault();
     e.stopPropagation();
-    if (!loggedIn) {
+    if (!user) {
       setAuthOpen(true);
       return;
     }
-    const prev = fav;
-    setFav(!prev);
-    const res = await fetch(`/api/ofis/${slug}/favorites`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ listingId }),
-    });
-    if (!res.ok) setFav(prev);
+    await toggleFavorite(listingId);
   }
 
   const heart = (

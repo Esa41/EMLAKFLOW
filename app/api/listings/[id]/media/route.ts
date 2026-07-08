@@ -4,6 +4,7 @@ import { forTenant } from "@/lib/tenant";
 import { publicUrl, deleteObject } from "@/lib/r2";
 import { processListingImage, variantKeys } from "@/lib/images";
 import { mediaAltText } from "@/lib/seo";
+import { revalidateListingShowcase } from "@/lib/revalidate-showcase";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -67,6 +68,9 @@ export async function POST(req: Request, ctx: Ctx) {
     include: { media: { orderBy: { order: "asc" } } },
   });
 
+  // Vitrindeki ISR kopyasında yeni fotoğraf hemen görünsün
+  await revalidateListingShowcase(session.tenantId, listing);
+
   return NextResponse.json({ media: media.media }, { status: 201 });
 }
 
@@ -94,6 +98,8 @@ export async function DELETE(req: Request, ctx: Ctx) {
   // ListingMedia tenant kolonlu değil — aidiyet yukarıda listing üzerinden doğrulandı
   const { prisma } = await import("@/lib/prisma");
   await prisma.listingMedia.delete({ where: { id: media.id } });
+
+  await revalidateListingShowcase(session.tenantId, listing);
 
   return NextResponse.json({ ok: true });
 }

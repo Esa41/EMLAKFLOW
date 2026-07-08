@@ -24,17 +24,9 @@ type Props = {
     media: Array<{ url: string; cardUrl: string | null; alt: string | null }>;
   };
   isAuto: boolean;
-  favorited: boolean;
-  loggedIn: boolean;
 };
 
-export function ShowcaseListingCard({
-  slug,
-  listing: l,
-  isAuto,
-  favorited,
-  loggedIn,
-}: Props) {
+export function ShowcaseListingCard({ slug, listing: l, isAuto }: Props) {
   const EmptyIcon = isAuto ? Car : Building2;
   const href = `/ofis/${slug}/ilan/${l.slug ? `${l.id}-${l.slug}` : l.id}`;
 
@@ -45,12 +37,7 @@ export function ShowcaseListingCard({
       className="group overflow-hidden rounded-[10px] border border-ink/15 bg-white transition-colors hover:border-ink/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
     >
       <div className="relative">
-        <FavoriteButton
-          slug={slug}
-          listingId={l.id}
-          initialFavorited={favorited}
-          loggedIn={loggedIn}
-        />
+        <FavoriteButton slug={slug} listingId={l.id} />
         <div className="relative h-48 overflow-hidden bg-brand-50">
           {l.media[0] ? (
             <Image

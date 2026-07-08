@@ -93,12 +93,7 @@ export default async function FavoritesPage({
               className="group overflow-hidden rounded-[10px] border border-ink/15 bg-white transition-colors hover:border-ink/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
             >
               <div className="relative">
-                <FavoriteButton
-                  slug={slug}
-                  listingId={l.id}
-                  initialFavorited
-                  loggedIn
-                />
+                <FavoriteButton slug={slug} listingId={l.id} />
                 <div className="relative h-48 overflow-hidden bg-brand-50">
                   {l.media[0] ? (
                     <Image

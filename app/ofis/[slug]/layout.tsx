@@ -3,10 +3,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { Phone } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getSiteUser } from "@/lib/site-auth";
 import { LiveChatWidget } from "@/components/live-chat-widget";
 import { SiteAuthHeader } from "@/components/site-auth";
+import { SiteSessionProvider } from "@/components/site-session-context";
 import { brandPalette } from "@/lib/color";
+
+// Vitrin ofisin markalı sayfasıdır: kök "%s | EmlakFlow" şablonunu nötrle —
+// hem beyaz etiket hem de başlığın 60 karakteri aşmaması için.
+export const metadata = {
+  title: { template: "%s", default: "Vitrin" },
+};
 
 export default async function ShowcaseLayout({
   children,
@@ -31,10 +37,13 @@ export default async function ShowcaseLayout({
   });
   if (!tenant || !tenant.showcaseEnabled) notFound();
 
-  const siteUser = await getSiteUser(tenant.id);
+  // Oturum bilgisi bilinçli olarak burada OKUNMAZ: cookie okumak rotayı
+  // dynamic yapar ve ilan detayının ISR önbelleğini bozar. Kullanıcı durumu
+  // SiteSessionProvider'ın client fetch'iyle gelir.
   const palette = brandPalette(tenant.brandColor);
 
   return (
+    <SiteSessionProvider slug={slug}>
     <div className="min-h-screen" style={palette as React.CSSProperties}>
       {/* Antet — müşteri yüzü */}
       <header className="sticky top-0 z-30 border-b border-ink bg-paper">
@@ -59,7 +68,7 @@ export default async function ShowcaseLayout({
             </div>
           </Link>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <SiteAuthHeader slug={slug} userName={siteUser?.name ?? null} />
+            <SiteAuthHeader slug={slug} />
             {tenant.phone && (
               <a
                 href={`tel:${tenant.phone.replace(/\s/g, "")}`}
@@ -102,5 +111,6 @@ export default async function ShowcaseLayout({
       
       <LiveChatWidget tenantId={tenant.id} />
     </div>
+    </SiteSessionProvider>
   );
 }

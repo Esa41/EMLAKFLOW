@@ -7,7 +7,6 @@ import { prisma } from "@/lib/prisma";
 import { trMoney, ROOM_OPTIONS, TYPE_TR } from "@/lib/labels";
 import { RequestForm } from "@/components/showcase-forms";
 import { TrackImpressions } from "@/components/vitrin-tracking";
-import { getSiteUser } from "@/lib/site-auth";
 import { officeJsonLd } from "@/lib/seo";
 import { getBaseUrl } from "@/lib/url";
 import { isAutoVertical } from "@/lib/verticals";
@@ -63,13 +62,12 @@ export async function generateMetadata({
   if (!tenant) return {};
   const title = `${tenant.name} — Satılık ve Kiralık Portföy`;
   const description = `${tenant.name} güncel portföyü: ${tenant.city ?? "Türkiye"} genelinde satılık ve kiralık gayrimenkuller.`;
-  const cover = await prisma.listingMedia.findFirst({
-    where: { listing: { tenantId: tenant.id, status: "ACTIVE" } },
-    orderBy: { order: "asc" },
-    select: { url: true },
-  });
+  // og:image bilinçli olarak verilmez — segmentteki opengraph-image.tsx
+  // (markalı ofis kartı) dosya-tabanlı öncelikle devreye girer.
   return {
-    title,
+    // Layout'taki template yalnız ALT segmentlere uygulanır; bu sayfanın
+    // "| EmlakFlow" eki yememesi için absolute şart (beyaz etiket).
+    title: { absolute: title },
     description,
     alternates: { canonical: `${BASE_URL}/ofis/${slug}` },
     openGraph: {
@@ -77,7 +75,6 @@ export async function generateMetadata({
       description,
       type: "website",
       url: `${BASE_URL}/ofis/${slug}`,
-      images: cover ? [{ url: cover.url }] : [],
     },
     twitter: { card: "summary_large_image", title, description },
   };
@@ -131,16 +128,7 @@ export default async function ShowcasePage({
   const sortKey = sp.sort && sp.sort in SORT_OPTIONS ? sp.sort : "date_desc";
   const orderBy = SORT_OPTIONS[sortKey].orderBy;
 
-  const siteUser = await getSiteUser(tenant.id);
-  const favoriteIds = siteUser
-    ? (
-        await prisma.favorite.findMany({
-          where: { siteUserId: siteUser.id },
-          select: { listingId: true },
-        })
-      ).map((f) => f.listingId)
-    : [];
-
+  // Favori/oturum durumu client'ta SiteSessionProvider'dan gelir (ISR uyumu)
   const [listings, districts, team, heroMedia, recentlyClosed] = await Promise.all([
     prisma.listing.findMany({
       where: {
@@ -296,8 +284,6 @@ export default async function ShowcasePage({
       <ShowcaseWorkspace
         listings={splitListings}
         slug={slug}
-        favoriteIds={favoriteIds}
-        loggedIn={!!siteUser}
         searchParams={sp}
         districts={districts.map(d => d.district)}
       />

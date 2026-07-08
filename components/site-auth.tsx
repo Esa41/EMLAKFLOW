@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Heart, LogOut, UserRound, X } from "lucide-react";
+import { useSiteSession } from "./site-session-context";
 
 /**
  * Vitrin üyelik arayüzü (alıcı/kiracı):
@@ -25,6 +26,7 @@ export function SiteAuthModal({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { refresh } = useSiteSession();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -49,7 +51,8 @@ export function SiteAuthModal({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "İşlem başarısız.");
       onClose();
-      router.refresh();
+      await refresh(); // client oturum durumu (antet + kalpler)
+      router.refresh(); // server render'lı sayfalar (favorilerim)
     } catch (e) {
       setError(e instanceof Error ? e.message : "İşlem başarısız.");
     } finally {
@@ -164,18 +167,15 @@ export function SiteAuthModal({
   );
 }
 
-export function SiteAuthHeader({
-  slug,
-  userName,
-}: {
-  slug: string;
-  userName: string | null;
-}) {
+export function SiteAuthHeader({ slug }: { slug: string }) {
   const router = useRouter();
+  const { user, refresh } = useSiteSession();
   const [open, setOpen] = useState(false);
+  const userName = user?.name ?? null;
 
   async function logout() {
     await fetch(`/api/ofis/${slug}/auth/logout`, { method: "POST" });
+    await refresh();
     router.refresh();
   }
 

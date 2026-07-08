@@ -39,19 +39,14 @@ const SORT_OPTIONS: Record<string, string> = {
 export function ShowcaseWorkspace({
   listings,
   slug,
-  favoriteIds,
-  loggedIn,
   districts,
 }: {
   listings: SplitListing[];
   slug: string;
-  favoriteIds: string[];
-  loggedIn: boolean;
   searchParams: Record<string, string | undefined>;
   districts: string[];
 }) {
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const favSet = new Set(favoriteIds);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -309,7 +304,7 @@ export function ShowcaseWorkspace({
               className="group overflow-hidden rounded-xl border border-ink/15 bg-white transition-all hover:border-ink/40 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
             >
               <div className="relative">
-                <FavoriteButton slug={slug} listingId={l.id} initialFavorited={favSet.has(l.id)} loggedIn={loggedIn} />
+                <FavoriteButton slug={slug} listingId={l.id} />
                 <div className="relative h-48 overflow-hidden bg-brand-50">
                   {l.image ? (
                     <Image src={l.image} alt={l.imageAlt} fill loading="lazy" sizes="(min-width: 1024px) 33vw, 50vw" className="object-cover transition-transform duration-300 group-hover:scale-[1.03]" />

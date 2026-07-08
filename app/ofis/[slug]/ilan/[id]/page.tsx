@@ -11,7 +11,6 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { ShareButton } from "@/components/share-button";
 import { ListingGallery } from "@/components/listing-gallery";
 import { ShowcaseListingCard } from "@/components/showcase-listing-card";
-import { getSiteUser } from "@/lib/site-auth";
 import { TrackListingView } from "@/components/vitrin-tracking";
 import {
   seoTitle,
@@ -30,6 +29,23 @@ import {
 } from "@/lib/showcase-vertical";
 
 const BASE_URL = getBaseUrl();
+
+/**
+ * ISR: sayfa ilk istekte render edilir, 5 dk CDN'den servis edilir.
+ * Fiyat/durum değişiklikleri app/api/listings mutasyonlarındaki
+ * revalidatePath ile anında yansır. Rota ağacında dynamic API (cookies vb.)
+ * KULLANMA — kullanır isen sayfa sessizce dynamic'e döner.
+ */
+export const revalidate = 300;
+
+/**
+ * Boş liste: build'de hiçbir ilan önceden render edilmez; her ilan İLK
+ * istekte üretilip cache'lenir (dynamicParams varsayılanı true). Bu export
+ * olmadan Next dinamik segmenti ISR makinesine hiç kaydetmiyor.
+ */
+export function generateStaticParams() {
+  return [];
+}
 
 type Params = Promise<{ slug: string; id: string }>;
 
@@ -111,16 +127,8 @@ export default async function ListingShowcasePage({
   const isAuto = isAutoVertical(tenant.vertical);
   const copy = showcaseHeroCopy(tenant, tenant.vertical, 1);
 
-  const siteUser = await getSiteUser(tenant.id);
-  const isFavorited = siteUser
-    ? !!(await prisma.favorite.findUnique({
-        where: {
-          siteUserId_listingId: { siteUserId: siteUser.id, listingId: l.id },
-        },
-        select: { id: true },
-      }))
-    : false;
-
+  // Favori/oturum durumu client'ta SiteSessionProvider'dan gelir — burada
+  // cookie okunmaz ki sayfa ISR önbelleğinde kalabilsin (bkz. revalidate).
   const similar = await prisma.listing.findMany({
     where: {
       tenantId: tenant.id,
@@ -199,13 +207,7 @@ export default async function ListingShowcasePage({
                 </span>
               )}
             </p>
-            <FavoriteButton
-              slug={slug}
-              listingId={l.id}
-              initialFavorited={isFavorited}
-              loggedIn={!!siteUser}
-              variant="inline"
-            />
+            <FavoriteButton slug={slug} listingId={l.id} variant="inline" />
             <ShareButton
               url={`${BASE_URL}/ofis/${slug}/ilan/${publicId}`}
               title={l.title}
@@ -345,8 +347,6 @@ export default async function ListingShowcasePage({
                 slug={slug}
                 listing={s}
                 isAuto={isAuto}
-                favorited={false}
-                loggedIn={!!siteUser}
               />
             ))}
           </div>

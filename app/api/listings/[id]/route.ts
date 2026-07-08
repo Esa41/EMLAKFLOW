@@ -5,6 +5,7 @@ import { deleteObject } from "@/lib/r2";
 import { variantKeys } from "@/lib/images";
 import { ensureListingSeo } from "@/lib/seo-ai";
 import { listingDataFromBody } from "@/lib/listing-payload";
+import { revalidateListingShowcase } from "@/lib/revalidate-showcase";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -35,6 +36,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
       where: { id },
       data: listingDataFromBody(body),
     });
+
+    // Vitrindeki ISR kopyası anında tazelensin (fiyat/durum değişikliği)
+    await revalidateListingShowcase(session.tenantId, listing);
 
     // SEO eksikse arka planda otomatik tamamla (kayıt bloklanmaz).
     after(async () => {
@@ -68,6 +72,9 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     ),
   );
   await db.listing.delete({ where: { id } });
+
+  // Silinen ilanın ISR kopyası kalmasın — sonraki istek 404'e düşer
+  await revalidateListingShowcase(session.tenantId, listing);
 
   return NextResponse.json({ ok: true });
 }
