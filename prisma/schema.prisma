@@ -47,6 +47,16 @@ enum LeadStatus {
   LOST
 }
 
+// Super-admin pazarlama kampanyası lead durumu (CRM LeadStatus'tan bağımsız)
+enum MarketingLeadStatus {
+  PENDING
+  SENT
+  OPENED
+  CLICKED
+  REJECTED
+  DEMO_BOOKED
+}
+
 enum ListingPurpose {
   SALE
   RENT
@@ -846,6 +856,23 @@ model SocialPostMetric {
   reach      Int        @default(0)
 
   @@index([postId, capturedAt])
+}
+
+// Super-admin pazarlama / outbound lead havuzu.
+// Tenant CRM'deki Lead modelinden tamamen bağımsızdır (tenantId yok).
+model MarketingLead {
+  id           String              @id @default(cuid())
+  firmaAdi     String
+  yetkiliIsmi  String?
+  email        String              @unique
+  telefon      String?
+  bolge        String?
+  status       MarketingLeadStatus @default(PENDING)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
 }
 
 // Plan değişiklik geçmişi (Admin panelinde görüntülenir)

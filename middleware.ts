@@ -21,6 +21,7 @@ const PUBLIC_PATHS = [
   "/api/social/callback",
   "/api/e",
   "/api/cron",
+  "/api/admin/webhooks",
   "/ofis",
   "/galeri",
   "/blog",
