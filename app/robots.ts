@@ -23,6 +23,8 @@ export default function robots(): MetadataRoute.Robots {
         "/ayarlar",
         "/login",
         "/register",
+        "/sifremi-unuttum",
+        "/sifre-sifirla",
       ],
     },
     sitemap: `${baseUrl}/sitemap.xml`,

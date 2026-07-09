@@ -10,6 +10,8 @@ const PUBLIC_PATHS = [
   "/",
   "/login",
   "/register",
+  "/sifremi-unuttum",
+  "/sifre-sifirla",
   "/platform",
   "/api/register",
   "/api/auth",

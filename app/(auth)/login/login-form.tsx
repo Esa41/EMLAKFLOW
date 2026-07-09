@@ -68,9 +68,17 @@ function LoginInner() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-ink/65">
-              Şifre
-            </label>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="block text-sm font-medium text-ink/65">
+                Şifre
+              </label>
+              <Link
+                href="/sifremi-unuttum"
+                className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+              >
+                Şifremi unuttum
+              </Link>
+            </div>
             <input
               type="password"
               value={password}
