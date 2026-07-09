@@ -139,10 +139,12 @@ export async function PATCH(
     where: { id },
     select: {
       id: true,
+      name: true,
       plan: true,
       proExpiresAt: true,
       proStartedAt: true,
       customDomain: true,
+      brandName: true,
     },
   });
   if (!existing) {
@@ -169,6 +171,14 @@ export async function PATCH(
     } else {
       updateData.proStartedAt = null;
       updateData.proExpiresAt = null;
+    }
+    // Premium: domain olmasa da panel/vitrinde ofis adı görünsün
+    if (
+      plan === "premium" &&
+      !existing.brandName?.trim() &&
+      !("brandName" in body && String(body.brandName ?? "").trim())
+    ) {
+      updateData.brandName = existing.name;
     }
     await prisma.planChangeLog.create({
       data: {

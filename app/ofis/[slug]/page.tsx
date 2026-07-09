@@ -55,13 +55,16 @@ export async function generateMetadata({
     select: {
       id: true,
       name: true,
+      brandName: true,
+      plan: true,
       city: true,
       district: true,
     },
   });
   if (!tenant) return {};
-  const title = `${tenant.name} — Satılık ve Kiralık Portföy`;
-  const description = `${tenant.name} güncel portföyü: ${tenant.city ?? "Türkiye"} genelinde satılık ve kiralık gayrimenkuller.`;
+  const displayName = tenant.brandName?.trim() || tenant.name;
+  const title = `${displayName} — Satılık ve Kiralık Portföy`;
+  const description = `${displayName} güncel portföyü: ${tenant.city ?? "Türkiye"} genelinde satılık ve kiralık gayrimenkuller.`;
   // og:image bilinçli olarak verilmez — segmentteki opengraph-image.tsx
   // (markalı ofis kartı) dosya-tabanlı öncelikle devreye girer.
   return {

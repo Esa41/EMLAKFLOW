@@ -48,7 +48,7 @@ export const metadata: Metadata = {
   // Göreli OG/canonical URL'leri mutlak URL'ye çevirir (vitrin sayfaları dahil)
   metadataBase: new URL(BASE_URL),
   title: {
-    default: "EmlakFlow — İlan sizden, gerisi EmlakFlow'dan",
+    default: "EmlakFlow — Yeni nesil Emlak Ofisi Platformu",
     // Alt sayfalar yalnızca kendi başlığını verir; marka eki buradan gelir
     template: "%s | EmlakFlow",
   },
@@ -83,13 +83,13 @@ export const metadata: Metadata = {
     locale: "tr_TR",
     siteName: "EmlakFlow",
     url: BASE_URL,
-    title: "EmlakFlow — İlan sizden, gerisi EmlakFlow'dan",
+    title: "EmlakFlow — Yeni nesil Emlak Ofisi Platformu",
     description:
       "Harita vitrini, akıllı eşleştirme, kanban satış hattı ve otomatik kazanç paylaşımı — modern emlak ofisinin tek paneli.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "EmlakFlow — Modern emlak ofisinin tek paneli",
+    title: "EmlakFlow — Yeni nesil Emlak Ofisi Platformu",
     description:
       "Portföy, müşteri ve satış hattını tek yerden yönetin; vitrin sitenizi dakikalar içinde yayınlayın.",
   },

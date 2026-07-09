@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/sidebar";
@@ -14,9 +15,33 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { parseAppTheme, THEME_COOKIE } from "@/lib/theme";
 
 // CRM auth arkasında — robots.txt disallow'a ek olarak sayfa seviyesinde noindex
-export const metadata = {
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const session = await getSession();
+  if (!session) {
+    return { robots: { index: false, follow: false } };
+  }
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: session.tenantId },
+    select: { plan: true, brandName: true, name: true },
+  });
+  const officeName =
+    tenant?.plan === "premium"
+      ? tenant.brandName?.trim() || tenant.name
+      : null;
+
+  if (officeName) {
+    return {
+      robots: { index: false, follow: false },
+      title: {
+        default: officeName,
+        template: `%s | ${officeName}`,
+      },
+      applicationName: officeName,
+    };
+  }
+
+  return { robots: { index: false, follow: false } };
+}
 
 export default async function AppLayout({
   children,
@@ -42,6 +67,7 @@ export default async function AppLayout({
   });
   const showcaseSlug = tenant?.showcaseEnabled ? tenant.slug : null;
   const vertical = tenant?.vertical ?? session.vertical ?? "REAL_ESTATE";
+  // Premium: domain şart değil — ofis adı otomatik marka
   const whiteLabelName =
     tenant?.plan === "premium"
       ? tenant.brandName?.trim() || tenant.name
