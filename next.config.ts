@@ -1,6 +1,24 @@
 import path from "node:path";
 import type { NextConfig } from "next";
+import withPWAInit from "@ducanh2912/next-pwa";
 import { securityHeaders } from "./lib/security-headers";
+
+const withPWA = withPWAInit({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+  register: true,
+  fallbacks: {
+    document: "/offline",
+  },
+  workboxOptions: {
+    // Auth / API / CRM dinamik yanıtlarını SW cache'leme — stale session riski
+    exclude: [
+      /^\/api\//,
+      /^\/admin/,
+      /\/_next\/data\//,
+    ],
+  },
+});
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
@@ -41,4 +59,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withPWA(nextConfig);

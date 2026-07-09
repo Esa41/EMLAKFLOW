@@ -36,6 +36,10 @@ const PUBLIC_PATHS = [
   "/twitter-image",
   "/icon",
   "/apple-icon",
+  "/offline",
+  "/sw.js",
+  "/workbox-",
+  "/icons",
 ];
 
 type DomainLookup = { slug: string | null };
@@ -97,6 +101,17 @@ function rewriteToOfis(
 
 export default auth(async (req) => {
   const { pathname } = req.nextUrl;
+
+  // PWA service worker & ikonlar — auth'suz
+  if (
+    pathname === "/sw.js" ||
+    pathname.startsWith("/workbox-") ||
+    pathname.startsWith("/icons/") ||
+    pathname === "/manifest.webmanifest"
+  ) {
+    return NextResponse.next();
+  }
+
   const host = normalizeHost(req.headers.get("host"));
   const customHost = host && !isPlatformHost(host);
 

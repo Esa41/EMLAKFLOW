@@ -27,6 +27,7 @@ const csp = [
     (isDev ? " ws:" : ""),
   "worker-src 'self' blob:",
   "child-src 'self' blob:",
+  "manifest-src 'self'",
   "frame-ancestors 'none'",
   "frame-src https://vercel.live",
   "object-src 'none'",

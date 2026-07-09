@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   Bricolage_Grotesque,
   Schibsted_Grotesk,
@@ -6,6 +6,7 @@ import {
 } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { getBaseUrl } from "@/lib/url";
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import "./globals.css";
 
 const display = Bricolage_Grotesque({
@@ -21,8 +22,15 @@ const mono = Spline_Sans_Mono({
   variable: "--font-mono",
 });
 
-export const viewport = {
-  colorScheme: "light" as const,
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#1e5b3e" },
+    { media: "(prefers-color-scheme: dark)", color: "#1e5b3e" },
+  ],
+  colorScheme: "light",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 const BASE_URL = getBaseUrl();
@@ -45,6 +53,22 @@ export const metadata: Metadata = {
     "emlak ofisi yazılımı",
     "gayrimenkul danışmanı CRM",
   ],
+  // PWA / iOS Ana Ekrana Ekle
+  appleWebApp: {
+    capable: true,
+    title: "EmlakFlow",
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
   openGraph: {
     type: "website",
     locale: "tr_TR",
@@ -65,6 +89,9 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -75,6 +102,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="font-sans antialiased">
         {children}
+        <PwaInstallPrompt />
         {/* Gerçek kullanıcı Core Web Vitals — yalnızca Vercel'de aktif, dev'de no-op */}
         <SpeedInsights />
       </body>
