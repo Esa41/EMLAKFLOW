@@ -220,12 +220,17 @@ model Tenant {
   aboutStats      Json?   // [{value,label}] x3 — istatistik plakaları
   showTeam        Boolean @default(true) // ekip şeridi görünür mü
 
-  // Marka kişiselleştirme (vitrin teması)
+  // Marka kişiselleştirme (vitrin teması — müşteri Ayarlar'dan da düzenleyebilir)
   brandColor      String? // hex renk kodu, örn. "#1e5b3e" — vitrinde CSS variable olarak enjekte edilir
   logoUrl         String? // R2'deki ofis logosu URL'si
   logoKey         String? // R2 object key
   officePhotoUrl  String? // Hakkımızda bölümündeki ofis fotoğrafı
   officePhotoKey  String?
+
+  // White-label (yalnızca Super Admin — özel alan adı + kurumsal markalama)
+  customDomain    String? @unique // örn. www.emlakofisi.com (host, protokolsüz)
+  brandName       String? // vitrinde EmlakFlow yerine gösterilecek marka adı
+  primaryColor    String? // kurumsal ana renk (hex); brandColor ile senkron tutulabilir
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

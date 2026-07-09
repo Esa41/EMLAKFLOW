@@ -15,6 +15,7 @@ import {
   Sparkles,
   Plus,
   Loader2,
+  Palette,
 } from "lucide-react";
 
 interface TenantDetail {
@@ -30,6 +31,11 @@ interface TenantDetail {
   phone: string | null;
   createdAt: string;
   updatedAt: string;
+  customDomain: string | null;
+  brandName: string | null;
+  logoUrl: string | null;
+  primaryColor: string | null;
+  brandColor: string | null;
   _count: {
     listings: number;
     users: number;
@@ -71,6 +77,13 @@ export function AdminTenantDetailModal({
   const [expiresDate, setExpiresDate] = useState("");
   const [savingExpires, setSavingExpires] = useState(false);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [wl, setWl] = useState({
+    customDomain: "",
+    brandName: "",
+    logoUrl: "",
+    primaryColor: "#1e5b3e",
+  });
+  const [savingWl, setSavingWl] = useState(false);
 
   function toDateInputValue(iso: string | null) {
     if (!iso) return "";
@@ -82,6 +95,15 @@ export function AdminTenantDetailModal({
     return `${y}-${m}-${day}`;
   }
 
+  function applyWhiteLabelForm(t: TenantDetail) {
+    setWl({
+      customDomain: t.customDomain ?? "",
+      brandName: t.brandName ?? "",
+      logoUrl: t.logoUrl ?? "",
+      primaryColor: t.primaryColor || t.brandColor || "#1e5b3e",
+    });
+  }
+
   async function reloadTenant() {
     const res = await fetch(`/api/admin/tenants/${tenantId}`);
     const data = await res.json();
@@ -89,6 +111,7 @@ export function AdminTenantDetailModal({
     setTenant(data.tenant);
     setNotes(data.tenant.adminNotes || "");
     setExpiresDate(toDateInputValue(data.tenant.proExpiresAt));
+    applyWhiteLabelForm(data.tenant);
     return data.tenant as TenantDetail;
   }
 
@@ -100,6 +123,7 @@ export function AdminTenantDetailModal({
         setTenant(data.tenant);
         setNotes(data.tenant.adminNotes || "");
         setExpiresDate(toDateInputValue(data.tenant.proExpiresAt));
+        applyWhiteLabelForm(data.tenant);
         setLoading(false);
       })
       .catch((err) => {
@@ -126,6 +150,32 @@ export function AdminTenantDetailModal({
       alert(err instanceof Error ? err.message : "Kaydedilemedi");
     } finally {
       setSavingNotes(false);
+    }
+  }
+
+  async function saveWhiteLabel() {
+    setSavingWl(true);
+    setActionMsg(null);
+    try {
+      const res = await fetch(`/api/admin/tenants/${tenantId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customDomain: wl.customDomain.trim() || null,
+          brandName: wl.brandName.trim() || null,
+          logoUrl: wl.logoUrl.trim() || null,
+          primaryColor: wl.primaryColor.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await reloadTenant();
+      router.refresh();
+      setActionMsg("White-label ayarları kaydedildi.");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Kaydedilemedi");
+    } finally {
+      setSavingWl(false);
     }
   }
 
@@ -552,8 +602,117 @@ export function AdminTenantDetailModal({
             </div>
           </div>
 
-          {/* Sağ: Notlar & Geçmiş */}
+          {/* Sağ: White-label, Notlar & Geçmiş */}
           <div className="space-y-6">
+            {/* White-label — yalnızca Super Admin */}
+            <div className="space-y-3 rounded-xl border border-ink/10 bg-gradient-to-br from-ink/[0.02] to-white p-4">
+              <div className="flex items-center gap-2">
+                <Palette size={16} className="text-ink/50" />
+                <h3 className="text-sm font-bold text-ink/70">White-label</h3>
+              </div>
+              <p className="text-[11px] leading-relaxed text-ink/45">
+                Özel alan adı ve markalama. DNS / Vercel yönlendirmesi ayrıca
+                yapılır; burada yalnızca kayıt tutulur.
+              </p>
+              <div className="space-y-2.5">
+                <div>
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-ink/45">
+                    Özel alan adı
+                  </label>
+                  <input
+                    type="text"
+                    value={wl.customDomain}
+                    onChange={(e) =>
+                      setWl((s) => ({ ...s, customDomain: e.target.value }))
+                    }
+                    placeholder="www.emlakofisi.com"
+                    className="w-full rounded-lg border border-ink/20 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-ink/45">
+                    Marka adı
+                  </label>
+                  <input
+                    type="text"
+                    value={wl.brandName}
+                    onChange={(e) =>
+                      setWl((s) => ({ ...s, brandName: e.target.value }))
+                    }
+                    placeholder="Atlas Gayrimenkul"
+                    className="w-full rounded-lg border border-ink/20 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-ink/45">
+                    Logo URL
+                  </label>
+                  <input
+                    type="url"
+                    value={wl.logoUrl}
+                    onChange={(e) =>
+                      setWl((s) => ({ ...s, logoUrl: e.target.value }))
+                    }
+                    placeholder="https://media.emlakflow.app/..."
+                    className="w-full rounded-lg border border-ink/20 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                  />
+                  {wl.logoUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={wl.logoUrl}
+                      alt="Logo önizleme"
+                      className="mt-2 h-10 max-w-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-ink/45">
+                    Ana renk
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={
+                        /^#([0-9A-Fa-f]{6})$/.test(wl.primaryColor)
+                          ? wl.primaryColor
+                          : "#1e5b3e"
+                      }
+                      onChange={(e) =>
+                        setWl((s) => ({
+                          ...s,
+                          primaryColor: e.target.value,
+                        }))
+                      }
+                      className="h-10 w-12 cursor-pointer rounded-lg border border-ink/20 bg-white p-1"
+                    />
+                    <input
+                      type="text"
+                      value={wl.primaryColor}
+                      onChange={(e) =>
+                        setWl((s) => ({
+                          ...s,
+                          primaryColor: e.target.value,
+                        }))
+                      }
+                      placeholder="#1e5b3e"
+                      className="flex-1 rounded-lg border border-ink/20 px-3 py-2 font-mono text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                    />
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => void saveWhiteLabel()}
+                disabled={savingWl}
+                className="w-full rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-50"
+              >
+                {savingWl ? "Kaydediliyor..." : "White-label kaydet"}
+              </button>
+            </div>
+
             {/* Admin Notları */}
             <div className="space-y-3 rounded-xl border border-ink/10 bg-white p-4">
               <h3 className="text-sm font-bold text-ink/70">Admin Notları</h3>
