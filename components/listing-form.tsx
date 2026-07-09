@@ -311,13 +311,18 @@ export function ListingForm({
             <label className={labelCls}>
               Fiyat (₺{v.purpose === "RENT" ? "/ay" : ""}) *
             </label>
+            {/* Yazarken binlik ayraç: 9750000 → 9.750.000 (state ham rakam tutar) */}
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               className={inputCls}
-              value={v.price}
-              onChange={(e) => set("price", e.target.value)}
-              placeholder="9750000"
-              min={0}
+              value={
+                v.price
+                  ? Math.trunc(Number(v.price)).toLocaleString("tr-TR")
+                  : ""
+              }
+              onChange={(e) => set("price", e.target.value.replace(/\D/g, ""))}
+              placeholder="9.750.000"
             />
           </div>
           <div>

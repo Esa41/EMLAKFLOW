@@ -90,9 +90,24 @@ body:has(.app-shell[data-theme="dark"]) {
   --color-stage-4: #1e5b3e;   /* sözleşme */
 }
 
+/* Schibsted Grotesk, ₺ (U+20BA) glifini £ gibi çiziyor (fontun kendi kusuru,
+   tarayıcıda kanıtlandı). Yalnızca bu karakter sistem fontundan gelsin;
+   fontun geri kalanı aynen kalır. Bricolage (display) doğru çizer, dokunma. */
+@font-face {
+  font-family: "Lira Duzeltmesi";
+  src: local("Helvetica Neue"), local("Arial"), local("Roboto"),
+    local("Segoe UI");
+  unicode-range: U+20BA;
+}
+
 body {
   background: var(--color-paper);
   color: var(--color-ink);
+}
+
+body,
+.font-sans {
+  font-family: "Lira Duzeltmesi", var(--font-sans);
 }
 
 /* Eski cam efekti → düz kağıt + mürekkep çizgisi (tüm header/popover otomatik güncellenir) */
