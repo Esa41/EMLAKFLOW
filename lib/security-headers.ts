@@ -19,7 +19,9 @@ const csp = [
   // va.vercel-scripts.com: Speed Insights script'i buradan yüklenir
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://vercel.live https://va.vercel-scripts.com`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://media.emlakflow.app https://images.unsplash.com https://i.pravatar.cc https://api.mapbox.com https://*.tiles.mapbox.com",
+  "img-src 'self' data: blob: https://media.emlakflow.app https://*.r2.dev https://images.unsplash.com https://i.pravatar.cc https://api.mapbox.com https://*.tiles.mapbox.com",
+  // İlan videoları R2'den oynatılır
+  "media-src 'self' blob: https://media.emlakflow.app https://*.r2.dev",
   "font-src 'self' data:",
   "connect-src 'self' https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com https://media.emlakflow.app https://*.r2.cloudflarestorage.com https://vitals.vercel-insights.com" +
     (isDev ? " ws:" : ""),

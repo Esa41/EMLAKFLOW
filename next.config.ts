@@ -32,6 +32,9 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 2678400, // 31 gün
     remotePatterns: [
       { protocol: "https", hostname: "media.emlakflow.app" },
+      // R2 public bucket (R2_PUBLIC_URL) — custom domain bağlanana kadar
+      // gerçek yüklemeler pub-*.r2.dev üzerinden servis edilir
+      { protocol: "https", hostname: "*.r2.dev" },
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "i.pravatar.cc" },
     ],
