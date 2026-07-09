@@ -61,15 +61,19 @@ export function ScrubHero() {
   const [ready, setReady] = useState(false);
   const [reduced, setReduced] = useState(false);
 
-  // Harita kurulumu
+  // Harita kurulumu — ilk boyamadan sonra (idle / scroll / timeout)
   useEffect(() => {
     const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
     if (!mapDivRef.current || !token) return;
 
     let cancelled = false;
     let map: mapboxgl.Map | null = null;
+    let started = false;
 
-    (async () => {
+    const start = async () => {
+      if (started || cancelled || !mapDivRef.current) return;
+      started = true;
+
       const gl = (await import("mapbox-gl")).default;
       if (cancelled || !mapDivRef.current) return;
 
@@ -106,7 +110,6 @@ export function ScrubHero() {
         setReady(true);
 
         HERO_PINS.forEach((p, i) => {
-          // Marker konumu dış elemanın transform'una yazılır — animasyon içte
           const wrap = document.createElement("div");
           const el = document.createElement("div");
           el.className = `fiyat-pin landing-pin-drop${p.rent ? " fiyat-pin-kira" : ""}`;
@@ -118,10 +121,28 @@ export function ScrubHero() {
             .addTo(map!);
         });
       });
-    })();
+    };
+
+    const onScroll = () => {
+      void start();
+    };
+    window.addEventListener("scroll", onScroll, { once: true, passive: true });
+
+    let idleId = 0;
+    if ("requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(() => void start(), { timeout: 2800 });
+    } else {
+      idleId = window.setTimeout(() => void start(), 1800) as unknown as number;
+    }
 
     return () => {
       cancelled = true;
+      window.removeEventListener("scroll", onScroll);
+      if ("cancelIdleCallback" in window && idleId) {
+        window.cancelIdleCallback(idleId);
+      } else {
+        clearTimeout(idleId);
+      }
       mapRef.current = null;
       map?.remove();
     };

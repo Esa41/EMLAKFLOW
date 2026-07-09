@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -14,12 +15,18 @@ import {
 } from "lucide-react";
 import { LandingNav } from "./landing-nav";
 import { PricingSection } from "./pricing-section";
-import { ScrubHero } from "./scrub-hero";
+import { HeroShell } from "./hero-shell";
 import { ScrollReveal } from "./scroll-reveal";
 import { ScrollStory } from "./scroll-story";
 import { CountUp } from "./count-up";
 import { FeatureMarquee } from "./marquee";
 import { KanbanMockup, MatchMockup, PortalMockup, ChatMockup } from "./product-mockups";
+
+/** Mapbox + scrub JS — ilk boyamadan sonra; HeroShell anında FCP verir. */
+const ScrubHero = dynamic(
+  () => import("./scrub-hero").then((m) => m.ScrubHero),
+  { ssr: false, loading: () => <HeroShell /> },
+);
 
 /* ── Yardımcı görseller ── */
 

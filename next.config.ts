@@ -6,16 +6,20 @@ import { securityHeaders } from "./lib/security-headers";
 const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
-  register: true,
+  // İlk boyama ile yarışmasın — client idle sonrası register (PwaRegister)
+  register: false,
   fallbacks: {
     document: "/offline",
   },
   workboxOptions: {
+    skipWaiting: false,
+    clientsClaim: false,
     // Auth / API / CRM dinamik yanıtlarını SW cache'leme — stale session riski
     exclude: [
       /^\/api\//,
       /^\/admin/,
       /\/_next\/data\//,
+      /middleware-manifest\.json$/,
     ],
   },
 });

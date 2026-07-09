@@ -7,19 +7,28 @@ import {
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { getBaseUrl } from "@/lib/url";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
 const display = Bricolage_Grotesque({
   subsets: ["latin", "latin-ext"],
   variable: "--font-display",
+  display: "swap",
+  preload: true,
+  adjustFontFallback: true,
 });
 const sans = Schibsted_Grotesk({
   subsets: ["latin", "latin-ext"],
   variable: "--font-sans",
+  display: "swap",
+  preload: false,
+  adjustFontFallback: true,
 });
 const mono = Spline_Sans_Mono({
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
   variable: "--font-mono",
+  display: "swap",
+  preload: false,
 });
 
 export const viewport: Viewport = {
@@ -102,6 +111,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="font-sans antialiased">
         {children}
+        <PwaRegister />
         <PwaInstallPrompt />
         {/* Gerçek kullanıcı Core Web Vitals — yalnızca Vercel'de aktif, dev'de no-op */}
         <SpeedInsights />

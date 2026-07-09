@@ -1,6 +1,9 @@
 import { LandingContent } from "@/components/landing/landing-content";
 import { getBaseUrl } from "@/lib/url";
 
+/** Landing statik içerik — CDN cache (FCP için HTML TTFB düşer). */
+export const revalidate = 3600;
+
 const BASE_URL = getBaseUrl();
 
 // schema.org SoftwareApplication — Google'da yazılım zengin sonucu için.
