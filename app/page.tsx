@@ -35,6 +35,10 @@ const softwareJsonLd = {
 export default function LandingPage() {
   return (
     <>
+      {/* Mapbox DNS/TLS — ScrubHero chunk’tan önce ısınır (FCP’ye dokunmaz) */}
+      <link rel="preconnect" href="https://api.mapbox.com" crossOrigin="anonymous" />
+      <link rel="preconnect" href="https://a.tiles.mapbox.com" crossOrigin="anonymous" />
+      <link rel="preconnect" href="https://b.tiles.mapbox.com" crossOrigin="anonymous" />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareJsonLd) }}

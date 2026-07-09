@@ -61,18 +61,16 @@ export function ScrubHero() {
   const [ready, setReady] = useState(false);
   const [reduced, setReduced] = useState(false);
 
-  // Harita kurulumu — ilk boyamadan sonra (idle / scroll / timeout)
+  // Harita kurulumu — ScrubHero mount olunca hemen (FCP hâlâ HeroShell'de)
   useEffect(() => {
     const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
     if (!mapDivRef.current || !token) return;
 
     let cancelled = false;
     let map: mapboxgl.Map | null = null;
-    let started = false;
 
     const start = async () => {
-      if (started || cancelled || !mapDivRef.current) return;
-      started = true;
+      if (cancelled || !mapDivRef.current) return;
 
       const gl = (await import("mapbox-gl")).default;
       if (cancelled || !mapDivRef.current) return;
@@ -123,26 +121,10 @@ export function ScrubHero() {
       });
     };
 
-    const onScroll = () => {
-      void start();
-    };
-    window.addEventListener("scroll", onScroll, { once: true, passive: true });
-
-    let idleId = 0;
-    if ("requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(() => void start(), { timeout: 2800 });
-    } else {
-      idleId = window.setTimeout(() => void start(), 1800) as unknown as number;
-    }
+    void start();
 
     return () => {
       cancelled = true;
-      window.removeEventListener("scroll", onScroll);
-      if ("cancelIdleCallback" in window && idleId) {
-        window.cancelIdleCallback(idleId);
-      } else {
-        clearTimeout(idleId);
-      }
       mapRef.current = null;
       map?.remove();
     };
@@ -239,12 +221,25 @@ export function ScrubHero() {
         ref={stickyRef}
         className="sticky top-0 h-screen overflow-hidden will-change-transform"
       >
-        {/* Harita / fallback zemin */}
+        {/* Harita / fallback zemin — pinler ready olana kadar (HeroShell sürekliliği) */}
         <div className="absolute inset-0 bg-[#e8ebe4]" aria-hidden>
           <div className="landing-hero-grid absolute inset-0 opacity-60" />
+          {!ready && (
+            <>
+              <div className="fiyat-pin landing-float-a absolute left-[18%] top-[28%] text-[10px]">
+                ₺4.2M
+              </div>
+              <div className="fiyat-pin fiyat-pin-kira landing-float-b absolute right-[22%] top-[42%] text-[10px]">
+                ₺28K/ay
+              </div>
+              <div className="fiyat-pin landing-float-c absolute bottom-[32%] left-[42%] text-[10px]">
+                ₺6.5M
+              </div>
+            </>
+          )}
         </div>
         <div
-          className={`absolute inset-0 transition-opacity duration-1000 ${ready ? "opacity-100" : "opacity-0"}`}
+          className={`absolute inset-0 transition-opacity duration-500 ${ready ? "opacity-100" : "opacity-0"}`}
           aria-hidden
         >
           <div ref={mapDivRef} className="h-full w-full" />
