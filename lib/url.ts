@@ -24,7 +24,30 @@ export function showcasePath(slug: string, vertical?: string | null): string {
   return `${base}/${slug}`;
 }
 
-/** Tam vitrin URL'si (ayarlar, paylaşım, QR) */
-export function showcaseUrl(slug: string, vertical?: string | null): string {
+/**
+ * Tam vitrin URL'si.
+ * customDomain varsa https://domain (kök); yoksa platform /ofis/slug.
+ */
+export function showcaseUrl(
+  slug: string,
+  vertical?: string | null,
+  customDomain?: string | null,
+): string {
+  if (customDomain) {
+    const host = customDomain.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    return `https://${host}`;
+  }
   return `${getBaseUrl()}${showcasePath(slug, vertical)}`;
+}
+
+/** Custom domain üzerinde göreli vitrin yolu (kök = "/"). */
+export function showcaseRelativePath(
+  slug: string,
+  path: "" | `/ilan/${string}` | "/favorilerim" = "",
+  opts?: { customDomainActive?: boolean; vertical?: string | null },
+): string {
+  if (opts?.customDomainActive) {
+    return path || "/";
+  }
+  return `${showcasePath(slug, opts?.vertical)}${path}`;
 }

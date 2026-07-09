@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, headers } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Phone } from "lucide-react";
@@ -22,17 +22,23 @@ export default async function ShowcaseLayout({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const hdrs = await headers();
+  const isCustomDomain = hdrs.get("x-showcase-custom-domain") === "1";
+
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
     select: {
       id: true,
       name: true,
+      brandName: true,
       phone: true,
       city: true,
       district: true,
       showcaseEnabled: true,
       brandColor: true,
+      primaryColor: true,
       logoUrl: true,
+      customDomain: true,
     },
   });
   if (!tenant || !tenant.showcaseEnabled) notFound();
@@ -40,7 +46,10 @@ export default async function ShowcaseLayout({
   // Oturum bilgisi bilinçli olarak burada OKUNMAZ: cookie okumak rotayı
   // dynamic yapar ve ilan detayının ISR önbelleğini bozar. Kullanıcı durumu
   // SiteSessionProvider'ın client fetch'iyle gelir.
-  const palette = brandPalette(tenant.brandColor);
+  const palette = brandPalette(tenant.primaryColor || tenant.brandColor);
+  const displayName = tenant.brandName?.trim() || tenant.name;
+  const homeHref = isCustomDomain ? "/" : `/ofis/${slug}`;
+  const whiteLabel = Boolean(tenant.customDomain || tenant.brandName);
 
   return (
     <SiteSessionProvider slug={slug}>
@@ -48,11 +57,11 @@ export default async function ShowcaseLayout({
       {/* Antet — müşteri yüzü */}
       <header className="sticky top-0 z-30 border-b border-ink bg-paper">
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 sm:px-6">
-          <Link href={`/ofis/${slug}`} className="flex min-w-0 items-center gap-2.5">
+          <Link href={homeHref} className="flex min-w-0 items-center gap-2.5">
             {tenant.logoUrl ? (
               <Image
                 src={tenant.logoUrl}
-                alt={tenant.name}
+                alt={displayName}
                 width={36}
                 height={36}
                 className="shrink-0 rounded-lg object-contain"
@@ -60,7 +69,7 @@ export default async function ShowcaseLayout({
             ) : null}
             <div className="min-w-0">
               <p className="truncate font-display text-lg font-extrabold tracking-tight">
-                {tenant.name}
+                {displayName}
               </p>
               <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink/45">
                 {[tenant.district, tenant.city].filter(Boolean).join(" · ") || "Gayrimenkul"}
@@ -105,7 +114,14 @@ export default async function ShowcaseLayout({
 
       <footer className="border-t border-ink/15 py-6 text-center">
         <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink/40">
-          {tenant.name} · Vitrin <span className="text-brand-600">EmlakFlow</span> ile hazırlandı
+          {displayName}
+          {!whiteLabel && (
+            <>
+              {" "}
+              · Vitrin <span className="text-brand-600">EmlakFlow</span> ile
+              hazırlandı
+            </>
+          )}
         </p>
       </footer>
       

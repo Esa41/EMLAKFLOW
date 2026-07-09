@@ -15,8 +15,10 @@ export async function officeBrand(tenantId: string): Promise<{
     where: { id: tenantId },
     select: {
       name: true,
+      brandName: true,
       slug: true,
       vertical: true,
+      customDomain: true,
       users: {
         where: { role: "OWNER" },
         orderBy: { createdAt: "asc" },
@@ -27,8 +29,11 @@ export async function officeBrand(tenantId: string): Promise<{
   });
   if (!t) return null;
   return {
-    brand: { name: t.name, replyTo: t.users[0]?.email },
+    brand: {
+      name: t.brandName?.trim() || t.name,
+      replyTo: t.users[0]?.email,
+    },
     slug: t.slug,
-    showcase: showcaseUrl(t.slug, t.vertical),
+    showcase: showcaseUrl(t.slug, t.vertical, t.customDomain),
   };
 }

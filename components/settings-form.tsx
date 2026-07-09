@@ -21,6 +21,7 @@ export interface TenantSettings {
   feedToken: string;
   slug: string;
   vertical: string;
+  customDomain: string;
   showcaseEnabled: boolean;
   showcaseTagline: string;
   whatsapp: string;
@@ -71,7 +72,7 @@ export function SettingsForm({
   };
 
   const feedUrl = `${appUrl}/api/feed/${v.feedToken}.xml`;
-  const vitrinUrl = showcaseUrl(v.slug, vertical);
+  const vitrinUrl = showcaseUrl(v.slug, vertical, v.customDomain || null);
   const [copiedShowcase, setCopiedShowcase] = useState(false);
 
   async function handleSave() {

@@ -84,6 +84,10 @@ export function AdminTenantDetailModal({
     primaryColor: "#1e5b3e",
   });
   const [savingWl, setSavingWl] = useState(false);
+  const [dnsSteps, setDnsSteps] = useState<string[] | null>(null);
+  const [vercelConfigured, setVercelConfigured] = useState(false);
+  const [domainVerified, setDomainVerified] = useState<boolean | null>(null);
+  const [provisioning, setProvisioning] = useState(false);
 
   function toDateInputValue(iso: string | null) {
     if (!iso) return "";
@@ -105,18 +109,27 @@ export function AdminTenantDetailModal({
   }
 
   async function reloadTenant() {
-    const res = await fetch(`/api/admin/tenants/${tenantId}`);
+    const res = await fetch(
+      `/api/admin/tenants/${tenantId}?checkDomain=1`,
+    );
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? "Yüklenemedi");
     setTenant(data.tenant);
     setNotes(data.tenant.adminNotes || "");
     setExpiresDate(toDateInputValue(data.tenant.proExpiresAt));
     applyWhiteLabelForm(data.tenant);
+    setVercelConfigured(Boolean(data.vercelConfigured));
+    setDnsSteps(data.dns?.steps ?? null);
+    if (data.domainStatus?.ok) {
+      setDomainVerified(Boolean(data.domainStatus.verified));
+    } else {
+      setDomainVerified(null);
+    }
     return data.tenant as TenantDetail;
   }
 
   useEffect(() => {
-    fetch(`/api/admin/tenants/${tenantId}`)
+    fetch(`/api/admin/tenants/${tenantId}?checkDomain=1`)
       .then((res) => res.json())
       .then((data) => {
         if (data.error) throw new Error(data.error);
@@ -124,6 +137,11 @@ export function AdminTenantDetailModal({
         setNotes(data.tenant.adminNotes || "");
         setExpiresDate(toDateInputValue(data.tenant.proExpiresAt));
         applyWhiteLabelForm(data.tenant);
+        setVercelConfigured(Boolean(data.vercelConfigured));
+        setDnsSteps(data.dns?.steps ?? null);
+        if (data.domainStatus?.ok) {
+          setDomainVerified(Boolean(data.domainStatus.verified));
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -153,7 +171,7 @@ export function AdminTenantDetailModal({
     }
   }
 
-  async function saveWhiteLabel() {
+  async function saveWhiteLabel(opts?: { provision?: boolean }) {
     setSavingWl(true);
     setActionMsg(null);
     try {
@@ -165,17 +183,50 @@ export function AdminTenantDetailModal({
           brandName: wl.brandName.trim() || null,
           logoUrl: wl.logoUrl.trim() || null,
           primaryColor: wl.primaryColor.trim() || null,
+          provisionDomain: opts?.provision === true,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      setVercelConfigured(Boolean(data.vercelConfigured));
+      setDnsSteps(data.dns?.steps ?? null);
+      if (data.vercel?.ok) {
+        setDomainVerified(Boolean(data.vercel.verified));
+        setActionMsg(
+          data.vercel.verified
+            ? "White-label kaydedildi · domain Vercel'de doğrulanmış."
+            : "White-label kaydedildi · domain Vercel'e eklendi (DNS bekleniyor).",
+        );
+      } else if (data.vercel?.skipped) {
+        setActionMsg(
+          "White-label kaydedildi. Vercel API yok — aşağıdaki DNS adımlarını uygulayın.",
+        );
+      } else if (data.vercel && !data.vercel.ok) {
+        setActionMsg(
+          `Kaydedildi; Vercel: ${data.vercel.error ?? "hata"}. DNS adımlarını kontrol edin.`,
+        );
+      } else {
+        setActionMsg("White-label ayarları kaydedildi.");
+      }
       await reloadTenant();
       router.refresh();
-      setActionMsg("White-label ayarları kaydedildi.");
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Kaydedilemedi");
     } finally {
       setSavingWl(false);
+    }
+  }
+
+  async function provisionOnVercel() {
+    if (!wl.customDomain.trim()) {
+      alert("Önce alan adını yazın.");
+      return;
+    }
+    setProvisioning(true);
+    try {
+      await saveWhiteLabel({ provision: true });
+    } finally {
+      setProvisioning(false);
     }
   }
 
@@ -609,10 +660,21 @@ export function AdminTenantDetailModal({
               <div className="flex items-center gap-2">
                 <Palette size={16} className="text-ink/50" />
                 <h3 className="text-sm font-bold text-ink/70">White-label</h3>
+                {domainVerified === true && (
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700">
+                    Domain OK
+                  </span>
+                )}
+                {domainVerified === false && (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700">
+                    DNS bekleniyor
+                  </span>
+                )}
               </div>
               <p className="text-[11px] leading-relaxed text-ink/45">
-                Özel alan adı ve markalama. DNS / Vercel yönlendirmesi ayrıca
-                yapılır; burada yalnızca kayıt tutulur.
+                Alan adı kaydedilince vitrin{" "}
+                <code className="rounded bg-ink/5 px-1">https://alanadi/</code>{" "}
+                üzerinden açılır. Vercel&apos;e domain ekleyip DNS yönlendirin.
               </p>
               <div className="space-y-2.5">
                 <div>
@@ -703,14 +765,47 @@ export function AdminTenantDetailModal({
                   </div>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => void saveWhiteLabel()}
-                disabled={savingWl}
-                className="w-full rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-50"
-              >
-                {savingWl ? "Kaydediliyor..." : "White-label kaydet"}
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => void saveWhiteLabel()}
+                  disabled={savingWl}
+                  className="w-full rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-50"
+                >
+                  {savingWl ? "Kaydediliyor..." : "White-label kaydet"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void provisionOnVercel()}
+                  disabled={savingWl || provisioning || !wl.customDomain.trim()}
+                  className="w-full rounded-lg border border-ink/20 bg-white px-4 py-2 text-xs font-bold text-ink/70 transition-colors hover:bg-ink/[0.03] disabled:opacity-50"
+                >
+                  {provisioning
+                    ? "Vercel'e ekleniyor…"
+                    : vercelConfigured
+                      ? "Vercel'e domain ekle / doğrula"
+                      : "Vercel'e ekle (API yoksa DNS talimatı)"}
+                </button>
+              </div>
+              {dnsSteps && dnsSteps.length > 0 && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                    DNS kurulum adımları
+                  </p>
+                  <ol className="mt-2 list-decimal space-y-1 pl-4 text-[11px] text-amber-900/80">
+                    {dnsSteps.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ol>
+                  <p className="mt-2 text-[10px] text-amber-800/70">
+                    CNAME hedefi:{" "}
+                    <code className="rounded bg-white/80 px-1">cname.vercel-dns.com</code>
+                    {" · "}
+                    Apex A:{" "}
+                    <code className="rounded bg-white/80 px-1">76.76.21.21</code>
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Admin Notları */}
