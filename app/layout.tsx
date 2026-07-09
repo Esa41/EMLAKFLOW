@@ -5,6 +5,7 @@ import {
   Spline_Sans_Mono,
 } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import { getBaseUrl } from "@/lib/url";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { PwaRegister } from "@/components/pwa-register";
@@ -115,6 +116,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PwaInstallPrompt />
         {/* Gerçek kullanıcı Core Web Vitals — yalnızca Vercel'de aktif, dev'de no-op */}
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
