@@ -7,7 +7,16 @@ import { TopluEmlakIlaniYonetimiYazi } from "@/content/blog/toplu-emlak-ilani-yo
 import { EmlakOfisiWebSitesiKurmaYazi } from "@/content/blog/emlak-ofisi-web-sitesi-kurma";
 import { EmlakIlaniNasilYazilirYazi } from "@/content/blog/emlak-ilani-nasil-yazilir";
 import { EmlakIlanFotografciligiYazi } from "@/content/blog/emlak-ilan-fotografciligi";
-
+import { EvAlirkenDikkatYazi } from "@/content/blog/ev-alirken-dikkat-edilmesi-gereken-5-onemli-nokta";
+import { EviniziSatisaHazirlamaYazi } from "@/content/blog/evinizi-satisa-hazirlamanin-puf-noktalari";
+import { EmlakDanismaniSecimiYazi } from "@/content/blog/dogru-emlak-danismani-secmenin-avantajlari";
+import { YatirimlikEvYazi } from "@/content/blog/yatirim-amacli-ev-alirken-hangi-bolgeler-tercih-edilmeli";
+import { EvKiralamadanOnceYazi } from "@/content/blog/ev-kiralamadan-once-yapilmasi-gereken-kontroller";
+import { AkilliEvYazi } from "@/content/blog/akilli-ev-teknolojilerinin-gayrimenkul-degerine-etkisi";
+import { GayrimenkulMasraflariYazi } from "@/content/blog/gayrimenkul-alim-satiminda-ortaya-cikan-masraflar";
+import { KrediFaizOranlariYazi } from "@/content/blog/kredi-faiz-oranlari-duserken-ev-almak-mantikli-mi";
+import { YeniEvliCiftlerYazi } from "@/content/blog/yeni-evli-ciftler-icin-ideal-ev-secimi";
+import { KentselDonusumYazi } from "@/content/blog/kentsel-donusum-surecinde-bilmeniz-gerekenler";
 /**
  * Blog kayıt defteri — SEO içerik planının koda dökülmüş hâli
  * (strateji: docs/seo-buyume-plani.md §A2).
@@ -172,6 +181,126 @@ export const BLOG_POSTS: BlogPost[] = [
     updatedAt: "2026-07-08",
     readingMinutes: 8,
     Content: EmlakIlanFotografciligiYazi,
+  },
+  {
+    slug: "ev-alirken-dikkat-edilmesi-gereken-5-onemli-nokta",
+    title: "Ev Alırken Dikkat Edilmesi Gereken 5 Önemli Nokta",
+    h1: "Ev Alırken Dikkat Edilmesi Gereken 5 Önemli Nokta",
+    description: "Yeni bir ev almak, hayatınızdaki en önemli ve finansal açıdan en büyük kararlardan biridir. Ev satın alma sürecini sorunsuz ve güvenli bir şekilde atlatmanız için dikkat etmeniz gereken 5 temel kriter.",
+    keywords: ["ev alırken dikkat", "ev alma rehberi", "gayrimenkul alma"],
+    pillar: "veri",
+    publishedAt: "2026-07-10",
+    updatedAt: "2026-07-10",
+    readingMinutes: 6,
+    Content: EvAlirkenDikkatYazi,
+  },
+  {
+    slug: "evinizi-satisa-hazirlamanin-puf-noktalari",
+    title: "Evinizi Satışa Hazırlamanın Püf Noktaları",
+    h1: "Evinizi Satışa Hazırlamanın Püf Noktaları",
+    description: "Evinizi satılığa çıkardığınızda, artık sizin yuvanız olmaktan çıkıp pazarlanan bir ürün haline gelir. Evinizi piyasa değerinde ve hızlı bir şekilde satmak için onu en iyi şekilde vitrine koymalısınız.",
+    keywords: ["ev satışı", "ev satma taktikleri", "emlak pazarlama"],
+    pillar: "pazarlama",
+    publishedAt: "2026-07-10",
+    updatedAt: "2026-07-10",
+    readingMinutes: 5,
+    Content: EviniziSatisaHazirlamaYazi,
+  },
+  {
+    slug: "dogru-emlak-danismani-secmenin-avantajlari",
+    title: "Doğru Emlak Danışmanı Seçmenin Avantajları",
+    h1: "Doğru Emlak Danışmanı Seçmenin Avantajları",
+    description: "Gayrimenkul işlemleri sadece bir yer gösterme işi değil; ciddi finansal, hukuki ve pazarlama bilgi birikimi gerektiren bir süreçtir. Doğru emlak danışmanı bir maliyet değil, yatırımdır.",
+    keywords: ["emlak danışmanı", "emlakçı seçimi", "profesyonel emlak hizmeti"],
+    pillar: "portfoy",
+    publishedAt: "2026-07-10",
+    updatedAt: "2026-07-10",
+    readingMinutes: 5,
+    Content: EmlakDanismaniSecimiYazi,
+  },
+  {
+    slug: "yatirim-amacli-ev-alirken-hangi-bolgeler-tercih-edilmeli",
+    title: "Yatırım Amaçlı Ev Alırken Hangi Bölgeler Tercih Edilmeli?",
+    h1: "Yatırım Amaçlı Ev Alırken Hangi Bölgeler Tercih Edilmeli?",
+    description: "Gayrimenkul yatırımı, enflasyona karşı parayı korumanın ve uzun vadede pasif gelir elde etmenin en güvenilir yoludur. Yatırımcıların radarında olması gereken bölgeler.",
+    keywords: ["gayrimenkul yatırım", "yatırımlık ev", "emlak değer artışı"],
+    pillar: "veri",
+    publishedAt: "2026-07-10",
+    updatedAt: "2026-07-10",
+    readingMinutes: 6,
+    Content: YatirimlikEvYazi,
+  },
+  {
+    slug: "ev-kiralamadan-once-yapilmasi-gereken-kontroller",
+    title: "Ev Kiralamadan Önce Yapılması Gereken Kontroller",
+    h1: "Ev Kiralamadan Önce Yapılması Gereken Kontroller",
+    description: "Yeni bir kiralık ev buldunuz. Ancak hemen sözleşmeyi imzalamadan önce evi ve hukuki şartları ince eleyip sık dokumanız gerekir.",
+    keywords: ["ev kiralama", "kira sözleşmesi", "kiralık ev kontrolleri"],
+    pillar: "veri",
+    publishedAt: "2026-07-10",
+    updatedAt: "2026-07-10",
+    readingMinutes: 5,
+    Content: EvKiralamadanOnceYazi,
+  },
+  {
+    slug: "akilli-ev-teknolojilerinin-gayrimenkul-degerine-etkisi",
+    title: "Akıllı Ev Teknolojilerinin Gayrimenkul Değerine Etkisi",
+    h1: "Akıllı Ev Teknolojilerinin Gayrimenkul Değerine Etkisi",
+    description: "Akıllı ev sistemleri artık lüks olmaktan çıkıp bir ihtiyaç haline geliyor ve mülk değerini doğrudan etkiliyor.",
+    keywords: ["akıllı ev", "gayrimenkul değeri", "teknolojik ev"],
+    pillar: "veri",
+    publishedAt: "2026-07-10",
+    updatedAt: "2026-07-10",
+    readingMinutes: 4,
+    Content: AkilliEvYazi,
+  },
+  {
+    slug: "gayrimenkul-alim-satiminda-ortaya-cikan-masraflar",
+    title: "Gayrimenkul Alım Satımında Ortaya Çıkan Masraflar",
+    h1: "Gayrimenkul Alım Satımında Ortaya Çıkan Masraflar",
+    description: "Ev alırken veya satarken, üzerinde anlaşılan satış bedeli dışında da ciddi bir bütçe ayırmanız gereken resmi masraflar vardır.",
+    keywords: ["tapu harcı", "emlak alım masrafları", "gayrimenkul giderleri"],
+    pillar: "veri",
+    publishedAt: "2026-07-10",
+    updatedAt: "2026-07-10",
+    readingMinutes: 5,
+    Content: GayrimenkulMasraflariYazi,
+  },
+  {
+    slug: "kredi-faiz-oranlari-duserken-ev-almak-mantikli-mi",
+    title: "Kredi Faiz Oranları Düşerken Ev Almak Mantıklı mı?",
+    h1: "Kredi Faiz Oranları Düşerken Ev Almak Mantıklı mı?",
+    description: "Faiz oranlarındaki düşüş, konut kredisiyle ev almayı planlayanlar için harika bir fırsat gibi görünür. Ancak gayrimenkul piyasasının kendine has bir dinamiği vardır.",
+    keywords: ["konut kredisi", "faiz oranları", "krediyle ev almak"],
+    pillar: "veri",
+    publishedAt: "2026-07-10",
+    updatedAt: "2026-07-10",
+    readingMinutes: 5,
+    Content: KrediFaizOranlariYazi,
+  },
+  {
+    slug: "yeni-evli-ciftler-icin-ideal-ev-secimi",
+    title: "Yeni Evli Çiftler İçin İdeal Ev Seçimi",
+    h1: "Yeni Evli Çiftler İçin İdeal Ev Seçimi",
+    description: "Yeni bir hayata başlarken doğru evi seçmek, gelecekteki mutluluğunuz için çok önemlidir. Yeni evli çiftler ev ararken hangi noktalara odaklanmalıdır?",
+    keywords: ["yeni evliler", "ilk ev", "ideal ev seçimi"],
+    pillar: "veri",
+    publishedAt: "2026-07-10",
+    updatedAt: "2026-07-10",
+    readingMinutes: 4,
+    Content: YeniEvliCiftlerYazi,
+  },
+  {
+    slug: "kentsel-donusum-surecinde-bilmeniz-gerekenler",
+    title: "Kentsel Dönüşüm Sürecinde Bilmeniz Gerekenler",
+    h1: "Kentsel Dönüşüm Sürecinde Bilmeniz Gerekenler",
+    description: "Eski binaların yıkılarak yeniden inşa edilmesi süreci kentsel dönüşümdür. Ülkemiz için hayati öneme sahip bu süreçte bilinmesi gerekenler.",
+    keywords: ["kentsel dönüşüm", "riskli yapı", "kentsel dönüşüm kira yardımı"],
+    pillar: "veri",
+    publishedAt: "2026-07-10",
+    updatedAt: "2026-07-10",
+    readingMinutes: 6,
+    Content: KentselDonusumYazi,
   },
 ];
 
