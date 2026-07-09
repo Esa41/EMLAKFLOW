@@ -1,4 +1,5 @@
-import { notFound, headers } from "next/navigation";
+import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import Link from "next/link";
 import Image from "next/image";
 import { Phone } from "lucide-react";
