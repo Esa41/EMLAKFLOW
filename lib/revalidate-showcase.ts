@@ -20,4 +20,15 @@ export async function revalidateListingShowcase(
   const base = `/ofis/${tenant.slug}/ilan/${listing.id}`;
   revalidatePath(base);
   if (listing.slug) revalidatePath(`${base}-${listing.slug}`);
+  revalidatePath(`/ofis/${tenant.slug}`);
+}
+
+/** Vitrin ana sayfasını tazele (öne çıkan / istatistik değişiklikleri). */
+export async function revalidateShowcaseHome(tenantId: string): Promise<void> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { slug: true, showcaseEnabled: true },
+  });
+  if (!tenant?.showcaseEnabled) return;
+  revalidatePath(`/ofis/${tenant.slug}`);
 }

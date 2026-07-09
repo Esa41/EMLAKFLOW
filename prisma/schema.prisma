@@ -415,6 +415,9 @@ model Listing {
   // Portal XML feed'e dahil et (ilan başına toggle)
   feedEnabled    Boolean  @default(true)
 
+  // Vitrin vitrininde "Öne Çıkanlar" rafında göster
+  featured       Boolean  @default(false)
+
   // Otomatik SEO
   seoTitle       String?
   seoDescription String?

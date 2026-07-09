@@ -40,6 +40,7 @@ export function listingDataFromBody(body: Record<string, unknown>) {
       parcelGeo: (body.parcelGeo ?? null) as Prisma.InputJsonValue,
     }),
     ...(body.feedEnabled !== undefined && { feedEnabled: !!body.feedEnabled }),
+    ...(body.featured !== undefined && { featured: !!body.featured }),
     // Araç
     ...(body.vehicleBrand !== undefined && { vehicleBrand: str(body.vehicleBrand) }),
     ...(body.vehicleModel !== undefined && { vehicleModel: str(body.vehicleModel) }),

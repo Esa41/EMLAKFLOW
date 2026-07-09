@@ -56,7 +56,7 @@ export default async function ShowcaseLayout({
     <div className="min-h-screen" style={palette as React.CSSProperties}>
       {/* Antet — müşteri yüzü */}
       <header className="sticky top-0 z-30 border-b border-ink bg-paper">
-        <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-[1080px] items-center gap-3 px-4 sm:px-6">
           <ShowcaseHomeLink
             slug={slug}
             className="flex min-w-0 items-center gap-2.5"
@@ -93,11 +93,11 @@ export default async function ShowcaseLayout({
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-8 pb-24 sm:px-6 md:pb-8">{children}</main>
+      <main className="mx-auto max-w-[1080px] px-4 py-8 pb-24 sm:px-6 md:pb-8">{children}</main>
 
       {/* Mobil sticky CTA bar */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink/20 bg-paper/95 p-3 backdrop-blur-sm md:hidden">
-        <div className="mx-auto flex max-w-5xl gap-2">
+        <div className="mx-auto flex max-w-[1080px] gap-2">
           {tenant.phone && (
             <a
               href={`tel:${tenant.phone.replace(/\s/g, "")}`}

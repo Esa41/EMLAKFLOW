@@ -5,7 +5,7 @@ import { deleteObject } from "@/lib/r2";
 import { variantKeys } from "@/lib/images";
 import { ensureListingSeo } from "@/lib/seo-ai";
 import { listingDataFromBody } from "@/lib/listing-payload";
-import { revalidateListingShowcase } from "@/lib/revalidate-showcase";
+import { revalidateListingShowcase, revalidateShowcaseHome } from "@/lib/revalidate-showcase";
 import { prisma } from "@/lib/prisma";
 import { officeBrand } from "@/lib/office-brand";
 import { sendPriceDropEmail } from "@/lib/marketing-mailer";
@@ -49,6 +49,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
     // Vitrindeki ISR kopyası anında tazelensin (fiyat/durum değişikliği)
     await revalidateListingShowcase(session.tenantId, listing);
+    if (body.featured !== undefined) {
+      await revalidateShowcaseHome(session.tenantId);
+    }
 
     // Fiyat düştüyse favorileyen vitrin üyelerine haber ver (arka planda)
     const oldPrice = before ? Number(before.price) : null;

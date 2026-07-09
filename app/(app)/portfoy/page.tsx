@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Building2, Lock } from "lucide-react";
+import { Plus, Building2, Lock, Star } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
 import { trMoney } from "@/lib/labels";
@@ -23,7 +23,7 @@ const KUNYE_TXT: Record<string, string> = {
 export default async function PortfolioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; purpose?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; purpose?: string; featured?: string }>;
 }) {
   const session = (await getSession())!;
   const db = forTenant(session.tenantId);
@@ -34,6 +34,7 @@ export default async function PortfolioPage({
     where: {
       ...(sp.status ? { status: sp.status as never } : {}),
       ...(sp.purpose ? { purpose: sp.purpose as never } : {}),
+      ...(sp.featured === "1" ? { featured: true } : {}),
       ...(sp.q
         ? {
             OR: [
@@ -52,7 +53,8 @@ export default async function PortfolioPage({
   });
 
   const filters = [
-    { href: "/portfoy", label: "Tümü", active: !sp.status && !sp.purpose },
+    { href: "/portfoy", label: "Tümü", active: !sp.status && !sp.purpose && sp.featured !== "1" },
+    { href: "/portfoy?featured=1", label: "Öne çıkanlar", active: sp.featured === "1" },
     { href: "/portfoy?purpose=SALE", label: "Satılık", active: sp.purpose === "SALE" },
     { href: "/portfoy?purpose=RENT", label: "Kiralık", active: sp.purpose === "RENT" },
     { href: "/portfoy?status=SOLD", label: "Satılan", active: sp.status === "SOLD" },
@@ -156,6 +158,11 @@ export default async function PortfolioPage({
                   >
                     {plaka}
                   </span>
+                  {l.featured && l.status === "ACTIVE" && (
+                    <span className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-amber-50 text-amber-600 ring-1 ring-amber-200/80">
+                      <Star size={14} fill="currentColor" />
+                    </span>
+                  )}
                 </div>
                 <div className="px-4 pb-4 pt-3">
                   <h3 className="line-clamp-1 text-[14px] font-semibold">{l.title}</h3>

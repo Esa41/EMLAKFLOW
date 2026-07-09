@@ -6,6 +6,7 @@ import { forTenant } from "@/lib/tenant";
 import { findMatchingLeads } from "@/lib/matching";
 import { ListingForm } from "@/components/listing-form";
 import { DeleteListingButton } from "@/components/delete-listing-button";
+import { FeaturedToggle } from "@/components/featured-toggle";
 import { ContractPanel } from "@/components/contract-panel";
 import { OwnerReport } from "@/components/owner-report";
 import { STATUS_TR, STATUS_BADGE } from "@/lib/labels";
@@ -97,6 +98,9 @@ export default async function ListingDetailPage({
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {listing.status === "ACTIVE" && (
+            <FeaturedToggle listingId={listing.id} featured={listing.featured} />
+          )}
           {tenant?.showcaseEnabled && listing.status === "ACTIVE" && (
             <a
               href={`${vConf.showcaseBase}/${tenant.slug}/ilan/${listing.id}`}

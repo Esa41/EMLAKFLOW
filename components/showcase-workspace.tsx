@@ -2,30 +2,16 @@
 
 import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Building2, Map, X, SlidersHorizontal, Search } from "lucide-react";
 import { ShowcaseMap, type MapListing } from "@/components/showcase-map";
-import { FavoriteButton } from "@/components/favorite-button";
 import { SaveSearchButton } from "@/components/save-search-button";
-import { trMoney, ROOM_OPTIONS, TYPE_TR } from "@/lib/labels";
+import { ShowcaseCard, type ShowcaseCardListing } from "@/components/showcase-card";
+import { ROOM_OPTIONS, TYPE_TR } from "@/lib/labels";
 
-export type SplitListing = {
-  id: string;
-  title: string;
-  slug: string | null;
-  purpose: string;
-  price: number;
-  rooms: string | null;
-  netArea: number | null;
-  grossArea: number | null;
-  district: string;
-  neighborhood: string | null;
+export type SplitListing = ShowcaseCardListing & {
   lat: number | null;
   lng: number | null;
-  mediaCount: number;
-  image: string | null;
-  imageAlt: string;
 };
 
 const LISTING_TYPES = ["APARTMENT", "HOUSE", "VILLA", "LAND", "COMMERCIAL", "OFFICE"] as const;
@@ -40,18 +26,20 @@ export function ShowcaseWorkspace({
   listings,
   slug,
   districts,
+  isAuto = false,
 }: {
   listings: SplitListing[];
   slug: string;
   searchParams: Record<string, string | undefined>;
   districts: string[];
+  isAuto?: boolean;
 }) {
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // URL state
   const q = searchParams.get("q") ?? "";
   const purpose = searchParams.get("purpose") ?? "";
   const type = searchParams.get("type") ?? "";
@@ -109,7 +97,6 @@ export function ShowcaseWorkspace({
     (maxPrice ? 1 : 0) +
     (minArea ? 1 : 0);
 
-  // Form for mobile drawer / desktop standard fields
   const FilterFields = () => (
     <div className="space-y-4">
       <div>
@@ -175,38 +162,28 @@ export function ShowcaseWorkspace({
   );
 
   return (
-    <div className="flex flex-col">
-      {/* 1. Tam Genişlik Harita (Hero) */}
-      <div className="-mx-4 mb-6 sm:-mx-6 lg:mx-0 lg:mb-8">
-        <div className="relative h-[min(52vh,420px)] w-full overflow-hidden bg-brand-50/80 sm:h-[min(56vh,480px)] lg:h-[500px] lg:rounded-2xl lg:shadow-[0_8px_32px_-8px_rgba(23,32,28,0.12)] lg:ring-1 lg:ring-black/[0.06]">
-          {mapListings.length > 0 ? (
-            <ShowcaseMap
-              listings={mapListings}
-              slug={slug}
-              height={500}
-              onPinClick={handlePinClick}
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-ink/30">
-              <Map size={48} />
-            </div>
-          )}
+    <section id="portfoy" className="scroll-mt-20">
+      <div className="mb-4 flex items-end justify-between gap-4">
+        <div>
+          <h2 className="font-display text-[22px] font-extrabold tracking-tight">
+            Tüm Portföy
+          </h2>
+          <p className="mt-1 text-[12.5px] text-ink/50">
+            Filtreleyin, haritada veya listede gezin.
+          </p>
         </div>
       </div>
 
-      {/* 2. Arama ve Filtre Çubuğu */}
-      <div className="mb-8 space-y-4">
-        {/* Masaüstü Filtre Barı / Mobil Search & Filtre Butonu */}
+      <div className="mb-4 space-y-4">
         <form method="GET" className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          {/* Kelime araması */}
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/35" size={16} />
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink/35" size={16} />
             <input
               type="search"
               name="q"
               defaultValue={q}
-              placeholder="Kelime, mahalle veya ilçe ara..."
-              className="w-full rounded-full border border-ink/20 bg-white py-3 pl-10 pr-4 text-sm shadow-sm transition-colors focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              placeholder="Kelime, mahalle veya ilçe ara…"
+              className="w-full rounded-full border border-ink/15 bg-white py-2.5 pl-10 pr-4 text-sm shadow-[0_1px_2px_rgba(23,32,28,0.04)] transition-colors focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             />
             {q && (
               <Link href={qs({ q: null })} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-ink/10 p-1 text-ink/60 hover:bg-ink/20 hover:text-ink">
@@ -215,12 +192,11 @@ export function ShowcaseWorkspace({
             )}
           </div>
 
-          {/* Mobilde: Filtre Butonu, Masaüstünde: Inline Basit Seçimler */}
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setMobileFilterOpen(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-full border border-ink/20 bg-white py-3 pl-4 pr-5 text-sm font-semibold shadow-sm lg:hidden"
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-ink/15 bg-white py-2.5 pl-4 pr-5 text-sm font-semibold shadow-[0_1px_2px_rgba(23,32,28,0.04)] lg:hidden"
             >
               <SlidersHorizontal size={16} />
               Filtreler
@@ -231,48 +207,69 @@ export function ShowcaseWorkspace({
               )}
             </button>
 
-            {/* Masaüstünde hızlı çipler */}
             <div className="hidden items-center gap-2 lg:flex">
-              <select name="purpose" defaultValue={purpose} onChange={(e) => router.push(qs({ purpose: e.target.value }))} className="cursor-pointer rounded-full border border-ink/20 bg-white px-4 py-3 text-sm font-medium shadow-sm outline-none hover:border-ink/40">
-                <option value="">İşlem (Tümü)</option>
+              <select name="purpose" defaultValue={purpose} onChange={(e) => router.push(qs({ purpose: e.target.value }))} className="cursor-pointer rounded-full border border-ink/15 bg-white px-4 py-2.5 text-[13px] font-semibold shadow-[0_1px_2px_rgba(23,32,28,0.04)] outline-none hover:border-ink/40">
+                <option value="">İşlem: Tümü</option>
                 <option value="SALE">Satılık</option>
                 <option value="RENT">Kiralık</option>
               </select>
-              <select name="type" defaultValue={type} onChange={(e) => router.push(qs({ type: e.target.value }))} className="cursor-pointer rounded-full border border-ink/20 bg-white px-4 py-3 text-sm font-medium shadow-sm outline-none hover:border-ink/40">
-                <option value="">Tip (Tümü)</option>
+              <select name="type" defaultValue={type} onChange={(e) => router.push(qs({ type: e.target.value }))} className="cursor-pointer rounded-full border border-ink/15 bg-white px-4 py-2.5 text-[13px] font-semibold shadow-[0_1px_2px_rgba(23,32,28,0.04)] outline-none hover:border-ink/40">
+                <option value="">Tip: Tümü</option>
                 {LISTING_TYPES.map((t) => <option key={t} value={t}>{TYPE_TR[t]}</option>)}
               </select>
-              <button type="button" onClick={() => setMobileFilterOpen(true)} className="flex items-center gap-2 rounded-full border border-ink/20 bg-white px-5 py-3 text-sm font-semibold shadow-sm hover:border-brand-600">
-                <SlidersHorizontal size={16} className="text-brand-600" />
+              <button type="button" onClick={() => setMobileFilterOpen(true)} className="flex items-center gap-2 rounded-full border border-ink/15 bg-white px-4 py-2.5 text-[13px] font-semibold shadow-[0_1px_2px_rgba(23,32,28,0.04)] hover:border-brand-600">
+                <SlidersHorizontal size={15} className="text-brand-700" />
                 Detaylı
                 {activeFilterCount > 0 && (
-                  <span className="ml-1 rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] text-white">{activeFilterCount}</span>
+                  <span className="rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] text-white">{activeFilterCount}</span>
                 )}
               </button>
             </div>
-            
-            <button type="submit" className="hidden lg:block btn-selvi rounded-full px-6 py-3 font-bold text-white shadow-sm">
+
+            <button type="submit" className="btn-selvi hidden rounded-full px-5 py-2.5 text-sm font-bold text-white lg:block">
               Ara
             </button>
           </div>
         </form>
 
-        {/* Sonuç Özeti ve Sıralama */}
-        <div className="flex items-center justify-between border-t border-ink/10 pt-4">
-          <p className="font-mono text-[11px] font-semibold text-ink/50">
-            {listings.length} ilan bulundu
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink/10 pt-3.5">
+          <div className="flex items-center gap-3.5">
+            <p className="font-mono text-[11px] font-semibold text-ink/50">
+              {listings.length} ilan bulundu
+            </p>
+            <div className="inline-flex rounded-full border border-ink/15 bg-white p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`rounded-full px-3.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] ${
+                  viewMode === "list" ? "bg-ink text-white" : "text-ink/50"
+                }`}
+              >
+                Liste
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("map")}
+                disabled={mapListings.length === 0}
+                className={`rounded-full px-3.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] disabled:opacity-40 ${
+                  viewMode === "map" ? "bg-ink text-white" : "text-ink/50"
+                }`}
+              >
+                Harita
+              </button>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             <SaveSearchButton
               slug={slug}
               filters={{ purpose, district, rooms, type, minPrice, maxPrice, minArea }}
             />
-            <div className="flex gap-1 rounded-full border border-ink/15 bg-white p-0.5 shadow-sm">
+            <div className="flex gap-0.5 rounded-full border border-ink/15 bg-white p-0.5">
               {Object.entries(SORT_OPTIONS).map(([key, label]) => (
                 <Link
                   key={key}
                   href={qs({ sort: key === "date_desc" ? null : key })}
-                  className={`rounded-full px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                  className={`rounded-full px-3 py-1.5 text-[11px] font-bold ${
                     sort === key ? "bg-ink text-white" : "text-ink/50 hover:text-ink"
                   }`}
                 >
@@ -284,7 +281,6 @@ export function ShowcaseWorkspace({
         </div>
       </div>
 
-      {/* 3. İlan Listesi (Grid) */}
       {listings.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-ink/25 bg-white/60 p-16 text-center">
           <Building2 className="mx-auto mb-4 h-10 w-10 text-ink/20" />
@@ -294,61 +290,26 @@ export function ShowcaseWorkspace({
             Filtreleri Temizle
           </Link>
         </div>
+      ) : viewMode === "map" ? (
+        <div className="relative h-[min(52vh,420px)] overflow-hidden rounded-2xl border border-ink/15 bg-brand-50/80 sm:h-[min(56vh,480px)] lg:h-[500px]">
+          <ShowcaseMap
+            listings={mapListings}
+            slug={slug}
+            height={500}
+            onPinClick={handlePinClick}
+          />
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {listings.map((l) => (
-            <Link
-              key={l.id}
-              href={`/ofis/${slug}/ilan/${l.slug ? `${l.id}-${l.slug}` : l.id}`}
-              data-imp={l.id}
-              className="group overflow-hidden rounded-xl border border-ink/15 bg-white transition-all hover:border-ink/40 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
-            >
-              <div className="relative">
-                <FavoriteButton slug={slug} listingId={l.id} />
-                <div className="relative h-48 overflow-hidden bg-brand-50">
-                  {l.image ? (
-                    <Image src={l.image} alt={l.imageAlt} fill loading="lazy" sizes="(min-width: 1024px) 33vw, 50vw" className="object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-ink/20"><Building2 size={30} /></div>
-                  )}
-                  {l.mediaCount > 1 && (
-                    <span className="absolute left-3 top-3 flex items-center gap-1 rounded-md bg-ink/60 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
-                      📷 {l.mediaCount}
-                    </span>
-                  )}
-                </div>
-                <span className="kunye absolute -bottom-3 left-3 max-w-[85%] truncate shadow-sm">{l.title}</span>
-                <span className="absolute right-3 top-3 rounded-md border border-ink bg-paper px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider">
-                  {l.purpose === "SALE" ? "Satılık" : "Kiralık"}
-                </span>
-              </div>
-              <div className="px-4 pb-4 pt-6">
-                <h3 className="line-clamp-1 text-[15px] font-bold">{l.title}</h3>
-                <p className="mt-0.5 text-xs text-ink/45">
-                  {l.district}{l.neighborhood ? ` · ${l.neighborhood}` : ""}
-                </p>
-                <p className="mt-1.5 font-display text-lg font-extrabold tracking-tight">
-                  {trMoney.format(l.price)}
-                  {l.purpose === "RENT" && <span className="text-sm font-medium text-ink/45"> /ay</span>}
-                </p>
-                {l.netArea && l.netArea > 0 && (
-                  <p className="text-[11px] text-ink/40">{trMoney.format(Math.round(l.price / l.netArea))}/m²</p>
-                )}
-                <div className="olcu mt-2.5">
-                  <span className="olcu-cizgi" />
-                  <span>{l.rooms ?? "—"} · net {l.netArea ?? l.grossArea ?? "—"} m²</span>
-                  <span className="olcu-cizgi" />
-                </div>
-              </div>
-            </Link>
+            <ShowcaseCard key={l.id} slug={slug} listing={l} isAuto={isAuto} />
           ))}
         </div>
       )}
 
-      {/* 4. Mobil & Desktop Modal Drawer Filtreler */}
       {mobileFilterOpen && (
         <div className="fixed inset-0 z-50 flex justify-end bg-ink/40 backdrop-blur-sm">
-          <div className="flex w-full max-w-sm flex-col bg-white shadow-2xl transition-transform animate-in slide-in-from-right sm:border-l sm:border-ink/15">
+          <div className="flex w-full max-w-sm flex-col bg-white shadow-2xl sm:border-l sm:border-ink/15">
             <div className="flex items-center justify-between border-b border-ink/10 px-5 py-4">
               <h2 className="font-display text-lg font-extrabold">Filtreler</h2>
               <button onClick={() => setMobileFilterOpen(false)} className="rounded-full bg-ink/5 p-2 text-ink/60 hover:bg-ink/10 hover:text-ink">
@@ -375,6 +336,6 @@ export function ShowcaseWorkspace({
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }

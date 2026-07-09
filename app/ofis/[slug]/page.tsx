@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Building2 } from "lucide-react";
+import type { ListingPurpose } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { trMoney, ROOM_OPTIONS, TYPE_TR } from "@/lib/labels";
+import { trMoney, ROOM_OPTIONS } from "@/lib/labels";
 import { RequestForm } from "@/components/showcase-forms";
 import { TrackImpressions } from "@/components/vitrin-tracking";
 import { officeJsonLd } from "@/lib/seo";
 import { getBaseUrl } from "@/lib/url";
 import { isAutoVertical } from "@/lib/verticals";
 import { ShowcaseWorkspace, type SplitListing } from "@/components/showcase-workspace";
+import { ShowcaseHero } from "@/components/showcase-hero";
+import { ShowcaseRail } from "@/components/showcase-rail";
 import { AnimatedCounter } from "@/components/animated-counter";
+import type { ShowcaseCardListing } from "@/components/showcase-card";
 
 const BASE_URL = getBaseUrl();
 
@@ -44,6 +47,50 @@ const SORT_OPTIONS: Record<string, { label: string; orderBy: Record<string, stri
   area_desc: { label: "m² ↓", orderBy: { netArea: "desc" } },
 };
 
+const updatedFmt = new Intl.DateTimeFormat("tr-TR", {
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+function toCardListing(
+  l: {
+    id: string;
+    title: string;
+    slug: string | null;
+    purpose: string;
+    price: unknown;
+    rooms: string | null;
+    netArea: number | null;
+    grossArea: number | null;
+    district: string;
+    neighborhood: string | null;
+    features: string[];
+    vehicleYear?: number | null;
+    media: Array<{ cardUrl: string | null; url: string; alt: string | null }>;
+    _count?: { media: number };
+  },
+): ShowcaseCardListing {
+  return {
+    id: l.id,
+    title: l.title,
+    slug: l.slug,
+    purpose: l.purpose,
+    price: Number(l.price),
+    rooms: l.rooms,
+    netArea: l.netArea,
+    grossArea: l.grossArea,
+    district: l.district,
+    neighborhood: l.neighborhood,
+    features: l.features,
+    vehicleYear: l.vehicleYear,
+    mediaCount: l._count?.media,
+    image: l.media[0]?.cardUrl ?? l.media[0]?.url ?? null,
+    imageAlt: l.media[0]?.alt ?? l.title,
+  };
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -65,11 +112,7 @@ export async function generateMetadata({
   const displayName = tenant.brandName?.trim() || tenant.name;
   const title = `${displayName} — Satılık ve Kiralık Portföy`;
   const description = `${displayName} güncel portföyü: ${tenant.city ?? "Türkiye"} genelinde satılık ve kiralık gayrimenkuller.`;
-  // og:image bilinçli olarak verilmez — segmentteki opengraph-image.tsx
-  // (markalı ofis kartı) dosya-tabanlı öncelikle devreye girer.
   return {
-    // Layout'taki template yalnız ALT segmentlere uygulanır; bu sayfanın
-    // "| EmlakFlow" eki yememesi için absolute şart (beyaz etiket).
     title: { absolute: title },
     description,
     alternates: { canonical: `${BASE_URL}/ofis/${slug}` },
@@ -98,6 +141,7 @@ export default async function ShowcasePage({
     select: {
       id: true,
       name: true,
+      brandName: true,
       city: true,
       district: true,
       showcaseEnabled: true,
@@ -109,11 +153,14 @@ export default async function ShowcasePage({
       showTeam: true,
       vertical: true,
       officePhotoUrl: true,
+      updatedAt: true,
     },
   });
   if (!tenant || !tenant.showcaseEnabled) notFound();
 
-  // Detaylı arama parametreleri (sayısal alanlar doğrulanır)
+  const displayName = tenant.brandName?.trim() || tenant.name;
+  const isAuto = isAutoVertical(tenant.vertical);
+
   const num = (v?: string) => {
     const n = Number(v);
     return v && !isNaN(n) && n > 0 ? n : null;
@@ -121,7 +168,7 @@ export default async function ShowcasePage({
   const minPrice = num(sp.minPrice);
   const maxPrice = num(sp.maxPrice);
   const minArea = num(sp.minArea);
-  const q = sp.q?.trim() || null; // serbest metin: başlık / mahalle / ilçe / adres
+  const q = sp.q?.trim() || null;
   const typeFilter = LISTING_TYPES.includes(
     sp.type as (typeof LISTING_TYPES)[number],
   )
@@ -131,44 +178,74 @@ export default async function ShowcasePage({
   const sortKey = sp.sort && sp.sort in SORT_OPTIONS ? sp.sort : "date_desc";
   const orderBy = SORT_OPTIONS[sortKey].orderBy;
 
-  // Favori/oturum durumu client'ta SiteSessionProvider'dan gelir (ISR uyumu)
-  const [listings, districts, team, heroMedia, recentlyClosed] = await Promise.all([
+  const listingWhere = {
+    tenantId: tenant.id,
+    status: "ACTIVE" as const,
+    ...(sp.purpose === "SALE" || sp.purpose === "RENT"
+      ? { purpose: sp.purpose as ListingPurpose }
+      : {}),
+    ...(sp.district ? { district: sp.district } : {}),
+    ...(sp.rooms ? { rooms: sp.rooms } : {}),
+    ...(typeFilter ? { type: typeFilter } : {}),
+    ...(q
+      ? {
+          OR: [
+            { title: { contains: q, mode: "insensitive" as const } },
+            { neighborhood: { contains: q, mode: "insensitive" as const } },
+            { district: { contains: q, mode: "insensitive" as const } },
+            { address: { contains: q, mode: "insensitive" as const } },
+            { refCode: { contains: q, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+    ...(minPrice || maxPrice
+      ? {
+          price: {
+            ...(minPrice ? { gte: minPrice } : {}),
+            ...(maxPrice ? { lte: maxPrice } : {}),
+          },
+        }
+      : {}),
+    ...(minArea ? { netArea: { gte: minArea } } : {}),
+  };
+
+  const mediaInclude = {
+    media: { orderBy: { order: "asc" as const }, take: 1 },
+    _count: { select: { media: true } },
+  };
+
+  const [
+    listings,
+    featuredListings,
+    newListings,
+    districts,
+    team,
+    recentlyClosed,
+    activeCount,
+    completedCount,
+    neighborhoodCount,
+    latestUpdate,
+  ] = await Promise.all([
+    prisma.listing.findMany({
+      where: listingWhere,
+      orderBy,
+      include: mediaInclude,
+    }),
+    prisma.listing.findMany({
+      where: { tenantId: tenant.id, status: "ACTIVE", featured: true },
+      orderBy: { updatedAt: "desc" },
+      take: 6,
+      include: mediaInclude,
+    }),
     prisma.listing.findMany({
       where: {
         tenantId: tenant.id,
         status: "ACTIVE",
-        ...(sp.purpose === "SALE" || sp.purpose === "RENT"
-          ? { purpose: sp.purpose }
-          : {}),
-        ...(sp.district ? { district: sp.district } : {}),
-        ...(sp.rooms ? { rooms: sp.rooms } : {}),
-        ...(typeFilter ? { type: typeFilter } : {}),
-        ...(q
-          ? {
-              OR: [
-                { title: { contains: q, mode: "insensitive" as const } },
-                { neighborhood: { contains: q, mode: "insensitive" as const } },
-                { district: { contains: q, mode: "insensitive" as const } },
-                { address: { contains: q, mode: "insensitive" as const } },
-                { refCode: { contains: q, mode: "insensitive" as const } },
-              ],
-            }
-          : {}),
-        ...(minPrice || maxPrice
-          ? {
-              price: {
-                ...(minPrice ? { gte: minPrice } : {}),
-                ...(maxPrice ? { lte: maxPrice } : {}),
-              },
-            }
-          : {}),
-        ...(minArea ? { netArea: { gte: minArea } } : {}),
+        createdAt: { gte: new Date(Date.now() - 14 * 86400000) },
       },
-      orderBy,
-      include: {
-        media: { orderBy: { order: "asc" }, take: 1 },
-        _count: { select: { media: true } },
-      },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+      include: mediaInclude,
     }),
     prisma.listing.findMany({
       where: { tenantId: tenant.id, status: "ACTIVE" },
@@ -183,15 +260,6 @@ export default async function ShowcasePage({
           select: { id: true, name: true, role: true, photoUrl: true },
         })
       : Promise.resolve([]),
-    // Hero carousel görselleri — en son 5 aktif ilanın ilk fotoğrafı
-    prisma.listingMedia.findMany({
-      where: { listing: { tenantId: tenant.id, status: "ACTIVE" } },
-      orderBy: [{ listing: { createdAt: "desc" } }, { order: "asc" }],
-      distinct: ["listingId"],
-      take: 5,
-      select: { url: true, cardUrl: true, alt: true, listing: { select: { title: true } } },
-    }),
-    // Son satılan/kiralanan ilanlar — sosyal kanıt
     prisma.listing.findMany({
       where: {
         tenantId: tenant.id,
@@ -202,25 +270,74 @@ export default async function ShowcasePage({
       take: 6,
       include: { media: { orderBy: { order: "asc" }, take: 1 } },
     }),
+    prisma.listing.count({
+      where: { tenantId: tenant.id, status: "ACTIVE" },
+    }),
+    prisma.listing.count({
+      where: { tenantId: tenant.id, status: { in: ["SOLD", "RENTED"] } },
+    }),
+    prisma.listing.findMany({
+      where: { tenantId: tenant.id, status: "ACTIVE", neighborhood: { not: null } },
+      select: { neighborhood: true },
+      distinct: ["neighborhood"],
+    }),
+    prisma.listing.findFirst({
+      where: { tenantId: tenant.id, status: "ACTIVE" },
+      orderBy: { updatedAt: "desc" },
+      select: { updatedAt: true },
+    }),
   ]);
 
   const splitListings: SplitListing[] = listings.map((l) => ({
-    id: l.id,
-    title: l.title,
-    slug: l.slug,
-    purpose: l.purpose,
-    price: Number(l.price),
-    rooms: l.rooms,
-    netArea: l.netArea,
-    grossArea: l.grossArea,
-    district: l.district,
-    neighborhood: l.neighborhood,
+    ...toCardListing(l),
     lat: l.lat,
     lng: l.lng,
-    mediaCount: l._count.media,
-    image: l.media[0]?.cardUrl ?? l.media[0]?.url ?? null,
-    imageAlt: l.media[0]?.alt ?? l.title,
   }));
+
+  const featuredCards = featuredListings.map(toCardListing);
+  const newCards = newListings.map(toCardListing);
+
+  const savedStats = Array.isArray(tenant.aboutStats)
+    ? (tenant.aboutStats as Array<{ value: string; label: string }>).filter(
+        (x) => x && x.value && x.label,
+      )
+    : [];
+
+  const heroStats =
+    savedStats.length >= 4
+      ? savedStats.slice(0, 4)
+      : [
+          { value: String(activeCount), label: isAuto ? "Aktif Araç" : "Aktif İlan" },
+          { value: `${completedCount}+`, label: "Tamamlanan İşlem" },
+          { value: String(neighborhoodCount.length || districts.length), label: isAuto ? "Bölge" : "Mahalle" },
+          ...(savedStats[0] ? [savedStats[0]] : [{ value: "—", label: "Tecrübe" }]),
+        ].slice(0, 4);
+
+  const place = tenant.district ?? tenant.city ?? "Bölgeniz";
+  const eyebrow = tenant.aboutText
+    ? `${place}'da butik ${isAuto ? "otomotiv galerisi" : "gayrimenkul ofisi"}`
+    : `${place} · güncel portföy`;
+  const headline =
+    tenant.aboutTitle ??
+    (isAuto
+      ? `${place} aradığınız araç, künyesiyle burada.`
+      : `${place} aradığınız evi bulmanın kısa yolu.`);
+  const tagline =
+    tenant.showcaseTagline ??
+    (isAuto
+      ? "Seçilmiş stok, şeffaf fiyat, tek danışman. Aradığınızı bulamazsanız kriterinizi bırakın — uyan araç girdiği an sizi arayalım."
+      : "Seçilmiş portföy, şeffaf fiyat, tek danışman. Aradığınızı listemizde bulamazsanız kriterinizi bırakın — uyan mülk girdiği an sizi arayalım.");
+
+  const heroImage =
+    tenant.officePhotoUrl ??
+    featuredListings[0]?.media[0]?.cardUrl ??
+    featuredListings[0]?.media[0]?.url ??
+    newListings[0]?.media[0]?.cardUrl ??
+    newListings[0]?.media[0]?.url ??
+    null;
+
+  const updatedAt = latestUpdate?.updatedAt ?? tenant.updatedAt;
+  const updatedLabel = updatedFmt.format(updatedAt);
 
   const stats = Array.isArray(tenant.aboutStats)
     ? (tenant.aboutStats as Array<{ value: string; label: string }>).filter(
@@ -235,35 +352,6 @@ export default async function ShowcasePage({
     ASSISTANT: "Asistan",
   };
 
-  const qs = (patch: Record<string, string | undefined>) => {
-    const p = new URLSearchParams();
-    const merged = {
-      q: sp.q,
-      purpose: sp.purpose,
-      district: sp.district,
-      rooms: sp.rooms,
-      type: sp.type,
-      minPrice: sp.minPrice,
-      maxPrice: sp.maxPrice,
-      minArea: sp.minArea,
-      sort: sp.sort,
-      ...patch,
-    };
-    for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v);
-    const s = p.toString();
-    return `/ofis/${slug}${s ? `?${s}` : ""}`;
-  };
-
-  const hasAdvanced = !!(typeFilter || minPrice || maxPrice || minArea);
-  const activeFilterCount =
-    (sp.purpose ? 1 : 0) +
-    (sp.district ? 1 : 0) +
-    (sp.rooms ? 1 : 0) +
-    (typeFilter ? 1 : 0) +
-    (minPrice ? 1 : 0) +
-    (maxPrice ? 1 : 0) +
-    (minArea ? 1 : 0);
-
   const jsonLd = officeJsonLd(
     {
       name: tenant.name,
@@ -276,35 +364,71 @@ export default async function ShowcasePage({
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <TrackImpressions tenantId={tenant.id} />
 
-      {/* Ana Çalışma Alanı: Harita, Filtreler ve Grid */}
+      <div className="-mx-4 sm:-mx-6">
+        <ShowcaseHero
+          displayName={displayName}
+          district={tenant.district}
+          eyebrow={eyebrow}
+          headline={headline}
+          tagline={tagline}
+          heroImage={heroImage}
+          heroImageAlt={displayName}
+          stats={heroStats}
+          updatedLabel={updatedLabel}
+        />
+      </div>
+
+      {featuredCards.length > 0 && (
+        <ShowcaseRail
+          slug={slug}
+          title="Öne Çıkanlar"
+          subtitle={`Danışmanlarımızın bu hafta öne aldığı ${featuredCards.length} ${isAuto ? "araç" : "mülk"}.`}
+          shelf="RAF 01"
+          listings={featuredCards}
+          isAuto={isAuto}
+        />
+      )}
+
+      {newCards.length > 0 && (
+        <ShowcaseRail
+          slug={slug}
+          title="Yeni Eklenenler"
+          subtitle={`Son 14 günde portföye giren ${isAuto ? "araçlar" : "mülkler"}.`}
+          shelf="RAF 02"
+          listings={newCards}
+          isAuto={isAuto}
+          showNewBadges
+        />
+      )}
+
       <ShowcaseWorkspace
         listings={splitListings}
         slug={slug}
         searchParams={sp}
-        districts={districts.map(d => d.district)}
+        districts={districts.map((d) => d.district)}
+        isAuto={isAuto}
       />
 
-      {/* Son tamamlanan işlemler — sosyal kanıt */}
       {recentlyClosed.length > 0 && (
         <section>
           <h2 className="bolum">Son Tamamlanan İşlemler</h2>
           <p className="mt-1.5 text-xs text-ink/45">
             Son 60 günde {recentlyClosed.length} işlem tamamlandı.
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="mt-4 grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-6">
             {recentlyClosed.map((l) => (
               <div
                 key={l.id}
                 className="overflow-hidden rounded-[10px] border border-ink/15 bg-white"
               >
-                <div className="relative h-24 bg-brand-50">
+                <div className="relative h-[84px] bg-brand-50">
                   {l.media[0] ? (
                     <Image
                       src={l.media[0].cardUrl ?? l.media[0].url}
@@ -320,16 +444,14 @@ export default async function ShowcasePage({
                     </div>
                   )}
                   <span
-                    className={`kunye absolute -bottom-2.5 left-2 text-[9px] ${
-                      l.status === "SOLD" ? "kunye-satildi" : ""
-                    }`}
+                    className={`kunye kunye-satildi absolute -bottom-2.5 left-2 text-[9px]`}
                   >
                     {l.status === "SOLD" ? "Satıldı" : "Kiralandı"}
                   </span>
                 </div>
                 <div className="px-2.5 pb-2.5 pt-4">
                   <p className="line-clamp-1 text-xs font-bold">{l.title}</p>
-                  <p className="mt-0.5 font-display text-sm font-extrabold tracking-tight text-ink/60 line-through decoration-ink/25">
+                  <p className="mt-0.5 font-display text-[13px] font-extrabold tracking-tight text-ink/60 line-through decoration-ink/30">
                     {trMoney.format(Number(l.price))}
                   </p>
                 </div>
@@ -339,12 +461,10 @@ export default async function ShowcasePage({
         </section>
       )}
 
-      {/* Hakkımızda / Vizyon — yalnız dolu alanlar görünür */}
       {hasAbout && (
         <section>
           <h2 className="bolum">Hakkımızda</h2>
           <div className="mt-4 rounded-[10px] border border-ink bg-white p-6">
-            {/* Ofis fotoğrafı */}
             {tenant.officePhotoUrl && (
               <div className="relative mb-5 h-40 overflow-hidden rounded-lg sm:h-56">
                 <Image
@@ -429,21 +549,20 @@ export default async function ShowcasePage({
         </section>
       )}
 
-      {/* Aradığını bulamayan müşteri → CRM'e talep */}
-      <section id="talep-form" className="rounded-[10px] border border-ink bg-white p-5 sm:p-7">
-        <h2 className="font-display text-xl font-extrabold tracking-tight">
+      <section id="talep-form" className="scroll-mt-20 rounded-xl border border-ink bg-white p-5 sm:p-7">
+        <h2 className="font-display text-[21px] font-extrabold tracking-tight">
           Aradığınızı bulamadınız mı?
         </h2>
         <p className="mt-1.5 max-w-lg text-sm text-ink/60">
-          Kriterlerinizi bırakın — uyan bir mülk portföye girdiği an sizi
-          arayalım.
+          Kriterlerinizi bırakın — uyan bir {isAuto ? "araç" : "mülk"} portföye
+          girdiği an sizi arayalım.
         </p>
         <div className="mt-5">
           <RequestForm
             slug={slug}
             districts={districts.map((d) => d.district)}
             rooms={[...ROOM_OPTIONS]}
-            isAuto={isAutoVertical(tenant.vertical)}
+            isAuto={isAuto}
           />
         </div>
       </section>
