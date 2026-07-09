@@ -24,7 +24,7 @@ export async function sendMail(opts: {
   text: string;
   from?: string;
   replyTo?: string;
-}): Promise<{ sent: boolean; error?: string }> {
+}): Promise<{ sent: boolean; id?: string; error?: string }> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.log(
@@ -54,7 +54,9 @@ export async function sendMail(opts: {
     console.error(`[mailer] Resend hatası ${res.status}: ${body}`);
     return { sent: false, error: `Resend ${res.status}: ${body.slice(0, 200)}` };
   }
-  return { sent: true };
+
+  const data = (await res.json().catch(() => null)) as { id?: string } | null;
+  return { sent: true, id: data?.id };
 }
 
 /** Şifre sıfırlama e-postası — marka diliyle, tek CTA. */

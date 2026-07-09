@@ -894,12 +894,40 @@ model MarketingLead {
   email        String              @unique
   telefon      String?
   bolge        String?
+  notes        String?
   status       MarketingLeadStatus @default(PENDING)
+  sentAt       DateTime?
+  openedAt     DateTime?
+  clickedAt    DateTime?
+  lastEmailId  String?
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
 
+  emails MarketingOutboundEmail[]
+
   @@index([status])
   @@index([createdAt])
+  @@index([sentAt])
+}
+
+/// Super-admin outbound gönderim kaydı — kişiye özel / seçimli kampanya geçmişi
+model MarketingOutboundEmail {
+  id          String         @id @default(cuid())
+  leadId      String
+  lead        MarketingLead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  templateKey String
+  subject     String
+  preview     String?
+  status      String         // sent | failed | opened | clicked | bounced
+  resendId    String?        @unique
+  error       String?
+  sentAt      DateTime       @default(now())
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@index([leadId, sentAt])
+  @@index([status])
 }
 
 // Plan değişiklik geçmişi (Admin panelinde görüntülenir)

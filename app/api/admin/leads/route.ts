@@ -37,6 +37,7 @@ export async function POST(req: Request) {
     email?: string;
     telefon?: string;
     bolge?: string;
+    notes?: string;
     status?: string;
   };
 
@@ -69,6 +70,7 @@ export async function POST(req: Request) {
         yetkiliIsmi: body.yetkiliIsmi?.trim() || null,
         telefon: body.telefon?.trim() || null,
         bolge: body.bolge?.trim() || null,
+        notes: body.notes?.trim() || null,
         status,
       },
     });
