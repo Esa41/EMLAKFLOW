@@ -6,11 +6,12 @@ import { getSession } from "./auth";
 export const FREE_LISTING_LIMIT = 3;
 
 /**
- * Paket mimarisi — OFİS BAŞINA fiyat (danışman başına DEĞİL: Türkiye
- * pazarında per-seat model hesap paylaşımıyla deliniyor; ayrıca kazanç
- * paylaşımı modülü zaten her danışmana kendi hesabını açtırıyor).
- * Fiyat gerekçeleri: docs/fiyatlandirma-calismasi.md
- * Tenant.plan değerleri: trial | starter (eski, free sayılır) | pro | premium
+ * Paket mimarisi — İKİ katman: Ücretsiz + Pro (kullanıcı kararı, Tem 2026).
+ * Fiyat OFİS BAŞINA (danışman başına DEĞİL: Türkiye pazarında per-seat
+ * model hesap paylaşımıyla deliniyor; ayrıca kazanç paylaşımı modülü zaten
+ * her danışmana kendi hesabını açtırıyor). Tüm özellikler Pro'da.
+ * Gerekçeler: docs/fiyatlandirma-calismasi.md
+ * Tenant.plan değerleri: trial | starter (eski, free sayılır) | pro
  */
 export const PLANS = {
   free: {
@@ -25,20 +26,11 @@ export const PLANS = {
   pro: {
     key: "pro",
     name: "Pro",
-    monthlyTRY: 1490,
-    yearlyTRY: 14900, // 10 × aylık — 2 ay hediye
+    monthlyTRY: 2000,
+    yearlyTRY: 20000, // 10 × aylık — 2 ay hediye
     listingLimit: null, // sınırsız
-    userLimit: 10,
-    tagline: "Portföyünü büyüten ofis için",
-  },
-  premium: {
-    key: "premium",
-    name: "Premium",
-    monthlyTRY: 2990,
-    yearlyTRY: 29900,
-    listingLimit: null,
-    userLimit: null, // sınırsız
-    tagline: "AI ve analitikle satan ofis için",
+    userLimit: null, // sınırsız — "ofis başına tek fiyat" vaadinin parçası
+    tagline: "Emlak ofisinin tüm işletim sistemi",
   },
 } as const;
 
@@ -46,19 +38,12 @@ export type PlanKey = keyof typeof PLANS;
 
 /** Tenant.plan (serbest string) → paket anahtarı; bilinmeyenler free sayılır. */
 export function planKeyFromTenant(plan: string | null | undefined): PlanKey {
-  if (plan === "pro") return "pro";
-  if (plan === "premium") return "premium";
-  return "free"; // trial, starter, null…
+  return plan === "pro" || plan === "premium" ? "pro" : "free";
 }
 
-/** Sınırsız ilan hakkı olan planlar — premium, pro'nun üst kümesidir. */
+/** Sınırsız ilan hakkı olan planlar ("premium" eski/legacy değer, pro sayılır). */
 export function isPro(plan: string | null | undefined): boolean {
   return plan === "pro" || plan === "premium";
-}
-
-/** Premium'a özel özellikler (AI paketi, analitik, rapor) için kapı. */
-export function isPremium(plan: string | null | undefined): boolean {
-  return plan === "premium";
 }
 
 /**

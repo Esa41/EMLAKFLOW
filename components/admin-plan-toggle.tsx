@@ -16,8 +16,8 @@ export function AdminPlanToggle({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // trial/starter gibi eski değerler seçimde "free" görünür
-  const current = plan === "pro" || plan === "premium" ? plan : "free";
+  // trial/starter/premium gibi eski değerler seçimde en yakın pakete oturur
+  const current = plan === "pro" || plan === "premium" ? "pro" : "free";
 
   async function change(nextPlan: string) {
     if (nextPlan === current) return;
@@ -46,7 +46,6 @@ export function AdminPlanToggle({
           [
             ["free", "Free"],
             ["pro", "Pro"],
-            ["premium", "Premium"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -55,11 +54,9 @@ export function AdminPlanToggle({
             disabled={saving}
             className={`rounded-md px-2.5 py-1.5 transition-colors disabled:opacity-50 ${
               current === key
-                ? key === "premium"
-                  ? "bg-gradient-to-r from-violet-600 to-violet-700 text-white"
-                  : key === "pro"
-                    ? "bg-gradient-to-r from-emerald-600 to-emerald-700 text-white"
-                    : "bg-ink text-white"
+                ? key === "pro"
+                  ? "bg-gradient-to-r from-emerald-600 to-emerald-700 text-white"
+                  : "bg-ink text-white"
                 : "text-ink/55 hover:text-ink"
             }`}
           >

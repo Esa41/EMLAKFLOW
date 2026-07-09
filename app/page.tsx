@@ -20,11 +20,11 @@ const softwareJsonLd = {
   offers: {
     "@type": "AggregateOffer",
     lowPrice: "0",
-    highPrice: "2990",
+    highPrice: "2000",
     priceCurrency: "TRY",
-    offerCount: 3,
+    offerCount: 2,
     description:
-      "Başlangıç ücretsiz; Pro ve Premium paketler ofis başına aylık abonelik",
+      "Başlangıç ücretsiz; Pro paketi ofis başına aylık abonelik (tüm özellikler)",
   },
   publisher: { "@type": "Organization", name: "EmlakFlow", url: BASE_URL },
 };

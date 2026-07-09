@@ -1,28 +1,20 @@
 import Link from "next/link";
-import { Check, Sparkles } from "lucide-react";
+import { Check } from "lucide-react";
 import { PLANS } from "@/lib/plans";
 
 /**
- * Landing fiyatlandırma bölümü — OFİS BAŞINA paket (danışman başına değil).
+ * Landing fiyatlandırma bölümü — iki paket: Ücretsiz + Pro (tüm özellikler).
  * Fiyat/limit kaynağı tek: lib/plans.ts PLANS. Gerekçeler:
  * docs/fiyatlandirma-calismasi.md
  */
 
 const tl = new Intl.NumberFormat("tr-TR");
 
-type CardDef = {
-  plan: (typeof PLANS)[keyof typeof PLANS];
-  features: string[];
-  cta: string;
-  highlight?: boolean;
-  premium?: boolean;
-  featuresIntro?: string;
-};
-
-const CARDS: CardDef[] = [
+const CARDS = [
   {
     plan: PLANS.free,
     cta: "Ücretsiz başla",
+    highlight: false,
     features: [
       `${PLANS.free.listingLimit} ilan hakkı`,
       "1 kullanıcı",
@@ -34,33 +26,20 @@ const CARDS: CardDef[] = [
   },
   {
     plan: PLANS.pro,
-    cta: "Pro'yu dene",
+    cta: "Pro'ya geç",
     highlight: true,
     features: [
       "Sınırsız ilan",
-      `${PLANS.pro.userLimit} kullanıcıya kadar ekip`,
+      "Sınırsız kullanıcı — tüm ekibine hesap aç",
       "Rozetsiz vitrin + kendi logon ve marka rengin",
       "Alıcı–portföy akıllı eşleştirme",
+      "AI ilan metni, SEO ve fiyat danışmanı",
+      "Haftalık mülk sahibi raporu (WhatsApp/PDF)",
+      "Vitrin dönüşüm analitiği",
       "Ajanda, görev ve yer gösterme takibi",
       "Ekip sohbeti + vitrin canlı sohbet",
       "Kira takibi ve otomatik hatırlatmalar",
-      "Sözleşme üretimi",
-      "Danışman kazanç paylaşımı",
-    ],
-  },
-  {
-    plan: PLANS.premium,
-    cta: "Premium'u dene",
-    premium: true,
-    featuresIntro: "Pro'daki her şey, artı:",
-    features: [
-      "AI ilan metni ve SEO üretimi",
-      "AI fiyat danışmanı (emsal analizi)",
-      "Haftalık mülk sahibi raporu (WhatsApp/PDF)",
-      "Vitrin dönüşüm analitiği (funnel)",
-      "Sosyal medya senkronizasyonu",
-      "Çevre ve konum skoru",
-      "Sınırsız kullanıcı",
+      "Sözleşme üretimi + danışman kazanç paylaşımı",
       "Öncelikli destek",
     ],
   },
@@ -75,16 +54,16 @@ export function PricingSection() {
             Fiyatlandırma
           </p>
           <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
-            Ofis başına tek fiyat. Danışman başına değil.
+            Tek paket, tüm özellikler. Ofis başına.
           </h2>
           <p className="mt-4 text-[15px] leading-relaxed text-ink/60">
+            Danışman başına ücret yok, özellik kilidi yok, sürpriz yok.
             Ekibindeki herkese hesap aç, kazanç paylaşımını sistem hesaplasın.
-            Kullanıcı başına ücret yok, sürpriz yok.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 lg:grid-cols-3">
-          {CARDS.map(({ plan, features, cta, highlight, premium, featuresIntro }) => (
+        <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
+          {CARDS.map(({ plan, features, cta, highlight }) => (
             <div
               key={plan.key}
               className={`relative flex flex-col rounded-2xl border p-7 ${
@@ -95,15 +74,12 @@ export function PricingSection() {
             >
               {highlight && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white">
-                  En çok tercih edilen
+                  Tüm özellikler
                 </span>
               )}
-              <div className="flex items-center gap-2">
-                <h3 className="font-display text-xl font-extrabold tracking-tight">
-                  {plan.name}
-                </h3>
-                {premium && <Sparkles size={16} className="text-brand-600" />}
-              </div>
+              <h3 className="font-display text-xl font-extrabold tracking-tight">
+                {plan.name}
+              </h3>
               <p className="mt-1 text-[13px] text-ink/55">{plan.tagline}</p>
 
               <p className="mt-5 flex items-baseline gap-1.5">
@@ -121,9 +97,6 @@ export function PricingSection() {
               )}
 
               <ul className="mt-6 flex-1 space-y-2.5 text-sm">
-                {featuresIntro && (
-                  <li className="font-semibold text-ink/80">{featuresIntro}</li>
-                )}
                 {features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-ink/70">
                     <Check size={15} className="mt-0.5 shrink-0 text-brand-600" />
@@ -135,7 +108,7 @@ export function PricingSection() {
               <Link
                 href="/register"
                 className={`mt-7 rounded-xl py-3 text-center text-sm font-bold transition-colors ${
-                  highlight || premium
+                  highlight
                     ? "btn-selvi text-white"
                     : "border border-ink/20 bg-white text-ink hover:border-ink/50"
                 }`}
