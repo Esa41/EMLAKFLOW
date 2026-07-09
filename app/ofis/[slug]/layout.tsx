@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
-import Link from "next/link";
 import Image from "next/image";
 import { Phone } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { LiveChatWidget } from "@/components/live-chat-widget";
 import { SiteAuthHeader } from "@/components/site-auth";
 import { SiteSessionProvider } from "@/components/site-session-context";
+import { ShowcaseHomeLink } from "@/components/showcase-home-link";
 import { brandPalette } from "@/lib/color";
 
 // Vitrin ofisin markalı sayfasıdır: kök "%s | EmlakFlow" şablonunu nötrle —
@@ -23,8 +22,6 @@ export default async function ShowcaseLayout({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const hdrs = await headers();
-  const isCustomDomain = hdrs.get("x-showcase-custom-domain") === "1";
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug },
@@ -44,12 +41,10 @@ export default async function ShowcaseLayout({
   });
   if (!tenant || !tenant.showcaseEnabled) notFound();
 
-  // Oturum bilgisi bilinçli olarak burada OKUNMAZ: cookie okumak rotayı
-  // dynamic yapar ve ilan detayının ISR önbelleğini bozar. Kullanıcı durumu
-  // SiteSessionProvider'ın client fetch'iyle gelir.
+  // Oturum / headers burada OKUNMAZ: cookie veya headers() rotayı dynamic
+  // yapar ve ilan detayının ISR önbelleğini bozar (500 / stale error riski).
   const palette = brandPalette(tenant.primaryColor || tenant.brandColor);
   const displayName = tenant.brandName?.trim() || tenant.name;
-  const homeHref = isCustomDomain ? "/" : `/ofis/${slug}`;
   const whiteLabel = Boolean(tenant.customDomain || tenant.brandName);
 
   return (
@@ -58,7 +53,10 @@ export default async function ShowcaseLayout({
       {/* Antet — müşteri yüzü */}
       <header className="sticky top-0 z-30 border-b border-ink bg-paper">
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4 sm:px-6">
-          <Link href={homeHref} className="flex min-w-0 items-center gap-2.5">
+          <ShowcaseHomeLink
+            slug={slug}
+            className="flex min-w-0 items-center gap-2.5"
+          >
             {tenant.logoUrl ? (
               <Image
                 src={tenant.logoUrl}
@@ -76,7 +74,7 @@ export default async function ShowcaseLayout({
                 {[tenant.district, tenant.city].filter(Boolean).join(" · ") || "Gayrimenkul"}
               </p>
             </div>
-          </Link>
+          </ShowcaseHomeLink>
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <SiteAuthHeader slug={slug} />
             {tenant.phone && (
