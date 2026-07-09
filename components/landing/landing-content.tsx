@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -15,18 +14,12 @@ import {
 } from "lucide-react";
 import { LandingNav } from "./landing-nav";
 import { PricingSection } from "./pricing-section";
-import { HeroShell } from "./hero-shell";
+import { LandingHero } from "./landing-hero";
 import { ScrollReveal } from "./scroll-reveal";
 import { ScrollStory } from "./scroll-story";
 import { CountUp } from "./count-up";
 import { FeatureMarquee } from "./marquee";
 import { KanbanMockup, MatchMockup, PortalMockup, ChatMockup } from "./product-mockups";
-
-/** Mapbox + scrub JS — ilk boyamadan sonra; HeroShell anında FCP verir. */
-const ScrubHero = dynamic(
-  () => import("./scrub-hero").then((m) => m.ScrubHero),
-  { ssr: false, loading: () => <HeroShell /> },
-);
 
 /* ── Yardımcı görseller ── */
 
@@ -161,9 +154,9 @@ export function LandingContent() {
     <div className="landing-root min-h-screen bg-paper text-ink selection:bg-brand-500/25">
       <LandingNav />
 
-      {/* ── Hero: scroll'un sürdüğü sinematik harita ── */}
+      {/* ── Hero: scroll'un sürdüğü sinematik harita (lazy Mapbox) ── */}
       <section className="relative">
-        <ScrubHero />
+        <LandingHero />
       </section>
 
       <FeatureMarquee />
