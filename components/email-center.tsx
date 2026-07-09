@@ -2,11 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Loader2, Mail, RefreshCw, XCircle } from "lucide-react";
+import {
+  applyMailTemplate,
+  MAIL_COMPOSE_TEMPLATES,
+  type MailComposeTemplate,
+} from "@/lib/mail-compose-templates";
 
 /**
  * E-posta merkezi — sohbet sayfasının "E-postalar" sekmesi.
  * Giden tüm mailler (otomatik + manuel) listelenir; buradan ofis adına
  * serbest e-posta da gönderilir (POST /api/mails/custom).
+ * Hazır şablonlar konu/mesajı doldurur; yer tutucular düzenlenebilir.
  */
 
 type MailRow = {
@@ -44,6 +50,9 @@ export function EmailCenter() {
   const [toName, setToName] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    null,
+  );
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(
     null,
@@ -63,6 +72,26 @@ export function EmailCenter() {
     void load();
   }, [load]);
 
+  function pickTemplate(tpl: MailComposeTemplate) {
+    const filled = applyMailTemplate(tpl, toName);
+    setSelectedTemplateId(tpl.id);
+    setSubject(filled.subject);
+    setMessage(filled.body);
+    setNotice(null);
+  }
+
+  function onToNameChange(value: string) {
+    setToName(value);
+    if (!selectedTemplateId) return;
+    const tpl = MAIL_COMPOSE_TEMPLATES.find((t) => t.id === selectedTemplateId);
+    if (!tpl) return;
+    // Sadece henüz düzenlenmemiş / şablonla uyumlu alanlarda adı güncelle
+    const prev = applyMailTemplate(tpl, toName);
+    const next = applyMailTemplate(tpl, value);
+    if (subject === prev.subject) setSubject(next.subject);
+    if (message === prev.body) setMessage(next.body);
+  }
+
   async function send() {
     if (sending) return;
     setSending(true);
@@ -80,6 +109,7 @@ export function EmailCenter() {
       setToName("");
       setSubject("");
       setMessage("");
+      setSelectedTemplateId(null);
       await load();
     } catch (e) {
       setNotice({
@@ -103,6 +133,7 @@ export function EmailCenter() {
             Giden E-postalar{mails ? ` (${mails.length})` : ""}
           </h2>
           <button
+            type="button"
             onClick={load}
             className="flex items-center gap-1.5 text-xs font-semibold text-ink/50 hover:text-ink"
           >
@@ -158,6 +189,53 @@ export function EmailCenter() {
         <p className="mt-1 text-xs text-ink/50">
           Ofisiniz adına gönderilir; yanıtlar e-posta adresinize düşer.
         </p>
+
+        <div className="mt-4">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink/45">
+            Hazır şablonlar
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {MAIL_COMPOSE_TEMPLATES.map((tpl) => {
+              const active = selectedTemplateId === tpl.id;
+              return (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  onClick={() => pickTemplate(tpl)}
+                  title={tpl.description}
+                  className={`rounded-lg border px-2.5 py-1.5 text-left text-xs font-semibold transition-colors ${
+                    active
+                      ? "border-brand-600 bg-brand-50 text-brand-800"
+                      : "border-ink/15 bg-ink/[0.02] text-ink/70 hover:border-ink/30 hover:bg-white"
+                  }`}
+                >
+                  {tpl.label}
+                </button>
+              );
+            })}
+            {selectedTemplateId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedTemplateId(null);
+                  setSubject("");
+                  setMessage("");
+                }}
+                className="rounded-lg px-2 py-1.5 text-xs font-medium text-ink/45 hover:text-ink"
+              >
+                Temizle
+              </button>
+            )}
+          </div>
+          {selectedTemplateId && (
+            <p className="mt-2 text-[11px] leading-relaxed text-ink/45">
+              Köşeli parantezli alanları ([İlan Başlığı], [Randevu Tarihi] vb.)
+              göndermeden önce doldurun. Alıcı adı yazılırsa [Müşteri Adı]
+              otomatik güncellenir.
+            </p>
+          )}
+        </div>
+
         <div className="mt-4 space-y-3">
           <input
             type="email"
@@ -170,7 +248,7 @@ export function EmailCenter() {
             className={inputCls}
             placeholder="Alıcı adı (opsiyonel)"
             value={toName}
-            onChange={(e) => setToName(e.target.value)}
+            onChange={(e) => onToNameChange(e.target.value)}
           />
           <input
             className={inputCls}
@@ -179,8 +257,8 @@ export function EmailCenter() {
             onChange={(e) => setSubject(e.target.value)}
           />
           <textarea
-            className={`${inputCls} min-h-[120px] resize-y`}
-            placeholder="Mesajınız *"
+            className={`${inputCls} min-h-[140px] resize-y`}
+            placeholder="Mesajınız * — veya yukarıdan bir şablon seçin"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
           />
@@ -196,6 +274,7 @@ export function EmailCenter() {
             </p>
           )}
           <button
+            type="button"
             onClick={send}
             disabled={sending || !to || !subject || !message}
             className="btn-selvi w-full rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-50"

@@ -2,16 +2,13 @@ import { prisma } from "./prisma";
 import { forTenant } from "./tenant";
 import { getSession } from "./auth";
 
-/** Ücretsiz (Pro olmayan) planda izin verilen maksimum ilan sayısı. */
+/** Ücretsiz (Pro/Premium olmayan) planda izin verilen maksimum ilan sayısı. */
 export const FREE_LISTING_LIMIT = 3;
 
 /**
- * Paket mimarisi — İKİ katman: Ücretsiz + Pro (kullanıcı kararı, Tem 2026).
- * Fiyat OFİS BAŞINA (danışman başına DEĞİL: Türkiye pazarında per-seat
- * model hesap paylaşımıyla deliniyor; ayrıca kazanç paylaşımı modülü zaten
- * her danışmana kendi hesabını açtırıyor). Tüm özellikler Pro'da.
- * Gerekçeler: docs/fiyatlandirma-calismasi.md
- * Tenant.plan değerleri: trial | starter (eski, free sayılır) | pro
+ * Paket mimarisi: Başlangıç + Pro + Premium (white-label).
+ * Premium = Pro hakları + kendi marka / alan adı + panelde EmlakFlow gizleme.
+ * Tenant.plan: trial | starter | free | pro | premium
  */
 export const PLANS = {
   free: {
@@ -29,21 +26,37 @@ export const PLANS = {
     monthlyTRY: 2000,
     yearlyTRY: 20000, // 10 × aylık — 2 ay hediye
     listingLimit: null, // sınırsız
-    userLimit: null, // sınırsız — "ofis başına tek fiyat" vaadinin parçası
+    userLimit: null,
     tagline: "Emlak ofisinin tüm işletim sistemi",
+  },
+  premium: {
+    key: "premium",
+    name: "Premium",
+    monthlyTRY: 0, // satış / özel fiyat
+    yearlyTRY: 0,
+    listingLimit: null,
+    userLimit: null,
+    tagline: "Kendi markanız, kendi alan adınız",
   },
 } as const;
 
 export type PlanKey = keyof typeof PLANS;
 
-/** Tenant.plan (serbest string) → paket anahtarı; bilinmeyenler free sayılır. */
+/** Tenant.plan (serbest string) → paket anahtarı. */
 export function planKeyFromTenant(plan: string | null | undefined): PlanKey {
-  return plan === "pro" || plan === "premium" ? "pro" : "free";
+  if (plan === "premium") return "premium";
+  if (plan === "pro") return "pro";
+  return "free";
 }
 
-/** Sınırsız ilan hakkı olan planlar ("premium" eski/legacy değer, pro sayılır). */
+/** Sınırsız ilan / Pro özellikleri (Premium dahil). */
 export function isPro(plan: string | null | undefined): boolean {
   return plan === "pro" || plan === "premium";
+}
+
+/** White-label + panelde EmlakFlow gizleme hakkı. */
+export function isPremium(plan: string | null | undefined): boolean {
+  return plan === "premium";
 }
 
 /**

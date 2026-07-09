@@ -3,9 +3,16 @@
 import { useState, useEffect } from "react";
 import { X, Sparkles, Map, LayoutDashboard, CheckCircle2, ArrowRight } from "lucide-react";
 
-export function OnboardingTour() {
+export function OnboardingTour({
+  whiteLabelName,
+}: {
+  /** Premium: EmlakFlow metinlerini ofis markasıyla değiştir */
+  whiteLabelName?: string | null;
+}) {
   const [step, setStep] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const brand = whiteLabelName?.trim() || "EmlakFlow";
+  const isWl = Boolean(whiteLabelName?.trim());
 
   useEffect(() => {
     // Check if the user has already completed the onboarding
@@ -24,26 +31,40 @@ export function OnboardingTour() {
 
   const steps = [
     {
-      title: "EmlakFlow'a Hoş Geldiniz! 🚀",
-      description: "Ofisinizin ve danışmanlığınızın yeni dijital işletim sistemi hazır. Sizi 3 adımda hızlıca gezdirelim.",
+      title: isWl ? `${brand}'a Hoş Geldiniz` : "EmlakFlow'a Hoş Geldiniz! 🚀",
+      description: isWl
+        ? "Ofisinizin dijital işletim sistemi hazır. Sizi 3 adımda hızlıca gezdirelim."
+        : "Ofisinizin ve danışmanlığınızın yeni dijital işletim sistemi hazır. Sizi 3 adımda hızlıca gezdirelim.",
       icon: <Sparkles className="h-10 w-10 text-brand-600 animate-pulse" />,
       content: (
         <div className="space-y-2 text-center text-sm text-ink/65">
-          <p>EmlakFlow ile Excel tablolarını, kaybolan müşteri telefonlarını ve demode web sitelerini geride bırakıyorsunuz.</p>
-          <p className="font-semibold text-brand-600">Hadi, işinizi büyütmeye başlayalım!</p>
+          <p>
+            {isWl
+              ? "Excel tablolarını, kaybolan müşteri telefonlarını ve demode web sitelerini geride bırakıyorsunuz."
+              : "EmlakFlow ile Excel tablolarını, kaybolan müşteri telefonlarını ve demode web sitelerini geride bırakıyorsunuz."}
+          </p>
+          <p className="font-semibold text-brand-600">
+            Hadi, işinizi büyütmeye başlayalım!
+          </p>
         </div>
       ),
     },
     {
       title: "1. Premium İlan Vitrininiz",
-      description: "Eklediğiniz her portföy, ofisinizin harita tabanlı vitrininde anında sergilenir.",
+      description:
+        "Eklediğiniz her portföy, ofisinizin harita tabanlı vitrininde anında sergilenir.",
       icon: <Map className="h-10 w-10 text-brand-600" />,
       content: (
         <div className="space-y-3 text-sm text-ink/65">
           <div className="rounded-xl border border-brand-100 bg-brand-50/50 p-3 text-xs leading-relaxed">
-            ✨ Müşterileriniz harita üzerinde gezinirken, kartların üzerine geldiğinde ilanlar vurgulanır. Tıpkı Airbnb şıklığında!
+            ✨ Müşterileriniz harita üzerinde gezinirken, kartların üzerine
+            geldiğinde ilanlar vurgulanır. Tıpkı Airbnb şıklığında!
           </div>
-          <p>Yandaki menüden <strong className="text-ink">Portföy</strong> sekmesine giderek ilk ilanınızı hemen ekleyebilirsiniz.</p>
+          <p>
+            Yandaki menüden{" "}
+            <strong className="text-ink">Portföy</strong> sekmesine giderek ilk
+            ilanınızı hemen ekleyebilirsiniz.
+          </p>
         </div>
       ),
     },

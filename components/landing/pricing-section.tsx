@@ -46,7 +46,6 @@ const CARDS = [
     features: [
       "Sınırsız ilan",
       "Sınırsız kullanıcı — tüm ekibine hesap aç",
-      "Rozetsiz vitrin + kendi logon ve marka rengin",
       "Alıcı–portföy akıllı eşleştirme",
       "AI ilan metni, SEO ve fiyat danışmanı",
       "Haftalık mülk sahibi raporu (WhatsApp/PDF)",
@@ -55,12 +54,11 @@ const CARDS = [
       "Ekip sohbeti + vitrin canlı sohbet",
       "Kira takibi ve otomatik hatırlatmalar",
       "Sözleşme üretimi + danışman kazanç paylaşımı",
-      "Öncelikli destek",
     ],
   },
   {
     key: "enterprise",
-    name: "Kurumsal",
+    name: "Premium",
     tagline: "Kendi markanız, kendi alan adınız",
     cta: "Demo randevusu al",
     href: ENTERPRISE_CTA,
@@ -68,13 +66,14 @@ const CARDS = [
     enterprise: true,
     priceLabel: "İletişime Geç",
     priceSuffix: null as string | null,
-    yearlyNote: "Özel fiyatlandırma · kurulum dahil",
+    yearlyNote: "Özel fiyatlandırma · white-label dahil",
     features: [
-      "Kendi Alan Adınız (Custom Domain)",
-      "Kendi Logonuz ve Renkleriniz (White-label)",
-      "Ücretsiz Kurulum Hizmeti",
-      "Öncelikli Destek",
       "Pro’daki tüm özellikler dahil",
+      "Rozetsiz vitrin + kendi logon ve marka rengin",
+      "Kendi alan adınız (custom domain)",
+      "Panel ve vitrinde EmlakFlow gizlenir",
+      "Ücretsiz kurulum hizmeti",
+      "Öncelikli destek",
       "Çoklu ofis / franchise yapıları",
     ],
   },
@@ -92,8 +91,8 @@ export function PricingSection() {
             Ofisinize uygun paket. Markanıza özel çözüm.
           </h2>
           <p className="mt-4 text-[15px] leading-relaxed text-ink/60">
-            Danışman başına ücret yok, özellik kilidi yok. Kurumsal pakette
-            kendi alan adınız ve white-label markalama.
+            Danışman başına ücret yok. Premium’da kendi alan adınız ve
+            panelde EmlakFlow’suz white-label markalama.
           </p>
         </div>
 

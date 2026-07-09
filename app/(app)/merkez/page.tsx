@@ -3,7 +3,7 @@ import { canViewTeamActivity } from "@/lib/permissions";
 import { MerkezHub } from "@/components/merkez-hub";
 
 export const metadata = {
-  title: "Bildirimler & Faaliyet · EmlakFlow",
+  title: "Bildirimler & Faaliyet",
 };
 
 export default async function MerkezPage() {

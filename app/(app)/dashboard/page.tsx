@@ -60,6 +60,15 @@ export default async function DashboardPage() {
   const monthStart = new Date(startOfDay.getFullYear(), startOfDay.getMonth(), 1);
   const monthEnd = new Date(startOfDay.getFullYear(), startOfDay.getMonth() + 1, 1);
 
+  const tenantBrand = await prisma.tenant.findUnique({
+    where: { id: session.tenantId },
+    select: { plan: true, brandName: true, name: true },
+  });
+  const whiteLabelName =
+    tenantBrand?.plan === "premium"
+      ? tenantBrand.brandName?.trim() || tenantBrand.name
+      : null;
+
   const [
     openDeals,
     activeListings,
@@ -232,7 +241,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="dash-shell mx-auto max-w-[1200px]">
-      <OnboardingTour />
+      <OnboardingTour whiteLabelName={whiteLabelName} />
 
       {/* ── Karşılama ── */}
       <div className="dash-in">

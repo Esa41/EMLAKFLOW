@@ -5,7 +5,7 @@ import { getSession } from "@/lib/auth";
 
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   if (!(await currentUserIsSuperAdmin())) {
     return NextResponse.json({ error: "Yetkisiz" }, { status: 403 });
@@ -19,7 +19,7 @@ export async function POST(
   if (!Number.isFinite(days) || days === 0 || days < -3650 || days > 3650) {
     return NextResponse.json(
       { error: "days -3650 ile 3650 arasında, 0 olamaz." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -41,35 +41,37 @@ export async function POST(
   const expiresAt = new Date(baseDate);
   expiresAt.setDate(expiresAt.getDate() + days);
 
-  const wasPro = tenant.plan === "pro";
+  const wasPaid = tenant.plan === "pro" || tenant.plan === "premium";
+  const nextPlan = wasPaid ? tenant.plan : "pro";
 
   const updated = await prisma.tenant.update({
     where: { id },
     data: {
-      plan: "pro",
-      proStartedAt: wasPro ? undefined : now,
+      plan: nextPlan,
+      proStartedAt: wasPaid ? undefined : now,
       proExpiresAt: expiresAt,
     },
     select: { id: true, plan: true, proStartedAt: true, proExpiresAt: true },
   });
 
   const abs = Math.abs(days);
+  const planLabel = nextPlan === "premium" ? "Premium" : "Pro";
   const reasonText =
     days < 0
-      ? `${abs} gün Pro süresi düşüldü (düzeltme)`
+      ? `${abs} gün ${planLabel} süresi düşüldü (düzeltme)`
       : days === 365
-        ? "1 Yıl Pro eklendi"
+        ? `1 Yıl ${planLabel} eklendi`
         : days === 30
-          ? "30 Gün Pro eklendi"
+          ? `30 Gün ${planLabel} eklendi`
           : days === 90
-            ? "90 Gün (3 Ay) Pro eklendi"
-            : `${days} gün Pro eklendi`;
+            ? `90 Gün (3 Ay) ${planLabel} eklendi`
+            : `${days} gün ${planLabel} eklendi`;
 
   await prisma.planChangeLog.create({
     data: {
       tenantId: id,
       fromPlan: tenant.plan,
-      toPlan: "pro",
+      toPlan: nextPlan,
       changedBy: session?.name ?? "Admin",
       reason: reasonText,
       expiresAt,

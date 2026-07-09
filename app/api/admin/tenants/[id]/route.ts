@@ -10,7 +10,7 @@ import {
 } from "@/lib/vercel-domains";
 import { normalizeCustomDomain } from "@/lib/platform-host";
 
-const ALLOWED_PLANS = ["free", "trial", "starter", "pro"];
+const ALLOWED_PLANS = ["free", "trial", "starter", "pro", "premium"];
 
 const HEX_COLOR = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
 
@@ -164,7 +164,7 @@ export async function PATCH(
 
   if (plan && ALLOWED_PLANS.includes(plan) && plan !== existing.plan) {
     updateData.plan = plan;
-    if (plan === "pro") {
+    if (plan === "pro" || plan === "premium") {
       updateData.proStartedAt = new Date();
     } else {
       updateData.proStartedAt = null;
@@ -206,13 +206,14 @@ export async function PATCH(
         parsed.setHours(23, 59, 59, 999);
       }
       updateData.proExpiresAt = parsed;
+      const nextPlan = updateData.plan ?? existing.plan;
       if (
-        (updateData.plan ?? existing.plan) === "pro" &&
+        (nextPlan === "pro" || nextPlan === "premium") &&
         !existing.proStartedAt
       ) {
         updateData.proStartedAt = new Date();
       }
-      if (!updateData.plan && existing.plan !== "pro") {
+      if (!updateData.plan && existing.plan !== "pro" && existing.plan !== "premium") {
         updateData.plan = "pro";
       }
       await prisma.planChangeLog.create({
@@ -234,6 +235,16 @@ export async function PATCH(
 
   let nextDomain: string | null | undefined;
   if (hasWhiteLabel) {
+    const effectivePlan = updateData.plan ?? existing.plan;
+    if (effectivePlan !== "premium") {
+      return NextResponse.json(
+        {
+          error:
+            "White-label yalnızca Premium planda kullanılabilir. Önce planı Premium yapın.",
+        },
+        { status: 400 },
+      );
+    }
     if ("customDomain" in body) {
       const raw = body.customDomain as string | null;
       if (raw === null || String(raw).trim() === "") {

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -9,7 +10,15 @@ import { ContractPanel } from "@/components/contract-panel";
 import { OwnerReport } from "@/components/owner-report";
 import { STATUS_TR, STATUS_BADGE } from "@/lib/labels";
 import { getVertical } from "@/lib/verticals";
-import { Eye } from "lucide-react";
+import { Eye, Heart, Mail, Phone } from "lucide-react";
+
+const favDateFmt = new Intl.DateTimeFormat("tr-TR", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 export default async function ListingDetailPage({
   params,
@@ -20,7 +29,7 @@ export default async function ListingDetailPage({
   const db = forTenant(session.tenantId);
   const { id } = await params;
 
-  const [listing, tenant, contacts] = await Promise.all([
+  const [listing, tenant, contacts, favorites] = await Promise.all([
     db.listing.findUnique({
       where: { id },
       include: { media: { orderBy: { order: "asc" } } },
@@ -32,6 +41,22 @@ export default async function ListingDetailPage({
     db.contact.findMany({
       orderBy: { fullName: "asc" },
       select: { id: true, fullName: true, phone: true },
+    }),
+    // Favorite tenant-scoped değil; listing bu ofise ait olduğu için güvenli
+    prisma.favorite.findMany({
+      where: { listingId: id, siteUser: { tenantId: session.tenantId } },
+      orderBy: { createdAt: "desc" },
+      include: {
+        siteUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            contactId: true,
+          },
+        },
+      },
     }),
   ]);
   if (!listing) notFound();
@@ -128,6 +153,70 @@ export default async function ListingDetailPage({
           </ul>
         </section>
       )}
+
+      {/* Vitrin üyelerinin favorileri — otomatik güncellenir */}
+      <section className="rounded-[10px] border border-ink/15 bg-white">
+        <div className="flex items-center justify-between border-b border-ink/10 px-5 py-3.5">
+          <h2 className="flex items-center gap-2 text-sm font-bold">
+            <Heart size={15} className="text-rose-500" fill="currentColor" />
+            Favorileyenler
+            <span className="rounded-md bg-ink/[0.06] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-ink/55">
+              {favorites.length}
+            </span>
+          </h2>
+          <p className="text-[11px] text-ink/40">Vitrin üyeleri</p>
+        </div>
+        {favorites.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-ink/50">
+            Henüz kimse bu ilanı favorilemedi. Vitrinde kalp ile ekleyen
+            üyeler burada listelenir.
+          </p>
+        ) : (
+          <ul className="divide-y divide-ink/8">
+            {favorites.map((f) => {
+              const u = f.siteUser;
+              return (
+                <li
+                  key={f.id}
+                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5"
+                >
+                  <div className="min-w-0">
+                    {u.contactId ? (
+                      <Link
+                        href={`/kisiler/${u.contactId}`}
+                        className="text-sm font-semibold hover:text-brand-700"
+                      >
+                        {u.name}
+                      </Link>
+                    ) : (
+                      <p className="text-sm font-semibold">{u.name}</p>
+                    )}
+                    <p className="mt-0.5 truncate text-xs text-ink/50">
+                      {favDateFmt.format(f.createdAt)}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
+                    {u.phone && (
+                      <a
+                        href={`tel:${u.phone}`}
+                        className="flex items-center gap-1 text-ink/65 hover:text-brand-700"
+                      >
+                        <Phone size={12} /> {u.phone}
+                      </a>
+                    )}
+                    <a
+                      href={`mailto:${u.email}`}
+                      className="flex items-center gap-1 text-ink/65 hover:text-brand-700"
+                    >
+                      <Mail size={12} /> {u.email}
+                    </a>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       <OwnerReport
         listingId={listing.id}

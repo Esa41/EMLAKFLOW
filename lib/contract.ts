@@ -180,7 +180,7 @@ function signatures(): string {
 }
 
 function footerNote(): string {
-  return `<p class="footer-note">EmlakFlow üzerinden otomatik oluşturulan taslak sözleşmedir — imzalanmadan önce tarafların kontrolüne tabidir.</p>`;
+  return `<p class="footer-note">Otomatik oluşturulan taslak sözleşmedir — imzalanmadan önce tarafların kontrolüne tabidir.</p>`;
 }
 
 function authorizationDoc(d: ContractData): string {

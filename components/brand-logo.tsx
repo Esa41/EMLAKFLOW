@@ -3,14 +3,26 @@
 import Link from "next/link";
 import { getVertical, type VerticalConfig } from "@/lib/verticals";
 
-/** Dikeye göre marka logosu */
+/** Dikeye göre marka logosu — whiteLabelName varsa ofis markası gösterilir. */
 export function BrandLogo({
   vertical,
   className = "",
+  whiteLabelName,
 }: {
   vertical?: string | null;
   className?: string;
+  /** Premium white-label: EmlakFlow yerine ofis / marka adı */
+  whiteLabelName?: string | null;
 }) {
+  if (whiteLabelName?.trim()) {
+    return (
+      <p
+        className={`truncate font-display font-extrabold tracking-tight ${className}`}
+      >
+        {whiteLabelName.trim()}
+      </p>
+    );
+  }
   const v = getVertical(vertical);
   return (
     <p className={`font-display font-extrabold tracking-tight ${className}`}>
@@ -23,12 +35,14 @@ export function BrandLogo({
 export function BrandMark({
   vertical,
   size = "md",
+  whiteLabelName,
 }: {
   vertical?: string | null;
   size?: "sm" | "md";
+  whiteLabelName?: string | null;
 }) {
   const v = getVertical(vertical);
-  const letter = v.brandHead.charAt(0);
+  const letter = (whiteLabelName?.trim() || v.brandHead).charAt(0).toUpperCase();
   const cls = size === "sm" ? "h-9 w-9 text-sm" : "h-10 w-10 text-base";
   return (
     <div

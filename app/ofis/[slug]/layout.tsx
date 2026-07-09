@@ -37,6 +37,7 @@ export default async function ShowcaseLayout({
       primaryColor: true,
       logoUrl: true,
       customDomain: true,
+      plan: true,
     },
   });
   if (!tenant || !tenant.showcaseEnabled) notFound();
@@ -45,7 +46,10 @@ export default async function ShowcaseLayout({
   // yapar ve ilan detayının ISR önbelleğini bozar (500 / stale error riski).
   const palette = brandPalette(tenant.primaryColor || tenant.brandColor);
   const displayName = tenant.brandName?.trim() || tenant.name;
-  const whiteLabel = Boolean(tenant.customDomain || tenant.brandName);
+  // Premium: her zaman rozetsiz. Pro/Free: alan adı veya marka adı varsa da gizle.
+  const whiteLabel =
+    tenant.plan === "premium" ||
+    Boolean(tenant.customDomain || tenant.brandName);
 
   return (
     <SiteSessionProvider slug={slug}>

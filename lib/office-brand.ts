@@ -19,6 +19,7 @@ export async function officeBrand(tenantId: string): Promise<{
       slug: true,
       vertical: true,
       customDomain: true,
+      plan: true,
       users: {
         where: { role: "OWNER" },
         orderBy: { createdAt: "asc" },
@@ -32,6 +33,7 @@ export async function officeBrand(tenantId: string): Promise<{
     brand: {
       name: t.brandName?.trim() || t.name,
       replyTo: t.users[0]?.email,
+      hidePlatform: t.plan === "premium",
     },
     slug: t.slug,
     showcase: showcaseUrl(t.slug, t.vertical, t.customDomain),

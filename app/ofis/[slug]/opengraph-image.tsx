@@ -23,20 +23,24 @@ export default async function OgImage({
     where: { slug },
     select: {
       name: true,
+      brandName: true,
       city: true,
       district: true,
       brandColor: true,
+      primaryColor: true,
+      plan: true,
       vertical: true,
       _count: { select: { listings: { where: { status: "ACTIVE" } } } },
     },
   });
 
-  const brand = tenant?.brandColor ?? "#1e5b3e";
-  const name = tenant?.name ?? "Vitrin";
+  const brand = tenant?.primaryColor || tenant?.brandColor || "#1e5b3e";
+  const name = tenant?.brandName?.trim() || tenant?.name || "Vitrin";
   const yer = [tenant?.district, tenant?.city].filter(Boolean).join(" · ");
   const count = tenant?._count.listings ?? 0;
   const isAuto = isAutoVertical(tenant?.vertical ?? null);
   const portfoyLabel = isAuto ? "Araç Portföyü" : "Satılık & Kiralık Portföy";
+  const hidePlatform = tenant?.plan === "premium";
 
   return new ImageResponse(
     (
@@ -91,7 +95,9 @@ export default async function OgImage({
             opacity: 0.7,
           }}
         >
-          <div style={{ display: "flex" }}>emlakflow.app vitrini</div>
+          <div style={{ display: "flex" }}>
+            {hidePlatform ? name : "emlakflow.app vitrini"}
+          </div>
           <div
             style={{
               display: "flex",

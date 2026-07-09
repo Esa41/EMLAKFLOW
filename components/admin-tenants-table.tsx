@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Sparkles, Eye } from "lucide-react";
-import { FREE_LISTING_LIMIT, isPro } from "@/lib/plans";
+import { FREE_LISTING_LIMIT, isPremium, isPro } from "@/lib/plans";
 import { AdminPlanToggle } from "./admin-plan-toggle";
 import { AdminTenantDetailModal } from "./admin-tenant-detail-modal";
 
@@ -66,6 +66,7 @@ export function AdminTenantsTable({ tenants }: { tenants: TenantRow[] }) {
             <tbody>
               {tenants.map((t) => {
                 const pro = isPro(t.plan);
+                const premium = isPremium(t.plan);
                 const daysLeft = getDaysLeft(t.proExpiresAt);
                 const expired = daysLeft !== null && daysLeft < 0;
                 return (
@@ -96,13 +97,15 @@ export function AdminTenantsTable({ tenants }: { tenants: TenantRow[] }) {
                       <div className="flex flex-col gap-1">
                         <span
                           className={
-                            pro
-                              ? "inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white shadow-sm"
-                              : "inline-flex items-center gap-1.5 rounded-full bg-ink/[0.08] px-3 py-1 text-xs font-bold uppercase tracking-wide text-ink/55"
+                            premium
+                              ? "inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-700 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white shadow-sm"
+                              : pro
+                                ? "inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white shadow-sm"
+                                : "inline-flex items-center gap-1.5 rounded-full bg-ink/[0.08] px-3 py-1 text-xs font-bold uppercase tracking-wide text-ink/55"
                           }
                         >
                           {pro && <Sparkles size={11} />}
-                          {pro ? "Pro" : t.plan}
+                          {premium ? "Premium" : pro ? "Pro" : t.plan}
                         </span>
                         {pro && daysLeft !== null && (
                           <span

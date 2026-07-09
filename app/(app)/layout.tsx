@@ -31,10 +31,21 @@ export default async function AppLayout({
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: session.tenantId },
-    select: { slug: true, showcaseEnabled: true, vertical: true },
+    select: {
+      slug: true,
+      showcaseEnabled: true,
+      vertical: true,
+      plan: true,
+      brandName: true,
+      name: true,
+    },
   });
   const showcaseSlug = tenant?.showcaseEnabled ? tenant.slug : null;
   const vertical = tenant?.vertical ?? session.vertical ?? "REAL_ESTATE";
+  const whiteLabelName =
+    tenant?.plan === "premium"
+      ? tenant.brandName?.trim() || tenant.name
+      : null;
 
   const today = new Date().toLocaleDateString("tr-TR", {
     day: "2-digit",
@@ -50,6 +61,7 @@ export default async function AppLayout({
           userName={session.name}
           showcaseSlug={showcaseSlug}
           vertical={vertical}
+          whiteLabelName={whiteLabelName}
         />
         <div className="lg:pl-[260px]">
           <header className="sticky top-0 z-30 border-b border-[var(--app-border)] bg-[var(--app-header-bg)] backdrop-blur-2xl backdrop-saturate-150">
@@ -59,9 +71,14 @@ export default async function AppLayout({
                 userName={session.name}
                 showcaseSlug={showcaseSlug}
                 vertical={vertical}
+                whiteLabelName={whiteLabelName}
               />
               <div className="lg:hidden">
-                <BrandLogo vertical={vertical} className="text-lg" />
+                <BrandLogo
+                  vertical={vertical}
+                  whiteLabelName={whiteLabelName}
+                  className="text-lg"
+                />
               </div>
               <input
                 type="search"

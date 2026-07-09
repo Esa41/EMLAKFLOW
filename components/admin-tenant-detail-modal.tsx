@@ -314,7 +314,8 @@ export function AdminTenantDetailModal({
     );
   }
 
-  const isPro = tenant.plan === "pro";
+  const isProPlan = tenant.plan === "pro" || tenant.plan === "premium";
+  const isPremiumPlan = tenant.plan === "premium";
   const owner = tenant.users[0];
   const now = new Date();
   const proExpired =
@@ -355,12 +356,14 @@ export function AdminTenantDetailModal({
             <div className="flex items-center gap-3">
               <span
                 className={
-                  isPro
-                    ? "inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-bold uppercase tracking-wide text-white shadow-md"
-                    : "inline-flex items-center gap-1.5 rounded-full bg-ink/[0.08] px-4 py-2 text-sm font-bold uppercase tracking-wide text-ink/55"
+                  isPremiumPlan
+                    ? "inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-700 px-4 py-2 text-sm font-bold uppercase tracking-wide text-white shadow-md"
+                    : isProPlan
+                      ? "inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-bold uppercase tracking-wide text-white shadow-md"
+                      : "inline-flex items-center gap-1.5 rounded-full bg-ink/[0.08] px-4 py-2 text-sm font-bold uppercase tracking-wide text-ink/55"
                 }
               >
-                {isPro && <Sparkles size={14} />}
+                {isProPlan && <Sparkles size={14} />}
                 {tenant.plan}
               </span>
               {proExpired && (
@@ -655,11 +658,20 @@ export function AdminTenantDetailModal({
 
           {/* Sağ: White-label, Notlar & Geçmiş */}
           <div className="space-y-6">
-            {/* White-label — yalnızca Super Admin */}
+            {/* White-label — yalnızca Premium */}
             <div className="space-y-3 rounded-xl border border-ink/10 bg-gradient-to-br from-ink/[0.02] to-white p-4">
               <div className="flex items-center gap-2">
                 <Palette size={16} className="text-ink/50" />
                 <h3 className="text-sm font-bold text-ink/70">White-label</h3>
+                {isPremiumPlan ? (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+                    Premium
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-ink/[0.06] px-2 py-0.5 text-[10px] font-bold uppercase text-ink/45">
+                    Premium gerekir
+                  </span>
+                )}
                 {domainVerified === true && (
                   <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700">
                     Domain OK
@@ -672,11 +684,13 @@ export function AdminTenantDetailModal({
                 )}
               </div>
               <p className="text-[11px] leading-relaxed text-ink/45">
-                Alan adı kaydedilince vitrin{" "}
-                <code className="rounded bg-ink/5 px-1">https://alanadi/</code>{" "}
-                üzerinden açılır. Vercel&apos;e domain ekleyip DNS yönlendirin.
+                {isPremiumPlan
+                  ? "Premium’da panel ve vitrinde EmlakFlow gizlenir; marka adı / alan adı kullanılır."
+                  : "White-label için önce planı Premium yapın. Sonra alan adı ve marka adı kaydedin."}
               </p>
-              <div className="space-y-2.5">
+              <div
+                className={`space-y-2.5 ${!isPremiumPlan ? "pointer-events-none opacity-45" : ""}`}
+              >
                 <div>
                   <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-ink/45">
                     Özel alan adı
@@ -684,11 +698,12 @@ export function AdminTenantDetailModal({
                   <input
                     type="text"
                     value={wl.customDomain}
+                    disabled={!isPremiumPlan}
                     onChange={(e) =>
                       setWl((s) => ({ ...s, customDomain: e.target.value }))
                     }
                     placeholder="www.emlakofisi.com"
-                    className="w-full rounded-lg border border-ink/20 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                    className="w-full rounded-lg border border-ink/20 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-ink/[0.03]"
                   />
                 </div>
                 <div>
@@ -698,11 +713,12 @@ export function AdminTenantDetailModal({
                   <input
                     type="text"
                     value={wl.brandName}
+                    disabled={!isPremiumPlan}
                     onChange={(e) =>
                       setWl((s) => ({ ...s, brandName: e.target.value }))
                     }
                     placeholder="Atlas Gayrimenkul"
-                    className="w-full rounded-lg border border-ink/20 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                    className="w-full rounded-lg border border-ink/20 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-ink/[0.03]"
                   />
                 </div>
                 <div>
@@ -712,11 +728,12 @@ export function AdminTenantDetailModal({
                   <input
                     type="url"
                     value={wl.logoUrl}
+                    disabled={!isPremiumPlan}
                     onChange={(e) =>
                       setWl((s) => ({ ...s, logoUrl: e.target.value }))
                     }
                     placeholder="https://media.emlakflow.app/..."
-                    className="w-full rounded-lg border border-ink/20 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                    className="w-full rounded-lg border border-ink/20 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-ink/[0.03]"
                   />
                   {wl.logoUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -737,6 +754,7 @@ export function AdminTenantDetailModal({
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
+                      disabled={!isPremiumPlan}
                       value={
                         /^#([0-9A-Fa-f]{6})$/.test(wl.primaryColor)
                           ? wl.primaryColor
@@ -748,11 +766,12 @@ export function AdminTenantDetailModal({
                           primaryColor: e.target.value,
                         }))
                       }
-                      className="h-10 w-12 cursor-pointer rounded-lg border border-ink/20 bg-white p-1"
+                      className="h-10 w-12 cursor-pointer rounded-lg border border-ink/20 bg-white p-1 disabled:opacity-50"
                     />
                     <input
                       type="text"
                       value={wl.primaryColor}
+                      disabled={!isPremiumPlan}
                       onChange={(e) =>
                         setWl((s) => ({
                           ...s,
@@ -760,7 +779,7 @@ export function AdminTenantDetailModal({
                         }))
                       }
                       placeholder="#1e5b3e"
-                      className="flex-1 rounded-lg border border-ink/20 px-3 py-2 font-mono text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                      className="flex-1 rounded-lg border border-ink/20 px-3 py-2 font-mono text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-ink/[0.03]"
                     />
                   </div>
                 </div>
@@ -769,7 +788,7 @@ export function AdminTenantDetailModal({
                 <button
                   type="button"
                   onClick={() => void saveWhiteLabel()}
-                  disabled={savingWl}
+                  disabled={savingWl || !isPremiumPlan}
                   className="w-full rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ink/90 disabled:opacity-50"
                 >
                   {savingWl ? "Kaydediliyor..." : "White-label kaydet"}
@@ -777,7 +796,12 @@ export function AdminTenantDetailModal({
                 <button
                   type="button"
                   onClick={() => void provisionOnVercel()}
-                  disabled={savingWl || provisioning || !wl.customDomain.trim()}
+                  disabled={
+                    savingWl ||
+                    provisioning ||
+                    !isPremiumPlan ||
+                    !wl.customDomain.trim()
+                  }
                   className="w-full rounded-lg border border-ink/20 bg-white px-4 py-2 text-xs font-bold text-ink/70 transition-colors hover:bg-ink/[0.03] disabled:opacity-50"
                 >
                   {provisioning

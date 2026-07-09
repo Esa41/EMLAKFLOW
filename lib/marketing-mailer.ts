@@ -16,6 +16,8 @@ export type MailBrand = {
   name: string;
   /** Yanıtlar bu adrese düşer (ör. ofis sahibinin e-postası) */
   replyTo?: string;
+  /** Premium white-label: platform atıfını gizle */
+  hidePlatform?: boolean;
 };
 
 export type MailLogCtx = {
@@ -35,11 +37,14 @@ function baseTemplate(
   content: string,
   ctaText?: string,
   ctaLink?: string,
+  hidePlatform?: boolean,
 ) {
   const header =
     brandName === "EmlakFlow"
       ? EMLAKFLOW_WORDMARK
       : `<p style="font-size:18px;font-weight:800;margin:0 0 4px">${brandName}</p>`;
+  const showPlatformNote =
+    brandName !== "EmlakFlow" && !hidePlatform;
   return `
   <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#17201c">
     ${header}
@@ -59,7 +64,7 @@ function baseTemplate(
     }
     <p style="font-size:12px;line-height:1.6;color:#8a938e;margin-top:40px;border-top:1px solid #e1e8e4;padding-top:16px;">
       Saygılarımızla,<br><strong>${brandName}</strong>
-      ${brandName === "EmlakFlow" ? "" : '<br><span style="font-size:11px">Bu e-posta EmlakFlow altyapısıyla gönderilmiştir.</span>'}
+      ${showPlatformNote ? '<br><span style="font-size:11px">Bu e-posta EmlakFlow altyapısıyla gönderilmiştir.</span>' : ""}
     </p>
   </div>`;
 }
@@ -148,7 +153,7 @@ export async function sendSiteWelcomeEmail(
     to,
     toName: customerName,
     subject: `${brand.name} — Üyeliğiniz Oluşturuldu`,
-    html: baseTemplate(brand.name, title, content, "Portföyü İnceleyin", showcaseUrl),
+    html: baseTemplate(brand.name, title, content, "Portföyü İnceleyin", showcaseUrl, brand.hidePlatform),
     text,
     brand,
     log,
@@ -175,7 +180,7 @@ export async function sendNewListingEmail(
     to,
     toName: customerName,
     subject: "Arayışınıza Uygun Yeni İlanımız Yayında",
-    html: baseTemplate(brand.name, title, content, "İlan Detaylarını Görüntüle", listingLink),
+    html: baseTemplate(brand.name, title, content, "İlan Detaylarını Görüntüle", listingLink, brand.hidePlatform),
     text,
     brand,
     log,
@@ -206,7 +211,7 @@ export async function sendPriceDropEmail(
     to,
     toName: customerName,
     subject: "Favori İlanınızda Fiyat Düşüşü",
-    html: baseTemplate(brand.name, title, content, "Fırsatı İncele", listingLink),
+    html: baseTemplate(brand.name, title, content, "Fırsatı İncele", listingLink, brand.hidePlatform),
     text,
     brand,
     log,
@@ -239,7 +244,7 @@ export async function sendAppointmentReminderEmail(
     to,
     toName: customerName,
     subject: `Hatırlatma: ${date} Tarihindeki Randevunuz`,
-    html: baseTemplate(brand.name, title, content),
+    html: baseTemplate(brand.name, title, content, undefined, undefined, brand.hidePlatform),
     text,
     brand,
     log,
@@ -265,7 +270,7 @@ export async function sendReengagementEmail(
     to,
     toName: customerName,
     subject: `${brand.name}: Size Nasıl Yardımcı Olabiliriz?`,
-    html: baseTemplate(brand.name, title, content, "Portföyü İnceleyin", showcaseUrl),
+    html: baseTemplate(brand.name, title, content, "Portföyü İnceleyin", showcaseUrl, brand.hidePlatform),
     text,
     brand,
     log,
@@ -289,7 +294,7 @@ export async function sendCustomEmail(
     to,
     toName,
     subject,
-    html: baseTemplate(brand.name, subject, content),
+    html: baseTemplate(brand.name, subject, content, undefined, undefined, brand.hidePlatform),
     text: message,
     brand,
     log,

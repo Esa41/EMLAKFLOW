@@ -104,7 +104,7 @@ export function PwaInstallPrompt() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-display text-sm font-extrabold text-ink">
-              EmlakFlow&apos;u yükle
+              Uygulamayı yükle
             </p>
             {showIos ? (
               <p className="mt-1 text-xs leading-relaxed text-ink/60">

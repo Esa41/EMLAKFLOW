@@ -11,6 +11,7 @@ const TENANT_MODELS = new Set([
   "Appointment",
   "Contract",
   "Commission",
+  "CashEntry",
   "Activity",
   "Notification",
   "ListingEvent",

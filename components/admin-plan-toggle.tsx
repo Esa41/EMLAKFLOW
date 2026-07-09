@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-/** Admin: tenant planını değiştirir — free / pro / premium (bkz. lib/plans.ts). */
+/** Admin: tenant planını değiştirir — free / pro / premium. */
 export function AdminPlanToggle({
   tenantId,
   plan,
@@ -16,8 +16,8 @@ export function AdminPlanToggle({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // trial/starter/premium gibi eski değerler seçimde en yakın pakete oturur
-  const current = plan === "pro" || plan === "premium" ? "pro" : "free";
+  const current =
+    plan === "premium" ? "premium" : plan === "pro" ? "pro" : "free";
 
   async function change(nextPlan: string) {
     if (nextPlan === current) return;
@@ -44,20 +44,26 @@ export function AdminPlanToggle({
       <div className="inline-flex rounded-lg border border-ink/15 bg-white p-0.5 text-xs font-bold shadow-sm">
         {(
           [
-            ["free", "Free"],
-            ["pro", "Pro"],
+            ["free", "Free", "bg-ink text-white"],
+            [
+              "pro",
+              "Pro",
+              "bg-gradient-to-r from-emerald-600 to-emerald-700 text-white",
+            ],
+            [
+              "premium",
+              "Premium",
+              "bg-gradient-to-r from-amber-500 to-amber-700 text-white",
+            ],
           ] as const
-        ).map(([key, label]) => (
+        ).map(([key, label, activeCls]) => (
           <button
             key={key}
+            type="button"
             onClick={() => change(key)}
             disabled={saving}
             className={`rounded-md px-2.5 py-1.5 transition-colors disabled:opacity-50 ${
-              current === key
-                ? key === "pro"
-                  ? "bg-gradient-to-r from-emerald-600 to-emerald-700 text-white"
-                  : "bg-ink text-white"
-                : "text-ink/55 hover:text-ink"
+              current === key ? activeCls : "text-ink/55 hover:text-ink"
             }`}
           >
             {label}

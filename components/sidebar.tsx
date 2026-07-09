@@ -15,11 +15,13 @@ export function Sidebar({
   userName,
   showcaseSlug,
   vertical = "REAL_ESTATE",
+  whiteLabelName,
 }: {
   tenantName: string;
   userName: string;
   showcaseSlug?: string | null;
   vertical?: string | null;
+  whiteLabelName?: string | null;
 }) {
   const pathname = usePathname();
   const nav = getNav(vertical);
@@ -54,10 +56,16 @@ export function Sidebar({
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-[260px] flex-col border-r border-[var(--app-border)] bg-[var(--app-sidebar-bg)] backdrop-blur-2xl lg:flex">
       <div className="px-5 pb-4 pt-7">
-        <BrandLogo vertical={vertical} className="text-xl" />
-        <p className="mt-1.5 truncate text-[12px] font-medium text-ink/40">
-          {tenantName}
-        </p>
+        <BrandLogo
+          vertical={vertical}
+          whiteLabelName={whiteLabelName}
+          className="text-xl"
+        />
+        {!whiteLabelName && (
+          <p className="mt-1.5 truncate text-[12px] font-medium text-ink/40">
+            {tenantName}
+          </p>
+        )}
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3">

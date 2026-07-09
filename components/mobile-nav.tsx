@@ -16,11 +16,13 @@ export function MobileNav({
   userName,
   showcaseSlug,
   vertical = "REAL_ESTATE",
+  whiteLabelName,
 }: {
   tenantName: string;
   userName: string;
   showcaseSlug?: string | null;
   vertical?: string | null;
+  whiteLabelName?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   // Portal hedefi — header'daki backdrop-filter, fixed paneli hapsettiği için
@@ -55,12 +57,21 @@ export function MobileNav({
           <div className="glass absolute inset-y-0 left-0 flex w-72 flex-col border-r border-[var(--app-border)] shadow-2xl">
             <div className="flex items-center justify-between px-5 pb-4 pt-5">
               <div className="flex items-center gap-3">
-                <BrandMark vertical={vertical} size="sm" />
+                <BrandMark
+                  vertical={vertical}
+                  size="sm"
+                  whiteLabelName={whiteLabelName}
+                />
                 <div>
-                  <BrandLogo vertical={vertical} />
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-ink/45">
-                    {tenantName}
-                  </p>
+                  <BrandLogo
+                    vertical={vertical}
+                    whiteLabelName={whiteLabelName}
+                  />
+                  {!whiteLabelName && (
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-ink/45">
+                      {tenantName}
+                    </p>
+                  )}
                 </div>
               </div>
               <button
