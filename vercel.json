@@ -4,6 +4,7 @@
   "crons": [
     { "path": "/api/cron/rollup", "schedule": "0 3 * * *" },
     { "path": "/api/cron/social-sync", "schedule": "0 4 * * *" },
-    { "path": "/api/cron/rental-reminders", "schedule": "0 8 * * *" }
+    { "path": "/api/cron/rental-reminders", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/appointment-reminders", "schedule": "0 6 * * *" }
   ]
 }

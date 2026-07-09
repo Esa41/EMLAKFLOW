@@ -11,6 +11,7 @@ import { AddLeadModal } from "@/components/add-lead-modal";
 import { LeadCard, type LeadRow } from "@/components/lead-card";
 import { findMatchingListings } from "@/lib/matching";
 import { createManualDeal } from "@/app/actions/deal";
+import { SendListingMailButton } from "@/components/send-listing-mail-button";
 import { prisma } from "@/lib/prisma";
 import { isAutoVertical } from "@/lib/verticals";
 
@@ -210,17 +211,24 @@ export default async function ContactDetailPage(props: { params: Promise<{ id: s
                         {m.reasons.length > 0 && ` · ${m.reasons.slice(0, 2).join(", ")}`}
                       </p>
                     </div>
-                    <form action={createManualDeal} className="shrink-0">
-                      <input type="hidden" name="contactId" value={contact.id} />
-                      <input type="hidden" name="listingId" value={m.listing.id} />
-                      <input type="hidden" name="value" value={Number(m.listing.price)} />
-                      <button
-                        type="submit"
-                        className="rounded-md bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100"
-                      >
-                        + Fırsat aç
-                      </button>
-                    </form>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <SendListingMailButton
+                        contactId={contact.id}
+                        listingId={m.listing.id}
+                        hasEmail={!!contact.email}
+                      />
+                      <form action={createManualDeal}>
+                        <input type="hidden" name="contactId" value={contact.id} />
+                        <input type="hidden" name="listingId" value={m.listing.id} />
+                        <input type="hidden" name="value" value={Number(m.listing.price)} />
+                        <button
+                          type="submit"
+                          className="rounded-md bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100"
+                        >
+                          + Fırsat aç
+                        </button>
+                      </form>
+                    </div>
                   </div>
                 ))}
               </div>

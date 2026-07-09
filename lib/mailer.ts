@@ -7,18 +7,30 @@
 
 const FROM = process.env.MAIL_FROM ?? "EmlakFlow <noreply@emlakflow.app>";
 
+/**
+ * Ofis adına gönderim: adres her zaman doğrulanmış domain'den
+ * (noreply@emlakflow.app), görünen ad ofisin adı olur.
+ */
+export function officeFrom(officeName: string): string {
+  // Görünen addaki tırnak/satır kırıcı karakterleri temizle (header injection)
+  const safe = officeName.replace(/["\r\n<>]/g, "").trim() || "EmlakFlow";
+  return `"${safe}" <noreply@emlakflow.app>`;
+}
+
 export async function sendMail(opts: {
   to: string;
   subject: string;
   html: string;
   text: string;
-}): Promise<{ sent: boolean }> {
+  from?: string;
+  replyTo?: string;
+}): Promise<{ sent: boolean; error?: string }> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.log(
       `[mailer] RESEND_API_KEY yok — e-posta gönderilmedi.\n  Kime: ${opts.to}\n  Konu: ${opts.subject}\n  İçerik: ${opts.text}`,
     );
-    return { sent: false };
+    return { sent: false, error: "RESEND_API_KEY tanımlı değil" };
   }
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -28,18 +40,19 @@ export async function sendMail(opts: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: FROM,
+      from: opts.from ?? FROM,
       to: [opts.to],
       subject: opts.subject,
       html: opts.html,
       text: opts.text,
+      ...(opts.replyTo ? { reply_to: [opts.replyTo] } : {}),
     }),
   });
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     console.error(`[mailer] Resend hatası ${res.status}: ${body}`);
-    return { sent: false };
+    return { sent: false, error: `Resend ${res.status}: ${body.slice(0, 200)}` };
   }
   return { sent: true };
 }

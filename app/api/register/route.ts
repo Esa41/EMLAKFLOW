@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { sendOfficeWelcomeEmail } from "@/lib/marketing-mailer";
 import type { Vertical } from "@prisma/client";
 
 function slugify(s: string) {
@@ -83,6 +84,16 @@ export async function POST(req: Request) {
       },
     },
     include: { users: { select: { id: true, email: true } } },
+  });
+
+  // Hoş geldin maili — yanıtı bloklamadan, arka planda (EmlakFlow markalı)
+  after(async () => {
+    await sendOfficeWelcomeEmail(
+      email,
+      String(body.name),
+      String(body.officeName),
+      tenant.id,
+    ).catch((err) => console.error("[register] hoş geldin maili:", err));
   });
 
   return NextResponse.json(

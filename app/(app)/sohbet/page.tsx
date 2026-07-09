@@ -1,6 +1,8 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { VitrinInbox } from "@/components/vitrin-inbox";
+import { SohbetTabs } from "@/components/sohbet-tabs";
+import { EmailCenter } from "@/components/email-center";
 
 // Vitrin ziyaretçileriyle canlı sohbet — ajan (gelen kutusu) tarafı.
 // Ziyaretçiler rastgele "v_..." oturum kimliğiyle yazar; burada ofisin
@@ -108,17 +110,22 @@ export default async function SohbetPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-[27px] font-extrabold tracking-tight">
-          Vitrin Sohbetleri
+          İletişim Merkezi
         </h1>
         <p className="mt-1 text-sm text-ink/55">
-          Vitrininizi gezen ziyaretçilerden gelen canlı destek mesajları —{" "}
-          {sessions.length} oturum.
+          Vitrin ziyaretçileriyle canlı sohbet ({sessions.length} oturum) ve
+          müşterilere giden e-postalar — tek yerden.
         </p>
       </div>
-      <VitrinInbox
-        tenantId={session.tenantId}
-        sessions={sessions}
-        trails={Object.fromEntries(trails)}
+      <SohbetTabs
+        chat={
+          <VitrinInbox
+            tenantId={session.tenantId}
+            sessions={sessions}
+            trails={Object.fromEntries(trails)}
+          />
+        }
+        mails={<EmailCenter />}
       />
     </div>
   );

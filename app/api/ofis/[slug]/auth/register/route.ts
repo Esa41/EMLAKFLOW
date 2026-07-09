@@ -1,8 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { createSiteSession } from "@/lib/site-auth";
 import { syncSiteUserToContact } from "@/lib/site-crm-sync";
+import { officeBrand } from "@/lib/office-brand";
+import { sendSiteWelcomeEmail } from "@/lib/marketing-mailer";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
@@ -59,5 +61,16 @@ export async function POST(req: Request, ctx: Ctx) {
   });
 
   await createSiteSession(user.id, tenant.id);
+
+  // Ofis markalı hoş geldin maili — arka planda
+  after(async () => {
+    const office = await officeBrand(tenant.id);
+    if (!office) return;
+    await sendSiteWelcomeEmail(email, name, office.brand, office.showcase, {
+      tenantId: tenant.id,
+      kind: "site-welcome",
+    }).catch((err) => console.error("[site-register] hoş geldin maili:", err));
+  });
+
   return NextResponse.json({ user: { name: user.name } }, { status: 201 });
 }

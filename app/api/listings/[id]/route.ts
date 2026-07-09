@@ -6,6 +6,10 @@ import { variantKeys } from "@/lib/images";
 import { ensureListingSeo } from "@/lib/seo-ai";
 import { listingDataFromBody } from "@/lib/listing-payload";
 import { revalidateListingShowcase } from "@/lib/revalidate-showcase";
+import { prisma } from "@/lib/prisma";
+import { officeBrand } from "@/lib/office-brand";
+import { sendPriceDropEmail } from "@/lib/marketing-mailer";
+import { trMoney } from "@/lib/labels";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -32,6 +36,12 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const body = await req.json().catch(() => ({}));
 
   try {
+    // Fiyat düşüşü bildirimi için güncelleme ÖNCESİ fiyatı sakla
+    const before = await forTenant(session.tenantId).listing.findUnique({
+      where: { id },
+      select: { price: true },
+    });
+
     const listing = await forTenant(session.tenantId).listing.update({
       where: { id },
       data: listingDataFromBody(body),
@@ -39,6 +49,43 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
     // Vitrindeki ISR kopyası anında tazelensin (fiyat/durum değişikliği)
     await revalidateListingShowcase(session.tenantId, listing);
+
+    // Fiyat düştüyse favorileyen vitrin üyelerine haber ver (arka planda)
+    const oldPrice = before ? Number(before.price) : null;
+    const newPrice = Number(listing.price);
+    if (oldPrice && newPrice < oldPrice && listing.status === "ACTIVE") {
+      after(async () => {
+        try {
+          const favorites = await prisma.favorite.findMany({
+            where: { listingId: listing.id },
+            select: { siteUser: { select: { email: true, name: true } } },
+          });
+          if (favorites.length === 0) return;
+          const office = await officeBrand(session.tenantId);
+          if (!office) return;
+          const publicId = listing.slug
+            ? `${listing.id}-${listing.slug}`
+            : listing.id;
+          const link = `${office.showcase}/ilan/${publicId}`;
+          for (const f of favorites) {
+            await sendPriceDropEmail(
+              f.siteUser.email,
+              f.siteUser.name,
+              listing.title,
+              trMoney.format(oldPrice),
+              trMoney.format(newPrice),
+              link,
+              office.brand,
+              { tenantId: session.tenantId, kind: "price-drop", listingId: listing.id },
+            ).catch((err) =>
+              console.error("[listings] fiyat düşüşü maili:", err),
+            );
+          }
+        } catch (err) {
+          console.error("[listings] fiyat düşüşü bildirimi:", err);
+        }
+      });
+    }
 
     // SEO eksikse arka planda otomatik tamamla (kayıt bloklanmaz).
     after(async () => {
