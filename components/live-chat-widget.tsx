@@ -48,6 +48,7 @@ export function LiveChatWidget({ tenantId }: { tenantId: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -65,6 +66,8 @@ export function LiveChatWidget({ tenantId }: { tenantId: string }) {
       setName(savedName);
       setNameLocked(true);
     }
+    const savedPhone = localStorage.getItem(storageKey(tenantId, "chat_phone"));
+    if (savedPhone) setPhone(savedPhone);
   }, [tenantId]);
 
   const load = useCallback(() => {
@@ -145,10 +148,14 @@ export function LiveChatWidget({ tenantId }: { tenantId: string }) {
     setMessages((prev) => [...prev, tempMsg]);
 
     const textToSend = body;
+    const phoneToSend = phone.trim();
     setBody("");
 
     if (!nameLocked) {
       localStorage.setItem(storageKey(tenantId, "chat_name"), name.trim());
+      if (phoneToSend) {
+        localStorage.setItem(storageKey(tenantId, "chat_phone"), phoneToSend);
+      }
       setNameLocked(true);
     }
 
@@ -157,6 +164,7 @@ export function LiveChatWidget({ tenantId }: { tenantId: string }) {
       sessionId,
       name,
       textToSend,
+      phoneToSend || null,
     );
     if (!result.ok) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -176,7 +184,7 @@ export function LiveChatWidget({ tenantId }: { tenantId: string }) {
   return (
     <div className="fixed bottom-6 right-6 z-50">
       {isOpen ? (
-        <div className="flex h-[400px] w-80 flex-col overflow-hidden rounded-2xl border border-ink/[0.08] bg-white shadow-2xl">
+        <div className="flex h-[420px] w-80 flex-col overflow-hidden rounded-2xl border border-ink/[0.08] bg-white shadow-2xl">
           <div className="flex items-center justify-between bg-brand-600 px-4 py-3 text-white">
             <h3 className="font-bold">Canlı Destek</h3>
             <button
@@ -227,30 +235,46 @@ export function LiveChatWidget({ tenantId }: { tenantId: string }) {
             <form onSubmit={handleSend} className="space-y-2">
               {nameLocked ? (
                 <div className="flex items-center justify-between px-1">
-                  <span className="text-[11px] text-ink/50">
+                  <span className="truncate text-[11px] text-ink/50">
                     Sohbet eden: <b className="text-ink/70">{name}</b>
+                    {phone ? (
+                      <span className="text-ink/40"> · {phone}</span>
+                    ) : null}
                   </span>
                   <button
                     type="button"
                     onClick={() => {
                       localStorage.removeItem(storageKey(tenantId, "chat_name"));
+                      localStorage.removeItem(storageKey(tenantId, "chat_phone"));
                       setName("");
+                      setPhone("");
                       setNameLocked(false);
                     }}
-                    className="text-[11px] text-brand-600 hover:underline"
+                    className="shrink-0 text-[11px] text-brand-600 hover:underline"
                   >
                     değiştir
                   </button>
                 </div>
               ) : (
-                <input
-                  type="text"
-                  placeholder="Adınız Soyadınız"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="dash-input text-xs"
-                />
+                <div className="space-y-1.5">
+                  <input
+                    type="text"
+                    placeholder="Adınız Soyadınız *"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="dash-input text-xs"
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Telefon (isteğe bağlı)"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    inputMode="tel"
+                    autoComplete="tel"
+                    className="dash-input text-xs"
+                  />
+                </div>
               )}
               <div className="flex gap-2">
                 <textarea

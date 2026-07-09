@@ -658,6 +658,7 @@ model Message {
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   senderId  String?  // user.id if agent, null if visitor
   senderName String? // name for visitor
+  senderPhone String? // optional visitor phone (vitrin chat)
   sessionId String?  // grouping identifier for vitrin visitors, or "TEAM" for internal team chat
   body      String
 

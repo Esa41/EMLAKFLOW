@@ -8,7 +8,7 @@ import { sendSiteWelcomeEmail } from "@/lib/marketing-mailer";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
-/** Vitrin üyeliği — alıcı/kiracı kaydı. Body: { name, email, password, phone? } */
+/** Vitrin üyeliği — alıcı/kiracı kaydı. Body: { name, email, password, phone } */
 export async function POST(req: Request, ctx: Ctx) {
   const { slug } = await ctx.params;
   const tenant = await prisma.tenant.findUnique({
@@ -23,9 +23,18 @@ export async function POST(req: Request, ctx: Ctx) {
   const name = String(body?.name ?? "").trim();
   const email = String(body?.email ?? "").trim().toLowerCase();
   const password = String(body?.password ?? "");
+  const phone = String(body?.phone ?? "").trim().slice(0, 24);
+  const phoneDigits = phone.replace(/\D/g, "");
+
   if (!name || !email.includes("@") || password.length < 6) {
     return NextResponse.json(
       { error: "Ad, geçerli e-posta ve en az 6 karakterli şifre gerekli." },
+      { status: 400 },
+    );
+  }
+  if (phoneDigits.length < 10) {
+    return NextResponse.json(
+      { error: "Geçerli bir telefon numarası gerekli." },
       { status: 400 },
     );
   }
@@ -47,7 +56,7 @@ export async function POST(req: Request, ctx: Ctx) {
       name,
       email,
       passwordHash: await hash(password, 10),
-      phone: body?.phone ? String(body.phone).trim() : null,
+      phone,
     },
     select: { id: true, name: true },
   });
@@ -57,7 +66,7 @@ export async function POST(req: Request, ctx: Ctx) {
     tenantId: tenant.id,
     name,
     email,
-    phone: body?.phone ? String(body.phone).trim() : null,
+    phone,
   });
 
   await createSiteSession(user.id, tenant.id);

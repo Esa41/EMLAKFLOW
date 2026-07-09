@@ -139,12 +139,18 @@ export async function sendVitrinMessage(
   sessionId: string,
   senderName: string,
   body: string,
+  senderPhone?: string | null,
 ): Promise<ChatResult> {
   try {
     if (!tenantId || !sessionId)
       return { ok: false, error: "Geçersiz oturum." };
+    const name = String(senderName ?? "").trim().slice(0, 80);
+    if (!name) return { ok: false, error: "Adınızı yazın." };
     const check = validateBody(body);
     if (!check.ok) return check;
+
+    const phoneRaw = String(senderPhone ?? "").trim().slice(0, 24);
+    const phone = phoneRaw.replace(/\D/g, "").length >= 7 ? phoneRaw : null;
 
     // Funnel: oturumun ilk mesajıysa CHAT olayı kaydet
     const existing = await prisma.message.findFirst({
@@ -155,7 +161,8 @@ export async function sendVitrinMessage(
     await prisma.message.create({
       data: {
         tenantId,
-        senderName,
+        senderName: name,
+        senderPhone: phone,
         sessionId,
         body: check.value,
       },
@@ -176,13 +183,14 @@ export async function sendVitrinMessage(
           select: { id: true },
         });
         if (owner) {
+          const phoneHint = phone ? ` · ${phone}` : "";
           await prisma.notification.create({
             data: {
               tenantId,
               userId: owner.id,
               category: "chat",
               title: "Yeni vitrin sohbeti",
-              body: `${senderName} yazdı: "${check.value.slice(0, 80)}"`,
+              body: `${name}${phoneHint} yazdı: "${check.value.slice(0, 80)}"`,
               href: notificationLinks.chat(sessionId),
             },
           });

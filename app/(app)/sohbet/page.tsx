@@ -17,6 +17,7 @@ export default async function SohbetPage() {
       sessionId: true,
       senderId: true,
       senderName: true,
+      senderPhone: true,
       body: true,
       createdAt: true,
     },
@@ -81,6 +82,7 @@ export default async function SohbetPage() {
     {
       sessionId: string;
       visitorName: string | null;
+      visitorPhone: string | null;
       lastBody: string;
       lastAt: Date;
       awaitingReply: boolean;
@@ -94,15 +96,18 @@ export default async function SohbetPage() {
       map.set(m.sessionId, {
         sessionId: m.sessionId,
         visitorName: null,
+        visitorPhone: null,
         lastBody: m.body,
         lastAt: m.createdAt,
         awaitingReply: !m.senderId,
       });
     }
     const s = map.get(m.sessionId)!;
-    // Ziyaretçi adı = en yeni danışman-olmayan gönderenin adı.
-    if (!s.visitorName && !m.senderId && m.senderName)
-      s.visitorName = m.senderName;
+    // Ziyaretçi adı / telefon = en yeni danışman-olmayan gönderenin bilgisi.
+    if (!m.senderId) {
+      if (!s.visitorName && m.senderName) s.visitorName = m.senderName;
+      if (!s.visitorPhone && m.senderPhone) s.visitorPhone = m.senderPhone;
+    }
   }
   const sessions = [...map.values()];
 

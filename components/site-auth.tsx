@@ -134,9 +134,12 @@ export function SiteAuthModal({
             <input
               className={inputCls}
               type="tel"
-              placeholder="Telefon (isteğe bağlı)"
+              placeholder="Telefon *"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              required
+              inputMode="tel"
+              autoComplete="tel"
             />
           )}
         </div>
@@ -149,7 +152,15 @@ export function SiteAuthModal({
 
         <button
           onClick={submit}
-          disabled={loading}
+          disabled={
+            loading ||
+            (mode === "register" &&
+              (!name.trim() ||
+                !email.trim() ||
+                password.length < 6 ||
+                phone.replace(/\D/g, "").length < 10)) ||
+            (mode === "login" && (!email.trim() || !password))
+          }
           className="btn-selvi mt-4 w-full rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-50"
         >
           {loading

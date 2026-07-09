@@ -8,6 +8,7 @@ import { sendAgentReply } from "@/app/actions/chat";
 type SessionRow = {
   sessionId: string;
   visitorName: string | null;
+  visitorPhone?: string | null;
   lastBody: string;
   lastAt: string | Date;
   awaitingReply: boolean;
@@ -223,6 +224,11 @@ export function VitrinInbox({
                     {timeAgo(s.lastAt)}
                   </span>
                 </div>
+                {s.visitorPhone && (
+                  <p className="truncate text-[11px] text-ink/45">
+                    {s.visitorPhone}
+                  </p>
+                )}
                 <p className="truncate text-xs text-ink/55">{s.lastBody}</p>
               </div>
             </button>
@@ -236,6 +242,14 @@ export function VitrinInbox({
           <h2 className="text-sm font-bold">
             {active?.visitorName || "Ziyaretçi"}
           </h2>
+          {active?.visitorPhone && (
+            <a
+              href={`tel:${active.visitorPhone.replace(/\s/g, "")}`}
+              className="mt-0.5 block text-xs text-white/80 hover:underline"
+            >
+              {active.visitorPhone}
+            </a>
+          )}
         </div>
 
         {/* Ziyaretçi izi: vitrinde baktığı ilanlar + kalma süresi */}
