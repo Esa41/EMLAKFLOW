@@ -12,10 +12,8 @@ import { EviniziSatisaHazirlamaYazi } from "@/content/blog/evinizi-satisa-hazirl
 import { EmlakDanismaniSecimiYazi } from "@/content/blog/dogru-emlak-danismani-secmenin-avantajlari";
 import { YatirimlikEvYazi } from "@/content/blog/yatirim-amacli-ev-alirken-hangi-bolgeler-tercih-edilmeli";
 import { EvKiralamadanOnceYazi } from "@/content/blog/ev-kiralamadan-once-yapilmasi-gereken-kontroller";
-import { AkilliEvYazi } from "@/content/blog/akilli-ev-teknolojilerinin-gayrimenkul-degerine-etkisi";
 import { GayrimenkulMasraflariYazi } from "@/content/blog/gayrimenkul-alim-satiminda-ortaya-cikan-masraflar";
 import { KrediFaizOranlariYazi } from "@/content/blog/kredi-faiz-oranlari-duserken-ev-almak-mantikli-mi";
-import { YeniEvliCiftlerYazi } from "@/content/blog/yeni-evli-ciftler-icin-ideal-ev-secimi";
 import { KentselDonusumYazi } from "@/content/blog/kentsel-donusum-surecinde-bilmeniz-gerekenler";
 /**
  * Blog kayıt defteri — SEO içerik planının koda dökülmüş hâli
@@ -243,18 +241,6 @@ export const BLOG_POSTS: BlogPost[] = [
     Content: EvKiralamadanOnceYazi,
   },
   {
-    slug: "akilli-ev-teknolojilerinin-gayrimenkul-degerine-etkisi",
-    title: "Akıllı Ev Teknolojilerinin Gayrimenkul Değerine Etkisi",
-    h1: "Akıllı Ev Teknolojilerinin Gayrimenkul Değerine Etkisi",
-    description: "Akıllı ev sistemleri artık lüks olmaktan çıkıp bir ihtiyaç haline geliyor ve mülk değerini doğrudan etkiliyor.",
-    keywords: ["akıllı ev", "gayrimenkul değeri", "teknolojik ev"],
-    pillar: "veri",
-    publishedAt: "2026-07-10",
-    updatedAt: "2026-07-10",
-    readingMinutes: 4,
-    Content: AkilliEvYazi,
-  },
-  {
     slug: "gayrimenkul-alim-satiminda-ortaya-cikan-masraflar",
     title: "Gayrimenkul Alım Satımında Ortaya Çıkan Masraflar",
     h1: "Gayrimenkul Alım Satımında Ortaya Çıkan Masraflar",
@@ -277,18 +263,6 @@ export const BLOG_POSTS: BlogPost[] = [
     updatedAt: "2026-07-10",
     readingMinutes: 5,
     Content: KrediFaizOranlariYazi,
-  },
-  {
-    slug: "yeni-evli-ciftler-icin-ideal-ev-secimi",
-    title: "Yeni Evli Çiftler İçin İdeal Ev Seçimi",
-    h1: "Yeni Evli Çiftler İçin İdeal Ev Seçimi",
-    description: "Yeni bir hayata başlarken doğru evi seçmek, gelecekteki mutluluğunuz için çok önemlidir. Yeni evli çiftler ev ararken hangi noktalara odaklanmalıdır?",
-    keywords: ["yeni evliler", "ilk ev", "ideal ev seçimi"],
-    pillar: "veri",
-    publishedAt: "2026-07-10",
-    updatedAt: "2026-07-10",
-    readingMinutes: 4,
-    Content: YeniEvliCiftlerYazi,
   },
   {
     slug: "kentsel-donusum-surecinde-bilmeniz-gerekenler",
