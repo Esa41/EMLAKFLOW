@@ -13,11 +13,12 @@ export async function POST(
 
   const { id } = await params;
   const body = await req.json().catch(() => null);
-  const days = body?.days as number | undefined;
+  const days = Number(body?.days);
 
-  if (!days || days < 1 || days > 3650) {
+  // Pozitif: süre ekle · Negatif: süre düş (yanlış eklemeyi düzelt)
+  if (!Number.isFinite(days) || days === 0 || days < -3650 || days > 3650) {
     return NextResponse.json(
-      { error: "days 1-3650 arasında olmalı." },
+      { error: "days -3650 ile 3650 arasında, 0 olamaz." },
       { status: 400 }
     );
   }
@@ -33,9 +34,10 @@ export async function POST(
 
   const session = await getSession();
   const now = new Date();
-  const baseDate = tenant.proExpiresAt && tenant.proExpiresAt > now 
-    ? tenant.proExpiresAt 
-    : now;
+  const baseDate =
+    tenant.proExpiresAt && tenant.proExpiresAt > now
+      ? tenant.proExpiresAt
+      : now;
   const expiresAt = new Date(baseDate);
   expiresAt.setDate(expiresAt.getDate() + days);
 
@@ -51,14 +53,17 @@ export async function POST(
     select: { id: true, plan: true, proStartedAt: true, proExpiresAt: true },
   });
 
-  // Log değişikliği
-  const reasonText = days === 365 
-    ? "1 Yıl Pro eklendi"
-    : days === 30
-    ? "30 Gün Pro eklendi"
-    : days === 90
-    ? "90 Gün (3 Ay) Pro eklendi"
-    : `${days} gün Pro eklendi`;
+  const abs = Math.abs(days);
+  const reasonText =
+    days < 0
+      ? `${abs} gün Pro süresi düşüldü (düzeltme)`
+      : days === 365
+        ? "1 Yıl Pro eklendi"
+        : days === 30
+          ? "30 Gün Pro eklendi"
+          : days === 90
+            ? "90 Gün (3 Ay) Pro eklendi"
+            : `${days} gün Pro eklendi`;
 
   await prisma.planChangeLog.create({
     data: {

@@ -68,6 +68,29 @@ export function AdminTenantDetailModal({
   const [savingNotes, setSavingNotes] = useState(false);
   const [extendDays, setExtendDays] = useState("30");
   const [extending, setExtending] = useState(false);
+  const [expiresDate, setExpiresDate] = useState("");
+  const [savingExpires, setSavingExpires] = useState(false);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
+
+  function toDateInputValue(iso: string | null) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  async function reloadTenant() {
+    const res = await fetch(`/api/admin/tenants/${tenantId}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? "Yüklenemedi");
+    setTenant(data.tenant);
+    setNotes(data.tenant.adminNotes || "");
+    setExpiresDate(toDateInputValue(data.tenant.proExpiresAt));
+    return data.tenant as TenantDetail;
+  }
 
   useEffect(() => {
     fetch(`/api/admin/tenants/${tenantId}`)
@@ -76,6 +99,7 @@ export function AdminTenantDetailModal({
         if (data.error) throw new Error(data.error);
         setTenant(data.tenant);
         setNotes(data.tenant.adminNotes || "");
+        setExpiresDate(toDateInputValue(data.tenant.proExpiresAt));
         setLoading(false);
       })
       .catch((err) => {
@@ -86,6 +110,7 @@ export function AdminTenantDetailModal({
 
   async function saveNotes() {
     setSavingNotes(true);
+    setActionMsg(null);
     try {
       const res = await fetch(`/api/admin/tenants/${tenantId}`, {
         method: "PATCH",
@@ -95,6 +120,8 @@ export function AdminTenantDetailModal({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setTenant((prev) => (prev ? { ...prev, adminNotes: notes } : null));
+      setActionMsg("Notlar kaydedildi.");
+      router.refresh();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Kaydedilemedi");
     } finally {
@@ -102,13 +129,14 @@ export function AdminTenantDetailModal({
     }
   }
 
-  async function extendPro() {
-    const days = parseInt(extendDays, 10);
-    if (!days || days < 1) {
-      alert("Geçerli gün sayısı girin.");
+  async function extendPro(daysOverride?: number) {
+    const days = daysOverride ?? parseInt(extendDays, 10);
+    if (!Number.isFinite(days) || days === 0) {
+      alert("Geçerli gün sayısı girin (pozitif ekler, negatif düşer).");
       return;
     }
     setExtending(true);
+    setActionMsg(null);
     try {
       const res = await fetch(`/api/admin/tenants/${tenantId}/extend-pro`, {
         method: "POST",
@@ -117,12 +145,44 @@ export function AdminTenantDetailModal({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      await reloadTenant();
       router.refresh();
-      onClose();
+      setActionMsg(
+        days > 0
+          ? `${days} gün eklendi.`
+          : `${Math.abs(days)} gün düşüldü.`,
+      );
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Hata");
     } finally {
       setExtending(false);
+    }
+  }
+
+  async function saveExpiresDate() {
+    setSavingExpires(true);
+    setActionMsg(null);
+    try {
+      const res = await fetch(`/api/admin/tenants/${tenantId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          proExpiresAt: expiresDate.trim() ? expiresDate.trim() : null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      await reloadTenant();
+      router.refresh();
+      setActionMsg(
+        expiresDate.trim()
+          ? "Bitiş tarihi güncellendi."
+          : "Bitiş tarihi temizlendi.",
+      );
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Hata");
+    } finally {
+      setSavingExpires(false);
     }
   }
 
@@ -278,77 +338,156 @@ export function AdminTenantDetailModal({
               </div>
             )}
 
-            {/* Pro Süre Uzatma */}
-            <div className="space-y-3 rounded-xl border border-brand-200 bg-gradient-to-br from-brand-50/30 to-white p-4">
+            {/* Pro Süre Yönetimi */}
+            <div className="space-y-4 rounded-xl border border-brand-200 bg-gradient-to-br from-brand-50/30 to-white p-4">
               <div className="flex items-center gap-2 text-sm font-bold text-brand-700">
                 <Plus size={16} />
-                Pro Süre Ekle
+                Pro Süre Yönetimi
               </div>
-              
+
+              {actionMsg && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
+                  {actionMsg}
+                </div>
+              )}
+
+              {/* Mutlak bitiş tarihi — yanlış eklemeyi düzeltmek için */}
+              <div className="space-y-2 rounded-lg border border-ink/10 bg-white p-3">
+                <label className="text-xs font-bold uppercase tracking-wider text-ink/55">
+                  Bitiş tarihini ayarla
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    type="date"
+                    value={expiresDate}
+                    onChange={(e) => setExpiresDate(e.target.value)}
+                    className="min-w-[160px] flex-1 rounded-lg border border-ink/20 px-3 py-2 text-sm font-semibold outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                  />
+                  <button
+                    type="button"
+                    onClick={saveExpiresDate}
+                    disabled={savingExpires}
+                    className="rounded-lg bg-ink px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-ink/90 disabled:opacity-50"
+                  >
+                    {savingExpires ? "Kaydediliyor..." : "Tarihi kaydet"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExpiresDate("");
+                      void (async () => {
+                        setSavingExpires(true);
+                        setActionMsg(null);
+                        try {
+                          const res = await fetch(
+                            `/api/admin/tenants/${tenantId}`,
+                            {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ proExpiresAt: null }),
+                            },
+                          );
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data.error);
+                          await reloadTenant();
+                          router.refresh();
+                          setActionMsg("Bitiş tarihi temizlendi.");
+                        } catch (err: unknown) {
+                          alert(
+                            err instanceof Error ? err.message : "Hata",
+                          );
+                        } finally {
+                          setSavingExpires(false);
+                        }
+                      })();
+                    }}
+                    disabled={savingExpires || !tenant.proExpiresAt}
+                    className="rounded-lg border border-ink/20 px-3 py-2 text-xs font-bold text-ink/60 hover:bg-ink/[0.03] disabled:opacity-40"
+                  >
+                    Temizle
+                  </button>
+                </div>
+                <p className="text-[11px] text-ink/45">
+                  Yanlış eklenen süreyi buradan doğrudan doğru tarihe çekebilirsiniz.
+                </p>
+              </div>
+
               {/* Hızlı Seçenekler */}
               <div className="grid grid-cols-3 gap-2">
                 <button
+                  type="button"
                   onClick={() => {
                     setExtendDays("30");
-                    setTimeout(() => extendPro(), 100);
+                    void extendPro(30);
                   }}
                   disabled={extending}
                   className="rounded-lg border-2 border-brand-200 bg-white px-3 py-2 text-center transition-all hover:border-brand-400 hover:bg-brand-50 disabled:opacity-50"
                 >
-                  <div className="text-lg font-extrabold text-brand-700">30</div>
+                  <div className="text-lg font-extrabold text-brand-700">+30</div>
                   <div className="text-[10px] font-semibold uppercase tracking-wider text-ink/50">
                     Gün
                   </div>
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setExtendDays("90");
-                    setTimeout(() => extendPro(), 100);
+                    void extendPro(90);
                   }}
                   disabled={extending}
                   className="rounded-lg border-2 border-indigo-200 bg-white px-3 py-2 text-center transition-all hover:border-indigo-400 hover:bg-indigo-50 disabled:opacity-50"
                 >
-                  <div className="text-lg font-extrabold text-indigo-700">90</div>
+                  <div className="text-lg font-extrabold text-indigo-700">+90</div>
                   <div className="text-[10px] font-semibold uppercase tracking-wider text-ink/50">
                     Gün
                   </div>
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setExtendDays("365");
-                    setTimeout(() => extendPro(), 100);
+                    void extendPro(365);
                   }}
                   disabled={extending}
                   className="rounded-lg border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-white px-3 py-2 text-center shadow-sm transition-all hover:border-emerald-400 hover:shadow-md disabled:opacity-50"
                 >
-                  <div className="text-lg font-extrabold text-emerald-700">1 YIL</div>
+                  <div className="text-lg font-extrabold text-emerald-700">+1 YIL</div>
                   <div className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600">
                     365 Gün
                   </div>
                 </button>
               </div>
 
-              {/* Manuel Giriş */}
-              <div className="flex gap-2">
+              {/* Manuel ekle / düş */}
+              <div className="flex flex-wrap gap-2">
                 <input
                   type="number"
-                  min="1"
-                  max="3650"
+                  min={-3650}
+                  max={3650}
                   value={extendDays}
                   onChange={(e) => setExtendDays(e.target.value)}
-                  className="flex-1 rounded-lg border border-ink/20 px-3 py-2 text-sm font-semibold outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-                  placeholder="Gün sayısı..."
+                  className="min-w-[100px] flex-1 rounded-lg border border-ink/20 px-3 py-2 text-sm font-semibold outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                  placeholder="Gün (±)"
                 />
                 <button
-                  onClick={extendPro}
+                  type="button"
+                  onClick={() => void extendPro()}
                   disabled={extending}
                   className="rounded-lg bg-gradient-to-r from-brand-600 to-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-md transition-all hover:shadow-lg disabled:opacity-50"
                 >
-                  {extending ? "Ekleniyor..." : "Ekle"}
+                  {extending ? "Uygulanıyor..." : "Uygula"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void extendPro(-30)}
+                  disabled={extending}
+                  className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 transition-colors hover:bg-rose-100 disabled:opacity-50"
+                >
+                  −30 gün
                 </button>
               </div>
               <p className="text-xs text-ink/50">
-                Mevcut süreye ekler. Pro değilse Pro yapar.
+                Pozitif gün ekler, negatif gün düşer (ör. −30). Modal kapanmaz; sonucu hemen görürsünüz.
               </p>
             </div>
 

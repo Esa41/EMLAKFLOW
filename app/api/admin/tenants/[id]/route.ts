@@ -69,7 +69,7 @@ export async function GET(
   return NextResponse.json({ tenant });
 }
 
-// Plan veya admin notlarını güncelle
+// Plan, Pro bitiş tarihi veya admin notlarını güncelle
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -82,10 +82,13 @@ export async function PATCH(
   const body = await req.json().catch(() => null);
   const plan = body?.plan as string | undefined;
   const adminNotes = body?.adminNotes as string | undefined;
+  // null → süreyi temizle; string → mutlak bitiş tarihi (YYYY-MM-DD veya ISO)
+  const hasProExpiresAt = body !== null && "proExpiresAt" in body;
+  const proExpiresAtRaw = body?.proExpiresAt as string | null | undefined;
 
   const existing = await prisma.tenant.findUnique({
     where: { id },
-    select: { id: true, plan: true },
+    select: { id: true, plan: true, proExpiresAt: true, proStartedAt: true },
   });
   if (!existing) {
     return NextResponse.json({ error: "Ofis bulunamadı." }, { status: 404 });
@@ -102,17 +105,16 @@ export async function PATCH(
   // Plan değişikliği
   if (plan && ALLOWED_PLANS.includes(plan) && plan !== existing.plan) {
     updateData.plan = plan;
-    
+
     if (plan === "pro") {
       updateData.proStartedAt = new Date();
-      // Manuel pro yapma - süre yok, extend-pro endpoint'inden eklenir
+      // Manuel pro yapma - süre yok, extend-pro / proExpiresAt ile ayarlanır
     } else {
       // Free'ye alınca pro tarihlerini temizle
       updateData.proStartedAt = null;
       updateData.proExpiresAt = null;
     }
 
-    // Log değişikliği
     await prisma.planChangeLog.create({
       data: {
         tenantId: id,
@@ -122,6 +124,52 @@ export async function PATCH(
         reason: "Manuel plan değişikliği",
       },
     });
+  }
+
+  // Mutlak Pro bitiş tarihi (yanlış eklenen süreyi düzeltmek için)
+  if (hasProExpiresAt) {
+    if (proExpiresAtRaw === null || proExpiresAtRaw === "") {
+      updateData.proExpiresAt = null;
+      await prisma.planChangeLog.create({
+        data: {
+          tenantId: id,
+          fromPlan: existing.plan,
+          toPlan: updateData.plan ?? existing.plan,
+          changedBy: session?.name ?? "Admin",
+          reason: "Pro bitiş tarihi temizlendi",
+          expiresAt: null,
+        },
+      });
+    } else if (typeof proExpiresAtRaw === "string") {
+      const parsed = new Date(proExpiresAtRaw);
+      if (Number.isNaN(parsed.getTime())) {
+        return NextResponse.json(
+          { error: "Geçersiz bitiş tarihi." },
+          { status: 400 },
+        );
+      }
+      // Gün sonuna ayarla (yerel tarih string'i YYYY-MM-DD ise öğlen UTC kaymasını azalt)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(proExpiresAtRaw)) {
+        parsed.setHours(23, 59, 59, 999);
+      }
+      updateData.proExpiresAt = parsed;
+      if ((updateData.plan ?? existing.plan) === "pro" && !existing.proStartedAt) {
+        updateData.proStartedAt = new Date();
+      }
+      if (!updateData.plan && existing.plan !== "pro") {
+        updateData.plan = "pro";
+      }
+      await prisma.planChangeLog.create({
+        data: {
+          tenantId: id,
+          fromPlan: existing.plan,
+          toPlan: updateData.plan ?? existing.plan,
+          changedBy: session?.name ?? "Admin",
+          reason: `Pro bitiş tarihi ayarlandı: ${parsed.toLocaleDateString("tr-TR")}`,
+          expiresAt: parsed,
+        },
+      });
+    }
   }
 
   // Not güncelleme
