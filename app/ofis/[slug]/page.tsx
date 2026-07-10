@@ -284,9 +284,6 @@ export default async function ShowcasePage({
   const featuredCards = featuredListings.map(toCardListing);
   const newCards = newListings.map(toCardListing);
 
-  // Hero'da yüzen kartlar — öne çıkanlar, yoksa yeni eklenenler
-  const floatCards = (featuredCards.length > 0 ? featuredCards : newCards).slice(0, 3);
-
   const savedStats = Array.isArray(tenant.aboutStats)
     ? (tenant.aboutStats as Array<{ value: string; label: string }>).filter(
         (x) => x && x.value && x.label,
@@ -359,7 +356,6 @@ export default async function ShowcasePage({
           tagline={tagline}
           stats={heroStats}
           slug={slug}
-          floatCards={floatCards}
           badges={[
             `${activeCount} AKTİF ${isAuto ? "ARAÇ" : "İLAN"}`,
             `${neighborhoodCount.length || districts.length} ${isAuto ? "BÖLGE" : "MAHALLE"}`,
