@@ -269,14 +269,26 @@ export function ShowcaseHero(props: Props) {
     }
 
     let raf = 0;
+    // Ölçüm ve viewport, scroll boyunca değişmez — her karede DOM okumak yerine önbelleğe alınır.
+    let card: { top: number; left: number; width: number; height: number } | null = null;
+    let vw = window.innerWidth;
+    let vh = window.innerHeight;
+    // Mapbox.resize() pahalı; her karede değil, en fazla ~120ms'de bir çağrılır.
+    let lastResize = 0;
+    let settleTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const measureCard = () => {
+    const remeasure = () => {
+      vw = window.innerWidth;
+      vh = window.innerHeight;
       const sticky = stickyRef.current;
       const anchor = cardAnchorRef.current;
-      if (!sticky || !anchor) return null;
+      if (!sticky || !anchor) {
+        card = null;
+        return;
+      }
       const s = sticky.getBoundingClientRect();
       const a = anchor.getBoundingClientRect();
-      return {
+      card = {
         top: a.top - s.top,
         left: a.left - s.left,
         width: a.width,
@@ -287,13 +299,11 @@ export function ShowcaseHero(props: Props) {
     const applyProgress = (p: number) => {
       const shell = mapShellRef.current;
       const t = easeInOut(p);
-      const card = measureCard();
-      const vh = window.innerHeight;
 
       if (shell && card) {
         shell.style.top = `${lerp(0, card.top, t)}px`;
         shell.style.left = `${lerp(0, card.left, t)}px`;
-        shell.style.width = `${lerp(window.innerWidth, card.width, t)}px`;
+        shell.style.width = `${lerp(vw, card.width, t)}px`;
         shell.style.height = `${lerp(vh, card.height, t)}px`;
         shell.style.borderRadius = `${lerp(0, 14, t)}px`;
         shell.style.boxShadow =
@@ -304,7 +314,16 @@ export function ShowcaseHero(props: Props) {
       }
 
       const m = mapRef.current;
-      if (m && t > 0.08) m.resize();
+      if (m && t > 0.08) {
+        const now = performance.now();
+        if (now - lastResize > 120) {
+          m.resize();
+          lastResize = now;
+        }
+        // Kaydırma durunca haritayı son boyutuna net oturt.
+        clearTimeout(settleTimer);
+        settleTimer = setTimeout(() => mapRef.current?.resize(), 140);
+      }
 
       const textIn = ramp(p, 0.42, 0.72);
       if (textRef.current) {
@@ -344,7 +363,6 @@ export function ShowcaseHero(props: Props) {
       const wrap = wrapRef.current;
       if (!wrap) return;
 
-      const vh = window.innerHeight;
       const rect = wrap.getBoundingClientRect();
       const rawP = clamp(-rect.top / Math.max(rect.height - vh, 1), 0, 1);
 
@@ -366,16 +384,23 @@ export function ShowcaseHero(props: Props) {
       if (!raf) raf = requestAnimationFrame(update);
     };
 
+    const onResize = () => {
+      remeasure();
+      onScroll();
+    };
+
     const isReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (isReduced) return;
 
+    remeasure();
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    window.addEventListener("resize", onResize);
     return () => {
       cancelAnimationFrame(raf);
+      clearTimeout(settleTimer);
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("resize", onResize);
     };
   }, [reduced, hasMap, introKey]);
 
