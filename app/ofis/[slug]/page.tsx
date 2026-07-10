@@ -13,7 +13,6 @@ import { isAutoVertical } from "@/lib/verticals";
 import { ShowcaseWorkspace, type SplitListing } from "@/components/showcase-workspace";
 import { ShowcaseHero } from "@/components/showcase-hero";
 import { ShowcaseCollections } from "@/components/showcase-collections";
-import type { MapListing } from "@/components/showcase-map";
 import { AnimatedCounter } from "@/components/animated-counter";
 import type { ShowcaseCardListing } from "@/components/showcase-card";
 
@@ -218,7 +217,6 @@ export default async function ShowcasePage({
     activeCount,
     completedCount,
     neighborhoodCount,
-    mapSourceListings,
   ] = await Promise.all([
     prisma.listing.findMany({
       where: listingWhere,
@@ -275,26 +273,6 @@ export default async function ShowcasePage({
       select: { neighborhood: true },
       distinct: ["neighborhood"],
     }),
-    prisma.listing.findMany({
-      where: {
-        tenantId: tenant.id,
-        status: "ACTIVE",
-        lat: { not: null },
-        lng: { not: null },
-      },
-      select: {
-        id: true,
-        lat: true,
-        lng: true,
-        price: true,
-        purpose: true,
-        title: true,
-        rooms: true,
-        netArea: true,
-        grossArea: true,
-        media: { orderBy: { order: "asc" }, take: 1, select: { cardUrl: true, url: true } },
-      },
-    }),
   ]);
 
   const splitListings: SplitListing[] = listings.map((l) => ({
@@ -306,17 +284,8 @@ export default async function ShowcasePage({
   const featuredCards = featuredListings.map(toCardListing);
   const newCards = newListings.map(toCardListing);
 
-  const heroMapListings: MapListing[] = mapSourceListings.map((l) => ({
-    id: l.id,
-    lat: l.lat!,
-    lng: l.lng!,
-    price: Number(l.price),
-    purpose: l.purpose,
-    title: l.title,
-    image: l.media[0]?.cardUrl ?? l.media[0]?.url ?? null,
-    rooms: l.rooms,
-    area: l.netArea ?? l.grossArea ?? null,
-  }));
+  // Hero'da yüzen kartlar — öne çıkanlar, yoksa yeni eklenenler
+  const floatCards = (featuredCards.length > 0 ? featuredCards : newCards).slice(0, 3);
 
   const savedStats = Array.isArray(tenant.aboutStats)
     ? (tenant.aboutStats as Array<{ value: string; label: string }>).filter(
@@ -342,7 +311,7 @@ export default async function ShowcasePage({
     tenant.aboutTitle ??
     (isAuto
       ? `${place} aradığınız araç, künyesiyle burada.`
-      : `${place} aradığınız evi bulmanın kısa yolu.`);
+      : "Ev, arsa, iş yeri — aradığınız mülke giden kısa yol.");
   const tagline =
     tenant.showcaseTagline ??
     (isAuto
@@ -381,7 +350,7 @@ export default async function ShowcasePage({
       />
       <TrackImpressions tenantId={tenant.id} />
 
-      <div className="-mx-4 sm:-mx-6">
+      <div className="-mx-4 -mt-8 sm:-mx-6">
         <ShowcaseHero
           displayName={displayName}
           district={tenant.district}
@@ -390,7 +359,12 @@ export default async function ShowcasePage({
           tagline={tagline}
           stats={heroStats}
           slug={slug}
-          mapListings={heroMapListings}
+          floatCards={floatCards}
+          badges={[
+            `${activeCount} AKTİF ${isAuto ? "ARAÇ" : "İLAN"}`,
+            `${neighborhoodCount.length || districts.length} ${isAuto ? "BÖLGE" : "MAHALLE"}`,
+          ]}
+          isAuto={isAuto}
         />
       </div>
 

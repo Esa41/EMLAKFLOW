@@ -7,6 +7,7 @@ import { Building2, Map, X, SlidersHorizontal, Search } from "lucide-react";
 import { ShowcaseMap, type MapListing } from "@/components/showcase-map";
 import { SaveSearchButton } from "@/components/save-search-button";
 import { ShowcaseCard, type ShowcaseCardListing } from "@/components/showcase-card";
+import { GhostTag } from "@/components/showcase-fx";
 import { ROOM_OPTIONS, TYPE_TR } from "@/lib/labels";
 
 export type SplitListing = ShowcaseCardListing & {
@@ -162,7 +163,8 @@ export function ShowcaseWorkspace({
   );
 
   return (
-    <section id="portfoy" className="scroll-mt-20">
+    <section id="portfoy" className="relative scroll-mt-20">
+      <GhostTag text="PORTFÖY" speed={0.07} />
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <h2 className="font-display text-[22px] font-extrabold tracking-tight">
