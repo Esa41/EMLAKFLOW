@@ -12,7 +12,8 @@ import { getBaseUrl } from "@/lib/url";
 import { isAutoVertical } from "@/lib/verticals";
 import { ShowcaseWorkspace, type SplitListing } from "@/components/showcase-workspace";
 import { ShowcaseHero } from "@/components/showcase-hero";
-import { ShowcaseRail } from "@/components/showcase-rail";
+import { ShowcaseCollections } from "@/components/showcase-collections";
+import type { MapListing } from "@/components/showcase-map";
 import { AnimatedCounter } from "@/components/animated-counter";
 import type { ShowcaseCardListing } from "@/components/showcase-card";
 
@@ -46,13 +47,6 @@ const SORT_OPTIONS: Record<string, { label: string; orderBy: Record<string, stri
   price_desc: { label: "Fiyat ↓", orderBy: { price: "desc" } },
   area_desc: { label: "m² ↓", orderBy: { netArea: "desc" } },
 };
-
-const updatedFmt = new Intl.DateTimeFormat("tr-TR", {
-  day: "numeric",
-  month: "long",
-  hour: "2-digit",
-  minute: "2-digit",
-});
 
 function toCardListing(
   l: {
@@ -224,7 +218,7 @@ export default async function ShowcasePage({
     activeCount,
     completedCount,
     neighborhoodCount,
-    latestUpdate,
+    mapSourceListings,
   ] = await Promise.all([
     prisma.listing.findMany({
       where: listingWhere,
@@ -281,10 +275,25 @@ export default async function ShowcasePage({
       select: { neighborhood: true },
       distinct: ["neighborhood"],
     }),
-    prisma.listing.findFirst({
-      where: { tenantId: tenant.id, status: "ACTIVE" },
-      orderBy: { updatedAt: "desc" },
-      select: { updatedAt: true },
+    prisma.listing.findMany({
+      where: {
+        tenantId: tenant.id,
+        status: "ACTIVE",
+        lat: { not: null },
+        lng: { not: null },
+      },
+      select: {
+        id: true,
+        lat: true,
+        lng: true,
+        price: true,
+        purpose: true,
+        title: true,
+        rooms: true,
+        netArea: true,
+        grossArea: true,
+        media: { orderBy: { order: "asc" }, take: 1, select: { cardUrl: true, url: true } },
+      },
     }),
   ]);
 
@@ -296,6 +305,18 @@ export default async function ShowcasePage({
 
   const featuredCards = featuredListings.map(toCardListing);
   const newCards = newListings.map(toCardListing);
+
+  const heroMapListings: MapListing[] = mapSourceListings.map((l) => ({
+    id: l.id,
+    lat: l.lat!,
+    lng: l.lng!,
+    price: Number(l.price),
+    purpose: l.purpose,
+    title: l.title,
+    image: l.media[0]?.cardUrl ?? l.media[0]?.url ?? null,
+    rooms: l.rooms,
+    area: l.netArea ?? l.grossArea ?? null,
+  }));
 
   const savedStats = Array.isArray(tenant.aboutStats)
     ? (tenant.aboutStats as Array<{ value: string; label: string }>).filter(
@@ -327,17 +348,6 @@ export default async function ShowcasePage({
     (isAuto
       ? "Seçilmiş stok, şeffaf fiyat, tek danışman. Aradığınızı bulamazsanız kriterinizi bırakın — uyan araç girdiği an sizi arayalım."
       : "Seçilmiş portföy, şeffaf fiyat, tek danışman. Aradığınızı listemizde bulamazsanız kriterinizi bırakın — uyan mülk girdiği an sizi arayalım.");
-
-  const heroImage =
-    tenant.officePhotoUrl ??
-    featuredListings[0]?.media[0]?.cardUrl ??
-    featuredListings[0]?.media[0]?.url ??
-    newListings[0]?.media[0]?.cardUrl ??
-    newListings[0]?.media[0]?.url ??
-    null;
-
-  const updatedAt = latestUpdate?.updatedAt ?? tenant.updatedAt;
-  const updatedLabel = updatedFmt.format(updatedAt);
 
   const stats = Array.isArray(tenant.aboutStats)
     ? (tenant.aboutStats as Array<{ value: string; label: string }>).filter(
@@ -378,35 +388,18 @@ export default async function ShowcasePage({
           eyebrow={eyebrow}
           headline={headline}
           tagline={tagline}
-          heroImage={heroImage}
-          heroImageAlt={displayName}
           stats={heroStats}
-          updatedLabel={updatedLabel}
+          slug={slug}
+          mapListings={heroMapListings}
         />
       </div>
 
-      {featuredCards.length > 0 && (
-        <ShowcaseRail
-          slug={slug}
-          title="Öne Çıkanlar"
-          subtitle={`Danışmanlarımızın bu hafta öne aldığı ${featuredCards.length} ${isAuto ? "araç" : "mülk"}.`}
-          shelf="RAF 01"
-          listings={featuredCards}
-          isAuto={isAuto}
-        />
-      )}
-
-      {newCards.length > 0 && (
-        <ShowcaseRail
-          slug={slug}
-          title="Yeni Eklenenler"
-          subtitle={`Son 14 günde portföye giren ${isAuto ? "araçlar" : "mülkler"}.`}
-          shelf="RAF 02"
-          listings={newCards}
-          isAuto={isAuto}
-          showNewBadges
-        />
-      )}
+      <ShowcaseCollections
+        slug={slug}
+        featured={featuredCards}
+        newest={newCards}
+        isAuto={isAuto}
+      />
 
       <ShowcaseWorkspace
         listings={splitListings}
