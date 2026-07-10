@@ -13,6 +13,7 @@ import { isAutoVertical } from "@/lib/verticals";
 import { ShowcaseWorkspace, type SplitListing } from "@/components/showcase-workspace";
 import { ShowcaseHero } from "@/components/showcase-hero";
 import { ShowcaseCollections } from "@/components/showcase-collections";
+import type { MapListing } from "@/components/showcase-map";
 import { AnimatedCounter } from "@/components/animated-counter";
 import type { ShowcaseCardListing } from "@/components/showcase-card";
 
@@ -217,6 +218,7 @@ export default async function ShowcasePage({
     activeCount,
     completedCount,
     neighborhoodCount,
+    mapSourceListings,
   ] = await Promise.all([
     prisma.listing.findMany({
       where: listingWhere,
@@ -273,6 +275,26 @@ export default async function ShowcasePage({
       select: { neighborhood: true },
       distinct: ["neighborhood"],
     }),
+    prisma.listing.findMany({
+      where: {
+        tenantId: tenant.id,
+        status: "ACTIVE",
+        lat: { not: null },
+        lng: { not: null },
+      },
+      select: {
+        id: true,
+        lat: true,
+        lng: true,
+        price: true,
+        purpose: true,
+        title: true,
+        rooms: true,
+        netArea: true,
+        grossArea: true,
+        media: { orderBy: { order: "asc" }, take: 1, select: { cardUrl: true, url: true } },
+      },
+    }),
   ]);
 
   const splitListings: SplitListing[] = listings.map((l) => ({
@@ -284,21 +306,17 @@ export default async function ShowcasePage({
   const featuredCards = featuredListings.map(toCardListing);
   const newCards = newListings.map(toCardListing);
 
-  const updatedLabel = (() => {
-    const d = tenant.updatedAt;
-    if (!d) return null;
-    const now = new Date();
-    const sameDay = d.toDateString() === now.toDateString();
-    const time = new Intl.DateTimeFormat("tr-TR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(d);
-    if (sameDay) return `bugün ${time}`;
-    return new Intl.DateTimeFormat("tr-TR", {
-      day: "2-digit",
-      month: "long",
-    }).format(d);
-  })();
+  const heroMapListings: MapListing[] = mapSourceListings.map((l) => ({
+    id: l.id,
+    lat: l.lat!,
+    lng: l.lng!,
+    price: Number(l.price),
+    purpose: l.purpose,
+    title: l.title,
+    image: l.media[0]?.cardUrl ?? l.media[0]?.url ?? null,
+    rooms: l.rooms,
+    area: l.netArea ?? l.grossArea ?? null,
+  }));
 
   const savedStats = Array.isArray(tenant.aboutStats)
     ? (tenant.aboutStats as Array<{ value: string; label: string }>).filter(
@@ -372,9 +390,7 @@ export default async function ShowcasePage({
           tagline={tagline}
           stats={heroStats}
           slug={slug}
-          photoUrl={tenant.officePhotoUrl}
-          isAuto={isAuto}
-          updatedLabel={updatedLabel}
+          mapListings={heroMapListings}
         />
       </div>
 
