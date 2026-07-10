@@ -297,6 +297,7 @@ export function ShowcaseWorkspace({
             slug={slug}
             height={500}
             onPinClick={handlePinClick}
+            zoomBias="close"
           />
         </div>
       ) : (

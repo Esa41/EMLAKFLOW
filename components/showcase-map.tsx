@@ -46,6 +46,7 @@ export function ShowcaseMap({
   height = 480,
   parcelGeo,
   onPinClick,
+  zoomBias = "default",
 }: {
   listings: MapListing[];
   slug: string;
@@ -53,6 +54,8 @@ export function ShowcaseMap({
   height?: number;
   parcelGeo?: unknown;
   onPinClick?: (listingId: string) => void;
+  /** close = vitrin kartı / tam ekran için biraz daha yakın */
+  zoomBias?: "default" | "close";
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const onPinClickRef = useRef(onPinClick);
@@ -216,14 +219,17 @@ export function ShowcaseMap({
           map.jumpTo({ center: [listings[0].lng, listings[0].lat], zoom: 14 });
         } else if (listings.length > 1) {
           map.fitBounds(bounds, {
-            padding: 56,
-            maxZoom: 14,
+            padding: zoomBias === "close" ? 36 : 52,
+            maxZoom: zoomBias === "close" ? 13.5 : 12.5,
             duration: 0,
-            pitch: 28,
-            bearing: -8,
+            pitch: zoomBias === "close" ? 34 : 28,
+            bearing: zoomBias === "close" ? -5 : -8,
           });
         } else {
-          map.jumpTo({ center: [listings[0].lng, listings[0].lat], zoom: 14 });
+          map.jumpTo({
+            center: [listings[0].lng, listings[0].lat],
+            zoom: zoomBias === "close" ? 14.5 : 14,
+          });
         }
       });
     })();
@@ -232,7 +238,7 @@ export function ShowcaseMap({
       cancelled = true;
       map?.remove();
     };
-  }, [listingsKey, slug, mode, parcelGeo, router]);
+  }, [listingsKey, slug, mode, parcelGeo, router, zoomBias]);
 
   if (listings.length === 0) return null;
 
