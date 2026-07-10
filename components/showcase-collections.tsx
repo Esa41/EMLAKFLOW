@@ -1,9 +1,4 @@
-"use client";
-
-import { useState } from "react";
 import { ShowcaseCard, type ShowcaseCardListing } from "@/components/showcase-card";
-
-type Tab = "featured" | "new";
 
 type Props = {
   slug: string;
@@ -12,24 +7,59 @@ type Props = {
   isAuto?: boolean;
 };
 
+type Shelf = {
+  id: string;
+  title: string;
+  subtitle: string;
+  shelf: string;
+  items: ShowcaseCardListing[];
+  showNew?: boolean;
+};
+
+function Rail({
+  slug,
+  shelf,
+  isAuto,
+  first,
+}: {
+  slug: string;
+  shelf: Shelf;
+  isAuto: boolean;
+  first: boolean;
+}) {
+  return (
+    <section id={first ? "koleksiyon" : undefined} className={first ? "scroll-mt-20" : ""}>
+      <div className="mb-5 flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="font-display text-[22px] font-extrabold tracking-tight">
+            {shelf.title}
+          </h2>
+          <p className="mt-1 text-[12.5px] text-ink/50">{shelf.subtitle}</p>
+        </div>
+        <div className="bolum hidden w-[120px] sm:inline-flex">{shelf.shelf}</div>
+      </div>
+
+      <div className="-mx-4 flex gap-4 overflow-x-auto scroll-smooth px-4 pb-2 [scroll-snap-type:x_mandatory] sm:-mx-6 sm:px-6 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/15">
+        {shelf.items.map((l) => (
+          <ShowcaseCard
+            key={l.id}
+            slug={slug}
+            listing={l}
+            isAuto={isAuto}
+            compact
+            showNewBadge={shelf.showNew}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function ShowcaseCollections({ slug, featured, newest, isAuto = false }: Props) {
-  const hasFeatured = featured.length > 0;
-  const hasNew = newest.length > 0;
-  if (!hasFeatured && !hasNew) return null;
+  const shelves: Shelf[] = [];
 
-  const [tab, setTab] = useState<Tab>(hasFeatured ? "featured" : "new");
-
-  const panels: {
-    id: Tab;
-    title: string;
-    subtitle: string;
-    shelf: string;
-    items: ShowcaseCardListing[];
-    showNew?: boolean;
-  }[] = [];
-
-  if (hasFeatured) {
-    panels.push({
+  if (featured.length > 0) {
+    shelves.push({
       id: "featured",
       title: "Öne Çıkanlar",
       subtitle: `Danışmanlarımızın öne aldığı ${featured.length} ${isAuto ? "araç" : "mülk"}.`,
@@ -37,66 +67,24 @@ export function ShowcaseCollections({ slug, featured, newest, isAuto = false }: 
       items: featured,
     });
   }
-  if (hasNew) {
-    panels.push({
+  if (newest.length > 0) {
+    shelves.push({
       id: "new",
       title: "Yeni Eklenenler",
       subtitle: `Son 14 günde portföye giren ${isAuto ? "araçlar" : "mülkler"}.`,
-      shelf: "RAF 02",
+      shelf: `RAF ${shelves.length > 0 ? "02" : "01"}`,
       items: newest,
       showNew: true,
     });
   }
 
-  const active = panels.find((p) => p.id === tab) ?? panels[0];
+  if (shelves.length === 0) return null;
 
   return (
-    <section id="koleksiyon" className="scroll-mt-20">
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="font-display text-[22px] font-extrabold tracking-tight">
-            {active.title}
-          </h2>
-          <p className="mt-1 text-[12.5px] text-ink/50">{active.subtitle}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {panels.length > 1 && (
-            <div className="inline-flex rounded-full border border-ink/15 bg-white p-1 shadow-[0_1px_2px_rgba(23,32,28,0.04)]">
-              {panels.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setTab(p.id)}
-                  className={`rounded-full px-4 py-2 text-[12px] font-bold transition-all ${
-                    tab === p.id
-                      ? "bg-ink text-white shadow-sm"
-                      : "text-ink/50 hover:text-ink"
-                  }`}
-                >
-                  {p.title}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="bolum hidden w-[88px] sm:inline-flex">{active.shelf}</div>
-        </div>
-      </div>
-
-      <div
-        key={active.id}
-        className="-mx-4 flex gap-4 overflow-x-auto scroll-smooth px-4 pb-2 [scroll-snap-type:x_mandatory] duration-300 animate-in fade-in slide-in-from-top-1 sm:-mx-6 sm:px-6 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-ink/15"
-      >
-        {active.items.map((l) => (
-          <ShowcaseCard
-            key={l.id}
-            slug={slug}
-            listing={l}
-            isAuto={isAuto}
-            compact
-            showNewBadge={active.showNew}
-          />
-        ))}
-      </div>
-    </section>
+    <div className="space-y-10">
+      {shelves.map((shelf, i) => (
+        <Rail key={shelf.id} slug={slug} shelf={shelf} isAuto={isAuto} first={i === 0} />
+      ))}
+    </div>
   );
 }
