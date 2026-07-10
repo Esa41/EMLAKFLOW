@@ -87,7 +87,7 @@ function StaticHero({
           </div>
           <div className="relative max-md:order-first">
             <div className="relative aspect-[4/3] overflow-hidden rounded-[14px] border border-ink bg-brand-50 shadow-[0_12px_40px_-12px_rgba(23,32,28,0.22)]">
-              <ShowcaseMap listings={mapListings} slug={slug} height={360} zoomBias="close" />
+              <ShowcaseMap listings={mapListings} slug={slug} height={360} />
               <button
                 type="button"
                 onClick={onExpand}
@@ -142,25 +142,20 @@ export function ShowcaseHero(props: Props) {
   const kunyeRef = useRef<HTMLSpanElement>(null);
   const expandRef = useRef<HTMLButtonElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const maxProgressRef = useRef(0);
+  const latchedRef = useRef(false);
+
+  const introKey = `ef-vitrin-intro-${slug}`;
 
   const center = useMemo(() => listingCenter(mapListings), [mapListings]);
-  const camFrom = useMemo(
+  /** Scroll sırasında değişmez — yalnızca kabuk küçülür */
+  const camFixed = useMemo(
     () => ({
-      lng: center.lng - 0.035,
-      lat: center.lat - 0.028,
-      zoom: 10.4,
-      pitch: 4,
-      bearing: -22,
-    }),
-    [center],
-  );
-  const camTo = useMemo(
-    () => ({
-      lng: center.lng,
-      lat: center.lat,
-      zoom: 12.9,
-      pitch: 50,
-      bearing: 6,
+      lng: center.lng - 0.02,
+      lat: center.lat - 0.02,
+      zoom: 10.8,
+      pitch: 28,
+      bearing: -12,
     }),
     [center],
   );
@@ -216,10 +211,10 @@ export function ShowcaseHero(props: Props) {
         map = new gl.Map({
           container: mapDivRef.current,
           style: getMapboxStyleUrl(),
-          center: [camFrom.lng, camFrom.lat],
-          zoom: camFrom.zoom,
-          pitch: camFrom.pitch,
-          bearing: camFrom.bearing,
+          center: [camFixed.lng, camFixed.lat],
+          zoom: camFixed.zoom,
+          pitch: camFixed.pitch,
+          bearing: camFixed.bearing,
           interactive: false,
           attributionControl: false,
         });
@@ -262,14 +257,18 @@ export function ShowcaseHero(props: Props) {
       mapRef.current = null;
       map?.remove();
     };
-  }, [reduced, hasMap, camFrom, mapListings, handlePinClick]);
+  }, [reduced, hasMap, camFixed, mapListings, handlePinClick]);
 
-  // Scroll scrub — harita tam ekrandan karta küçülür
+  // Scroll scrub — tek yönlü: aşağı kaydırınca bir kez küçülür, yukarıda küçük kalır
   useEffect(() => {
     if (reduced || !hasMap) return;
 
+    if (typeof sessionStorage !== "undefined" && sessionStorage.getItem(introKey) === "1") {
+      maxProgressRef.current = 1;
+      latchedRef.current = true;
+    }
+
     let raf = 0;
-    let lastP = -1;
 
     const measureCard = () => {
       const sticky = stickyRef.current;
@@ -285,22 +284,13 @@ export function ShowcaseHero(props: Props) {
       };
     };
 
-    const update = () => {
-      raf = 0;
-      const wrap = wrapRef.current;
+    const applyProgress = (p: number) => {
       const shell = mapShellRef.current;
-      if (!wrap || !shell) return;
-
-      const vh = window.innerHeight;
-      const rect = wrap.getBoundingClientRect();
-      const p = clamp(-rect.top / Math.max(rect.height - vh, 1), 0, 1);
-      if (p === lastP) return;
-      lastP = p;
-
       const t = easeInOut(p);
       const card = measureCard();
+      const vh = window.innerHeight;
 
-      if (card) {
+      if (shell && card) {
         shell.style.top = `${lerp(0, card.top, t)}px`;
         shell.style.left = `${lerp(0, card.left, t)}px`;
         shell.style.width = `${lerp(window.innerWidth, card.width, t)}px`;
@@ -314,15 +304,7 @@ export function ShowcaseHero(props: Props) {
       }
 
       const m = mapRef.current;
-      if (m) {
-        m.jumpTo({
-          center: [lerp(camFrom.lng, camTo.lng, t), lerp(camFrom.lat, camTo.lat, t)],
-          zoom: lerp(camFrom.zoom, camTo.zoom, t),
-          pitch: lerp(camFrom.pitch, camTo.pitch, easeInOut(ramp(p, 0.2, 0.95))),
-          bearing: lerp(camFrom.bearing, camTo.bearing, t),
-        });
-        if (t > 0.1) m.resize();
-      }
+      if (m && t > 0.08) m.resize();
 
       const textIn = ramp(p, 0.42, 0.72);
       if (textRef.current) {
@@ -342,7 +324,8 @@ export function ShowcaseHero(props: Props) {
       }
 
       if (cueRef.current) {
-        cueRef.current.style.opacity = String(1 - ramp(p, 0.02, 0.12));
+        cueRef.current.style.opacity = latchedRef.current ? "0" : String(1 - ramp(p, 0.02, 0.12));
+        cueRef.current.style.pointerEvents = "none";
       }
 
       const chromeIn = ramp(p, 0.72, 0.92);
@@ -354,6 +337,29 @@ export function ShowcaseHero(props: Props) {
       if (gridRef.current) {
         gridRef.current.style.opacity = String(ramp(p, 0.5, 0.88));
       }
+    };
+
+    const update = () => {
+      raf = 0;
+      const wrap = wrapRef.current;
+      if (!wrap) return;
+
+      const vh = window.innerHeight;
+      const rect = wrap.getBoundingClientRect();
+      const rawP = clamp(-rect.top / Math.max(rect.height - vh, 1), 0, 1);
+
+      // Yalnızca ileri — geri kaydırmada küçük boyutta kalır
+      maxProgressRef.current = Math.max(maxProgressRef.current, rawP);
+      if (maxProgressRef.current >= 0.92 && !latchedRef.current) {
+        latchedRef.current = true;
+        try {
+          sessionStorage.setItem(introKey, "1");
+        } catch {
+          /* private mode */
+        }
+      }
+
+      applyProgress(maxProgressRef.current);
     };
 
     const onScroll = () => {
@@ -371,7 +377,7 @@ export function ShowcaseHero(props: Props) {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [reduced, hasMap, camFrom, camTo]);
+  }, [reduced, hasMap, introKey]);
 
   if (!hasMap || reduced) {
     return (
