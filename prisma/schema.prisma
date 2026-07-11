@@ -136,6 +136,14 @@ enum InsightSeverity {
   URGENT
 }
 
+// AI drone video üretim durumu (Vertex AI Veo + QStash webhook)
+enum AiVideoStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 // ── Kira takibi ──
 
 enum RentalStatus {
@@ -422,6 +430,10 @@ model Listing {
   seoTitle       String?
   seoDescription String?
   slug           String? // URL dostu ek: /ofis/[slug]/ilan/[id]-[slug]
+
+  // AI drone videosu (Mapbox statik görüntü → Vertex AI Veo → Vercel Blob)
+  aiDroneVideoUrl String?
+  aiVideoStatus   AiVideoStatus?
 
   // Konum ve Çevre Analizörü (Overpass/OSM) — Çevresel Değerlendirme Puanı
   environmentScore Int?  // 0-100
