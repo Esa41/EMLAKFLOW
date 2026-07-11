@@ -89,7 +89,10 @@ export async function POST(req: Request) {
       data: { aiVideoStatus: "PROCESSING", aiDroneVideoUrl: null },
     });
 
-    const client = new Client({ token: qstashToken });
+    const client = new Client({
+      token: qstashToken,
+      baseUrl: process.env.QSTASH_URL?.trim() || undefined,
+    });
     const webhookUrl = `${getBaseUrl()}/api/video/webhook`;
 
     await client.publishJSON({
