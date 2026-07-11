@@ -53,6 +53,7 @@ export function PhotoUploader({
 }) {
   const [media, setMedia] = useState<MediaItem[]>(initialMedia);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -122,15 +123,19 @@ export function PhotoUploader({
   }
 
   async function handleDelete(mediaId: string) {
+    if (!confirm("Bu fotoğrafı kaldırmak istiyor musunuz?")) return;
     const prev = media;
+    setDeletingId(mediaId);
+    setError(null);
     setMedia((m) => m.filter((x) => x.id !== mediaId));
     const res = await fetch(`/api/listings/${listingId}/media`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mediaId }),
     });
+    setDeletingId(null);
     if (!res.ok) {
-      setMedia(prev); // geri al
+      setMedia(prev);
       setError("Fotoğraf silinemedi.");
     }
   }
@@ -138,7 +143,7 @@ export function PhotoUploader({
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-        {media.map((m) => (
+        {media.map((m, i) => (
           <div
             key={m.id}
             className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-ink/[0.05]"
@@ -148,14 +153,28 @@ export function PhotoUploader({
               alt=""
               fill
               sizes="(min-width: 768px) 25vw, (min-width: 640px) 33vw, 50vw"
-              className="object-cover"
+              className="pointer-events-none object-cover"
             />
+            {i === 0 && (
+              <span className="absolute left-2 top-2 z-10 rounded-md bg-ink/65 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider text-white">
+                Kapak
+              </span>
+            )}
             <button
+              type="button"
               onClick={() => handleDelete(m.id)}
-              className="absolute right-2 top-2 rounded-lg bg-white/90 p-1.5 text-rose-500 opacity-0 shadow transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-400"
-              aria-label="Fotoğrafı sil"
+              disabled={deletingId === m.id}
+              className="absolute right-2 top-2 z-20 flex min-h-11 touch-manipulation items-center justify-center gap-1.5 rounded-lg bg-white px-3 text-rose-600 shadow-md ring-1 ring-ink/10 active:scale-95 disabled:opacity-60 max-sm:bottom-2 max-sm:left-2 max-sm:right-2 max-sm:top-auto max-sm:w-auto max-sm:justify-center max-sm:bg-white/95 max-sm:py-2.5 max-sm:backdrop-blur-sm sm:min-h-9 sm:min-w-9 sm:px-2.5"
+              aria-label="Fotoğrafı kaldır"
             >
-              <Trash2 size={15} />
+              {deletingId === m.id ? (
+                <Loader2 size={16} className="animate-spin shrink-0" aria-hidden />
+              ) : (
+                <Trash2 size={16} aria-hidden className="shrink-0" />
+              )}
+              <span className="text-[12px] font-semibold sm:text-[11px]">
+                {deletingId === m.id ? "Kaldırılıyor…" : "Kaldır"}
+              </span>
             </button>
           </div>
         ))}
@@ -191,7 +210,12 @@ export function PhotoUploader({
         </p>
       )}
       <p className="text-xs text-ink/45">
-        JPEG, PNG veya WebP. Dosyalar doğrudan Cloudflare R2'ye yüklenir.
+        JPEG, PNG veya WebP. Dosyalar doğrudan Cloudflare R2&apos;ye yüklenir.
+        {media.length > 0 && (
+          <span className="mt-1 block text-ink/55 sm:hidden">
+            Fotoğrafı silmek için alttaki <strong className="font-semibold">Kaldır</strong> düğmesine dokunun.
+          </span>
+        )}
       </p>
     </div>
   );
