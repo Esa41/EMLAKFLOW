@@ -49,10 +49,10 @@ async function shotstackFetch<T>(path: string, init?: RequestInit): Promise<T> {
 // ── Edit JSON tipleri (kullandığımız alt küme) ──
 
 type ShotstackAsset =
-  | { type: "video"; url: string; volume?: number }
-  | { type: "audio"; url: string; volume?: number; effect?: "fadeIn" | "fadeOut" | "fadeInFadeOut" }
+  | { type: "video"; src: string; volume?: number }
+  | { type: "audio"; src: string; volume?: number; effect?: "fadeIn" | "fadeOut" | "fadeInFadeOut" }
   | { type: "html"; html: string; css: string; width: number; height: number }
-  | { type: "image"; url: string };
+  | { type: "image"; src: string };
 
 type ShotstackClip = {
   asset: ShotstackAsset;
@@ -239,7 +239,7 @@ export function buildTimelineFromProject(input: {
   // [1] Sahne videoları — aynı track'te bitişik klipler; transition.in
   // Shotstack'te iki klip arasında çapraz geçiş üretir.
   const videoClips: ShotstackClip[] = input.scenes.map((s, i) => ({
-    asset: { type: "video", url: s.videoUrl },
+    asset: { type: "video", src: s.videoUrl },
     start: sceneStarts[i],
     length: s.durationSec,
     fit: "crop",
@@ -287,7 +287,7 @@ export function buildTimelineFromProject(input: {
 
   // [2] Seslendirme — segment başına bir audio klip
   const voiceClips: ShotstackClip[] = (input.voiceKeyframes ?? []).map((kf) => ({
-    asset: { type: "audio", url: kf.url, volume: 1 },
+    asset: { type: "audio", src: kf.url, volume: 1 },
     start: kf.timestamp / 1000,
     length: kf.duration / 1000,
   }));
@@ -299,7 +299,7 @@ export function buildTimelineFromProject(input: {
         {
           asset: {
             type: "audio",
-            url: input.music.url,
+            src: input.music.url,
             volume: input.music.volume,
             effect: "fadeOut",
           },
@@ -336,7 +336,7 @@ export function buildTimelineFromProject(input: {
     if (b.logoUrl) {
       // Filigran: sahneler boyunca köşede yarı saydam logo
       brandingClips.push({
-        asset: { type: "image", url: b.logoUrl },
+        asset: { type: "image", src: b.logoUrl },
         start: 0,
         length: scenesSec,
         fit: "none",
@@ -347,7 +347,7 @@ export function buildTimelineFromProject(input: {
       });
       // Kapanış kartı: siyah zemin üzerinde logo
       brandingClips.push({
-        asset: { type: "image", url: b.logoUrl },
+        asset: { type: "image", src: b.logoUrl },
         start: scenesSec,
         length: OUTRO_SEC,
         fit: "none",

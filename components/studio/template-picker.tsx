@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clapperboard, Home, Plane, Rocket, Sparkles } from "lucide-react";
+import { Check, Clapperboard, Flame, Home, Plane, Rocket, Sparkles } from "lucide-react";
 import {
   TEMPLATE_LIST,
   suggestedTemplateFor,
@@ -23,6 +23,12 @@ const TEMPLATE_STYLES: Record<
     gradient: "from-cyan-500/10 to-teal-500/10",
     borderActive: "border-cyan-500",
     iconColor: "text-cyan-600",
+  },
+  cinematic_fpv: {
+    icon: Flame,
+    gradient: "from-rose-500/10 to-orange-500/10",
+    borderActive: "border-rose-500",
+    iconColor: "text-rose-600",
   },
   classic_interior: {
     icon: Home,

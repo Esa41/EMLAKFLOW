@@ -22,6 +22,7 @@ import type { MusicKey } from "@/lib/studio-music";
 
 export type TemplateKey =
   | "fpv_tour"
+  | "cinematic_fpv"
   | "classic_interior"
   | "land_drone"
   | "social_promo";
@@ -146,6 +147,15 @@ const CLASSIC_MOTIONS = [
   "subtle slow push-in with natural parallax",
 ];
 
+// Sinematik FPV Pro: hız rampası + motion blur + dinamik uçuş PROMPT'tan
+// Kling'e istenir. Bilinçli olarak agresif — halüsinasyon riski yüksektir;
+// sahne onay kapısı + tek sahne regenerate bu riski yönetir.
+const CINEMATIC_FPV_MOTIONS = [
+  "dynamic FPV drone shot accelerating forward through the doorway, speed ramp from slow to fast, natural motion blur",
+  "sweeping first-person drone flight through the room, quick acceleration then smooth deceleration, cinematic motion blur",
+  "FPV drone diving forward with a dramatic speed ramp, adrenaline pacing, motion blur on fast movement",
+];
+
 export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
   fpv_tour: {
     key: "fpv_tour",
@@ -193,6 +203,58 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       "in the source photo",
     negative:
       "rotating camera, orbiting, spinning, rearranged furniture, new decor, " +
+      "changed lighting fixtures, doors or windows appearing or disappearing",
+  },
+
+  cinematic_fpv: {
+    key: "cinematic_fpv",
+    legacyConceptKey: "interior",
+    label: "Sinematik FPV Pro",
+    subtitle: "Hız rampası + motion blur + film tonu",
+    description:
+      "Agresif FPV uçuş: hız rampaları, doğal motion blur ve sinematik renk tonu doğrudan AI'dan istenir. En etkileyici sonuç — sahne başına bozulma riski daha yüksek, beğenmediğiniz sahneyi yeniden üretin.",
+    badge: "Pro",
+    aspectRatio: "16:9",
+    targetListingTypes: "housing",
+    usesRooms: true,
+    sceneRecipe: {
+      slots: interiorSlots(CINEMATIC_FPV_MOTIONS),
+      fallback: { motions: CINEMATIC_FPV_MOTIONS, durationSec: 5 },
+    },
+    transitions: { default: "zoom", sequence: ["zoom", "carouselLeft", "zoom"] },
+    overlaySlots: [
+      {
+        key: "location",
+        label: "Konum",
+        source: "location",
+        placement: "first",
+        startSec: 0.8,
+        lengthSec: 3.5,
+        styleKey: "cardTopLeft",
+      },
+      {
+        key: "price",
+        label: "Fiyat",
+        source: "price",
+        placement: "last",
+        startSec: 0.5,
+        lengthSec: 4,
+        styleKey: "bigCenter",
+      },
+    ],
+    musicDefault: "epic_cinematic",
+    musicVolume: 0.2,
+    voiceTone: "energetic",
+    // Efektler burada: speed ramp + motion blur + renk tonu Kling prompt'una
+    // stil çapası olarak girer; sadakat çapası korunur ama hız kısıtı yoktur.
+    style:
+      "cinematic FPV drone footage, dramatic speed ramps, natural motion blur " +
+      "on fast movement, cinematic teal and orange color grade, film look, " +
+      "high contrast, photorealistic, the room layout, furniture and fixtures " +
+      "remain exactly as in the source photo",
+    // Hız serbest — yalnızca mekân bütünlüğü ve baş döndürücü dönüş yasak
+    negative:
+      "360 spin, continuous spinning, rearranged furniture, new decor, " +
       "changed lighting fixtures, doors or windows appearing or disappearing",
   },
 
@@ -415,6 +477,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
 
 export const TEMPLATE_LIST: TemplateDef[] = [
   TEMPLATES.fpv_tour,
+  TEMPLATES.cinematic_fpv,
   TEMPLATES.classic_interior,
   TEMPLATES.land_drone,
   TEMPLATES.social_promo,
@@ -475,17 +538,23 @@ export function buildTemplateScenePrompt(
   const room = roomKey ? ROOMS[roomKey as RoomKey] : undefined;
   const slot = slotFor(template, sceneIndex);
   const templateMotion = slot.motions[sceneIndex % slot.motions.length];
-  // FPV turda hareket kimliği şablondan gelir; klasik turda odanın
-  // kendi güvenli hareketi tercih edilir (mevcut davranış).
-  const motion =
-    template.key === "fpv_tour" ? templateMotion : (room?.motion ?? templateMotion);
+  // FPV şablonlarında hareket kimliği (hız rampası/uçuş) şablondan gelir;
+  // klasik turda odanın kendi güvenli hareketi tercih edilir.
+  const fpvTemplate = template.key === "fpv_tour" || template.key === "cinematic_fpv";
+  const motion = fpvTemplate ? templateMotion : (room?.motion ?? templateMotion);
   const context = room ? `${room.en}, ` : "";
   return `${context}${motion}, ${template.style}`;
 }
 
 /** Sahne negative prompt'u: ortak koruma seti + şablon negatifleri. */
 export function buildTemplateNegativePrompt(template: TemplateDef): string {
-  return `${BASE_NEGATIVE_PROMPT}, ${template.negative}`;
+  // Sinematik FPV motion blur İSTER — ortak setteki "blurry" yasağı bunu
+  // bastırmasın diye bu şablonda çıkarılır (diğer korumalar aynen kalır).
+  const base =
+    template.key === "cinematic_fpv"
+      ? BASE_NEGATIVE_PROMPT.replace("blurry, ", "")
+      : BASE_NEGATIVE_PROMPT;
+  return `${base}, ${template.negative}`;
 }
 
 /** Sahne sınırı geçişi — boundaryIndex: 0 = 1.→2. sahne sınırı. */
