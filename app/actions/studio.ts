@@ -5,7 +5,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { forTenant } from "@/lib/tenant";
 import { isPro, isPremium } from "@/lib/plans";
-import { generateImage } from "@/lib/ai-provider-registry";
+import { enhanceImage } from "@/lib/ai-provider-registry";
 import { putObject, publicUrl, deleteObject } from "@/lib/r2";
 import { processListingImage, variantKeys } from "@/lib/images";
 
@@ -171,13 +171,6 @@ type EnhanceResult =
   | { ok: true; jobId: string; outputUrl: string; remainingCredits: number }
   | { ok: false; error: string };
 
-// Emlak fotoğrafı iyileştirme yönergesi — düşük strength ile birlikte
-// mekânın yapısını korur, yalnızca ışık/netlik/renk kalitesini yükseltir.
-const ENHANCE_PROMPT =
-  "professional real estate photography, bright natural lighting, HDR, " +
-  "crisp details, vivid but realistic colors, wide dynamic range, " +
-  "magazine quality interior photo, no distortion";
-
 export async function enhancePhoto(input: {
   listingId: string;
   mediaId: string;
@@ -208,6 +201,7 @@ export async function enhancePhoto(input: {
     select: {
       id: true,
       url: true,
+      width: true,
       listingId: true,
       listing: { select: { tenantId: true } },
     },
@@ -240,11 +234,11 @@ export async function enhancePhoto(input: {
   });
 
   try {
-    // Fal.ai SDXL image-to-image — düşük strength: oda düzeni değişmez
-    const result = await generateImage(ENHANCE_PROMPT, {
-      provider: "FAL_SDXL",
+    // Fal.ai Clarity Upscaler — kareyi korur, en-boy oranını bozmaz;
+    // yalnızca netlik/ışık/detay yükseltir (SDXL kare basıp detay uyduruyordu)
+    const result = await enhanceImage({
       sourceImageUrl: media.url,
-      strength: 0.25,
+      sourceWidth: media.width,
     });
 
     // Fal çıktısı geçici URL'dir — kalıcı olması için R2'ye kopyala

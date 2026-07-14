@@ -14,7 +14,9 @@ type ProviderDefinition = {
   label: string;
   /** Anahtarın okunacağı .env değişkeni */
   envVar: string;
-  /** providerConfig.model verilmezse kullanılacak model */
+  /** Modeli .env ile ezmek için değişken (kod değişikliği olmadan tier yükseltme) */
+  modelEnvVar: string;
+  /** providerConfig.model ve modelEnvVar verilmezse kullanılacak model */
   defaultModel: string;
 };
 
@@ -22,16 +24,19 @@ export const PROVIDER_REGISTRY: Record<AiProviderKey, ProviderDefinition> = {
   FAL_KLING: {
     label: "Fal.ai — Kling (video)",
     envVar: "FAL_KEY",
+    modelEnvVar: "FAL_KLING_MODEL",
     defaultModel: "fal-ai/kling-video/v2.1/standard/image-to-video",
   },
   FAL_SDXL: {
     label: "Fal.ai — SDXL (fotoğraf iyileştirme)",
     envVar: "FAL_KEY",
+    modelEnvVar: "FAL_SDXL_MODEL",
     defaultModel: "fal-ai/fast-sdxl/image-to-image",
   },
   ELEVENLABS: {
     label: "ElevenLabs (seslendirme)",
     envVar: "ELEVENLABS_API_KEY",
+    modelEnvVar: "ELEVENLABS_MODEL",
     defaultModel: "eleven_multilingual_v2",
   },
 };
@@ -58,8 +63,15 @@ export function resolveApiKey(config: ProviderConfig): string {
   return key;
 }
 
+// Öncelik: explicit config.model > .env override (modelEnvVar) > defaultModel.
+// Not: değişiklik SUBMIT ile RECONCILE arasında model string'ini değiştirmemeli
+// (aynı kuyruk URL'si gerekir); mid-flight env değişimi in-flight işleri strand
+// edebilir. Bu istisnai durum kabul edilebilir (cron reconcile FAILED'a düşürür).
 function resolveModel(config: ProviderConfig): string {
-  return config.model ?? PROVIDER_REGISTRY[config.provider].defaultModel;
+  if (config.model) return config.model;
+  const def = PROVIDER_REGISTRY[config.provider];
+  const envModel = process.env[def.modelEnvVar]?.trim();
+  return envModel || def.defaultModel;
 }
 
 // ── Fal.ai kuyruk istemcisi ──
@@ -149,6 +161,57 @@ export async function generateImage(
   }
 
   return { imageUrl: image.url, width: image.width, height: image.height };
+}
+
+// ── 1b) Fotoğraf iyileştirme (Fal.ai — Clarity Upscaler) ──
+// SDXL img2img'den farkı: üretken yeniden çizim YOK — kareyi olduğu gibi
+// korur, netlik/ışık/detayı yükseltir ve en-boy oranını BOZMAZ. (SDXL
+// image-to-image çıktıyı 1024x1024 kareye basıyor, tabela/pencere gibi
+// detayları yeniden "hayal ediyordu" — emlak fotoğrafı için yanlış araç.)
+
+export const FAL_ENHANCE_DEFAULT_MODEL = "fal-ai/clarity-upscaler";
+
+export type EnhanceImageInput = {
+  sourceImageUrl: string;
+  /** Kaynak genişlik (px) — büyük fotoğrafta upscale katsayısını düşürmek için */
+  sourceWidth?: number | null;
+};
+
+export async function enhanceImage(
+  input: EnhanceImageInput,
+): Promise<GenerateImageResult> {
+  const apiKey = resolveApiKey({ provider: "FAL_SDXL" }); // aynı FAL_KEY
+  const model =
+    process.env.FAL_ENHANCE_MODEL?.trim() || FAL_ENHANCE_DEFAULT_MODEL;
+
+  // Zaten yüksek çözünürlüklü fotoğrafı 2x büyütmek süre/maliyet israfı —
+  // yalnızca küçük kaynaklarda upscale, büyüklerde salt iyileştirme (1x).
+  const upscaleFactor =
+    input.sourceWidth && input.sourceWidth >= 1600 ? 1 : 2;
+
+  const data = await falFetch<{
+    image?: { url?: string; width?: number; height?: number };
+  }>(`${FAL_SYNC_BASE}/${model}`, apiKey, {
+    method: "POST",
+    body: JSON.stringify({
+      image_url: input.sourceImageUrl,
+      prompt:
+        "high quality professional real estate photograph, sharp details, " +
+        "natural lighting, realistic colors",
+      upscale_factor: upscaleFactor,
+      creativity: 0.1, // düşük = fotoğrafa sadık; yapı/eşya/tabela yeniden çizilmez
+      resemblance: 0.85, // yüksek = kaynak dokuyu koru
+    }),
+  });
+
+  if (!data.image?.url) {
+    throw new Error("Fal.ai yanıtında görüntü bulunamadı.");
+  }
+  return {
+    imageUrl: data.image.url,
+    width: data.image.width,
+    height: data.image.height,
+  };
 }
 
 // ── 2) Video üretimi (Fal.ai — Kling, sahne bazlı) ──
