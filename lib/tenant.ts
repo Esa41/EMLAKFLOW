@@ -23,6 +23,7 @@ const TENANT_MODELS = new Set([
   "SocialAccount",
   "SocialPost",
   "TeamChatRead",
+  "StudioJob",
 ]);
 
 /**

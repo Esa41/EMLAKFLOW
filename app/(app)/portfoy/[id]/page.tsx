@@ -9,7 +9,6 @@ import { DeleteListingButton } from "@/components/delete-listing-button";
 import { FeaturedToggle } from "@/components/featured-toggle";
 import { ContractPanel } from "@/components/contract-panel";
 import { OwnerReport } from "@/components/owner-report";
-import { AiDroneVideoGenerator } from "@/components/ai-drone-video-generator";
 import { STATUS_TR, STATUS_BADGE } from "@/lib/labels";
 import { getVertical } from "@/lib/verticals";
 import { Eye, Heart, Mail, Phone } from "lucide-react";
@@ -231,16 +230,6 @@ export default async function ListingDetailPage({
           phone: c.phone,
         }))}
       />
-
-      {listing.lat != null && listing.lng != null && (
-        <AiDroneVideoGenerator
-          listingId={listing.id}
-          lat={listing.lat}
-          lng={listing.lng}
-          initialStatus={listing.aiVideoStatus}
-          initialVideoUrl={listing.aiDroneVideoUrl}
-        />
-      )}
 
       <ContractPanel
         scope={{ listingId: listing.id }}

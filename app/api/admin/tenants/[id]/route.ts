@@ -53,6 +53,8 @@ export async function GET(
       proStartedAt: true,
       proExpiresAt: true,
       adminNotes: true,
+      aiImageCredits: true,
+      aiVideoCredits: true,
       city: true,
       district: true,
       phone: true,
@@ -162,6 +164,8 @@ export async function PATCH(
     logoUrl?: string | null;
     primaryColor?: string | null;
     brandColor?: string | null;
+    aiImageCredits?: number;
+    aiVideoCredits?: number;
   } = {};
 
   if (plan && ALLOWED_PLANS.includes(plan) && plan !== existing.plan) {
@@ -241,6 +245,14 @@ export async function PATCH(
 
   if (adminNotes !== undefined) {
     updateData.adminNotes = adminNotes || null;
+  }
+
+  // AI Stüdyo kredi yönetimi (admin üzerinden doğrudan değer atama)
+  if ("aiImageCredits" in body && typeof body.aiImageCredits === "number") {
+    updateData.aiImageCredits = Math.max(0, body.aiImageCredits);
+  }
+  if ("aiVideoCredits" in body && typeof body.aiVideoCredits === "number") {
+    updateData.aiVideoCredits = Math.max(0, body.aiVideoCredits);
   }
 
   let nextDomain: string | null | undefined;

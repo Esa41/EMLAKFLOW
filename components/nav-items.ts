@@ -13,6 +13,7 @@ import {
   Bell,
   KeyRound,
   Clapperboard,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { getVertical } from "@/lib/verticals";
@@ -34,6 +35,7 @@ export function getNav(vertical?: string | null): NavItem[] {
     { href: "/kisiler", label: "Müşteriler", icon: Contact },
     { href: "/kiralar", label: v.labels.rentals, icon: KeyRound },
     { href: "/icerik", label: v.labels.social, icon: Clapperboard },
+    { href: "/dashboard/studio", label: "AI Stüdyo", icon: Sparkles },
     { href: "/analitik", label: "Analitik", icon: BarChart3 },
     { href: "/merkez", label: "Bildirimler & Faaliyet", icon: Bell },
     { href: "/sohbet", label: "Vitrin Sohbet", icon: MessagesSquare },

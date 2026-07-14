@@ -57,6 +57,8 @@ interface TenantDetail {
     expiresAt: string | null;
     createdAt: string;
   }>;
+  aiImageCredits: number;
+  aiVideoCredits: number;
 }
 
 export function AdminTenantDetailModal({
@@ -88,6 +90,9 @@ export function AdminTenantDetailModal({
   const [vercelConfigured, setVercelConfigured] = useState(false);
   const [domainVerified, setDomainVerified] = useState<boolean | null>(null);
   const [provisioning, setProvisioning] = useState(false);
+  const [creditImage, setCreditImage] = useState("");
+  const [creditVideo, setCreditVideo] = useState("");
+  const [savingCredits, setSavingCredits] = useState(false);
 
   function toDateInputValue(iso: string | null) {
     if (!iso) return "";
@@ -830,6 +835,150 @@ export function AdminTenantDetailModal({
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* AI Stüdyo Kredi Yönetimi */}
+            <div className="space-y-3 rounded-xl border border-ink/10 bg-gradient-to-br from-violet-50/30 to-white p-4">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-violet-600" />
+                <h3 className="text-sm font-bold text-ink/70">AI Stüdyo Kredi</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-ink/10 bg-white p-3 text-center">
+                  <p className="text-2xl font-extrabold text-violet-700">
+                    {tenant.aiImageCredits}
+                  </p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-ink/45">
+                    Fotoğraf
+                  </p>
+                </div>
+                <div className="rounded-lg border border-ink/10 bg-white p-3 text-center">
+                  <p className="text-2xl font-extrabold text-sky-700">
+                    {tenant.aiVideoCredits}
+                  </p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-ink/45">
+                    Video
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-ink/45">
+                      Fotoğraf kredi (±)
+                    </label>
+                    <input
+                      type="number"
+                      value={creditImage}
+                      onChange={(e) => setCreditImage(e.target.value)}
+                      placeholder="0"
+                      className="w-full rounded-lg border border-ink/20 px-3 py-2 text-sm font-semibold outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-ink/45">
+                      Video kredi (±)
+                    </label>
+                    <input
+                      type="number"
+                      value={creditVideo}
+                      onChange={(e) => setCreditVideo(e.target.value)}
+                      placeholder="0"
+                      className="w-full rounded-lg border border-ink/20 px-3 py-2 text-sm font-semibold outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={savingCredits || (!creditImage.trim() && !creditVideo.trim())}
+                  onClick={async () => {
+                    setSavingCredits(true);
+                    setActionMsg(null);
+                    try {
+                      const imgDelta = parseInt(creditImage, 10) || 0;
+                      const vidDelta = parseInt(creditVideo, 10) || 0;
+                      if (imgDelta === 0 && vidDelta === 0) {
+                        alert("En az bir değer girin.");
+                        return;
+                      }
+                      const res = await fetch(`/api/admin/tenants/${tenantId}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          aiImageCredits: tenant.aiImageCredits + imgDelta,
+                          aiVideoCredits: tenant.aiVideoCredits + vidDelta,
+                        }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error);
+                      await reloadTenant();
+                      router.refresh();
+                      setCreditImage("");
+                      setCreditVideo("");
+                      setActionMsg(
+                        `Kredi güncellendi: Fotoğraf ${imgDelta >= 0 ? "+" : ""}${imgDelta}, Video ${vidDelta >= 0 ? "+" : ""}${vidDelta}`,
+                      );
+                    } catch (err: unknown) {
+                      alert(err instanceof Error ? err.message : "Hata");
+                    } finally {
+                      setSavingCredits(false);
+                    }
+                  }}
+                  className="w-full rounded-lg bg-gradient-to-r from-violet-600 to-sky-600 px-4 py-2 text-sm font-bold text-white shadow-md transition-all hover:shadow-lg disabled:opacity-50"
+                >
+                  {savingCredits ? "Uygulanıyor..." : "Krediyi Güncelle"}
+                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    disabled={savingCredits}
+                    onClick={async () => {
+                      setSavingCredits(true);
+                      try {
+                        const res = await fetch(`/api/admin/tenants/${tenantId}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            aiImageCredits: isPremiumPlan ? 1000 : 300,
+                            aiVideoCredits: isPremiumPlan ? 30 : 10,
+                          }),
+                        });
+                        if (!res.ok) throw new Error("Hata");
+                        await reloadTenant();
+                        router.refresh();
+                        setActionMsg("Krediler plan varsayılanına sıfırlandı.");
+                      } catch { alert("Hata"); } finally { setSavingCredits(false); }
+                    }}
+                    className="rounded-lg border border-ink/20 bg-white px-3 py-2 text-xs font-bold text-ink/60 hover:bg-ink/[0.03] disabled:opacity-40"
+                  >
+                    Plan varsayılanı
+                  </button>
+                  <button
+                    type="button"
+                    disabled={savingCredits}
+                    onClick={async () => {
+                      setSavingCredits(true);
+                      try {
+                        const res = await fetch(`/api/admin/tenants/${tenantId}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ aiImageCredits: 0, aiVideoCredits: 0 }),
+                        });
+                        if (!res.ok) throw new Error("Hata");
+                        await reloadTenant();
+                        router.refresh();
+                        setActionMsg("Krediler sıfırlandı.");
+                      } catch { alert("Hata"); } finally { setSavingCredits(false); }
+                    }}
+                    className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-40"
+                  >
+                    Sıfırla
+                  </button>
+                </div>
+                <p className="text-[11px] text-ink/45">
+                  Pro: 300 fotoğraf + 10 video/ay · Premium: 1000 fotoğraf + 30 video/ay
+                </p>
+              </div>
             </div>
 
             {/* Admin Notları */}

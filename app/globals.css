@@ -930,3 +930,41 @@ body,
   font-style: italic;
   color: color-mix(in srgb, var(--color-ink) 65%, transparent);
 }
+
+/* ── AI Stüdyo ── */
+
+.studio-credit-badge {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.studio-credit-badge:hover {
+  transform: translateY(-1px);
+}
+
+.studio-concept-card {
+  background: var(--app-surface);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s ease;
+}
+.studio-concept-card:hover {
+  transform: translateY(-2px);
+}
+
+.studio-photo-tile {
+  background: var(--app-input-bg);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.studio-photo-tile:hover {
+  transform: scale(1.01);
+}
+
+.studio-before-after {
+  box-shadow:
+    0 0 0 1px var(--app-border),
+    0 4px 20px -6px var(--app-shadow);
+  background: var(--app-input-bg);
+}
+
+/* Stüdyo — gece modu uyumluluk */
+.app-shell[data-theme="dark"] .studio-concept-card {
+  background: var(--app-surface);
+}
+
