@@ -244,6 +244,91 @@ export async function getVideoResult(
   return { videoUrl: data.video.url };
 }
 
+// ── 2b) Video birleştirme (Fal.ai — ffmpeg compose) ──
+// Render edilmiş sahne kliplerini ve seslendirmeyi tek videoda birleştirir.
+
+export const FFMPEG_COMPOSE_MODEL = "fal-ai/ffmpeg-api/compose";
+
+export type MergeSceneInput = {
+  videoUrl: string;
+  durationSec: number;
+};
+
+/**
+ * Sahneleri (+ varsa ses) Fal.ai ffmpeg compose kuyruğuna gönderir.
+ * Senkron beklemez — requestId döner, sonuç getMergeResult ile alınır.
+ */
+export async function mergeVideoWithAudio(
+  scenes: MergeSceneInput[],
+  audioUrl: string | null,
+  providerConfig?: Partial<ProviderConfig>,
+): Promise<FalSubmitResult> {
+  const config: ProviderConfig = {
+    provider: "FAL_KLING", // FAL_KEY paylaşılır
+    ...providerConfig,
+    model: FFMPEG_COMPOSE_MODEL,
+  };
+  const apiKey = resolveApiKey(config);
+
+  // Kliplerin zaman çizelgesi — timestamp/duration milisaniye
+  let cursor = 0;
+  const videoKeyframes = scenes.map((s) => {
+    const kf = { url: s.videoUrl, timestamp: cursor, duration: s.durationSec * 1000 };
+    cursor += s.durationSec * 1000;
+    return kf;
+  });
+
+  const tracks: Record<string, unknown>[] = [
+    { id: "video", type: "video", keyframes: videoKeyframes },
+  ];
+  if (audioUrl) {
+    tracks.push({
+      id: "voiceover",
+      type: "audio",
+      keyframes: [{ url: audioUrl, timestamp: 0, duration: cursor }],
+    });
+  }
+
+  const data = await falFetch<{ request_id?: string }>(
+    `${FAL_QUEUE_BASE}/${FFMPEG_COMPOSE_MODEL}`,
+    apiKey,
+    { method: "POST", body: JSON.stringify({ tracks }) },
+  );
+
+  if (!data.request_id) {
+    throw new Error("Fal.ai compose kuyruk yanıtında request_id yok.");
+  }
+
+  return { requestId: data.request_id, model: FFMPEG_COMPOSE_MODEL };
+}
+
+/** Tamamlanan birleştirme işinin çıktı URL'sini alır (şema esnek ayrıştırılır). */
+export async function getMergeResult(
+  requestId: string,
+  providerConfig?: Partial<ProviderConfig>,
+): Promise<GenerateVideoResult> {
+  const config: ProviderConfig = {
+    provider: "FAL_KLING",
+    ...providerConfig,
+    model: FFMPEG_COMPOSE_MODEL,
+  };
+  const apiKey = resolveApiKey(config);
+
+  const data = await falFetch<{
+    video_url?: string;
+    video?: { url?: string };
+  }>(`${FAL_QUEUE_BASE}/${FFMPEG_COMPOSE_MODEL}/requests/${requestId}`, apiKey, {
+    method: "GET",
+  });
+
+  const videoUrl = data.video_url ?? data.video?.url;
+  if (!videoUrl) {
+    throw new Error("Fal.ai birleştirme sonucunda video URL'si bulunamadı.");
+  }
+
+  return { videoUrl };
+}
+
 // ── 3) Seslendirme (ElevenLabs) ──
 
 const ELEVENLABS_BASE = "https://api.elevenlabs.io/v1";

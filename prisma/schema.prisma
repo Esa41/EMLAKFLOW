@@ -1057,6 +1057,9 @@ model StudioJob {
   outputKey    String?        // R2 object key
   errorMessage String?
 
+  // Dış sağlayıcı iş takibi (Fal.ai queue request_id)
+  externalRequestId String?
+
   creditCost         Int     @default(1)     // düşülen kredi miktarı
   appliedToListing   Boolean @default(false) // çıktı ilana entegre edildi mi
 
