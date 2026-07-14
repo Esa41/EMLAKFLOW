@@ -21,7 +21,8 @@ type ConceptDefinition = {
 
 // Ortak koruma seti — modelin fotoğraftaki mekânı "yeniden hayal etmesini"
 // kapatır: duvar/eşya ekleme-çıkarma, mekân morfu, insan, yazı vb. yasak.
-const BASE_NEGATIVE_PROMPT =
+// (Şablon katmanı studio-templates.ts de bunu temel alır — export bu yüzden.)
+export const BASE_NEGATIVE_PROMPT =
   "structural changes, added or removed walls, added or removed furniture, " +
   "added or removed objects, morphing rooms, changing room layout, " +
   "people, faces, text, captions, watermark, logo, distortion, warping, " +
@@ -225,10 +226,13 @@ export type VoiceListingInput = {
   features?: string[];
 };
 
+export type VoiceoverTone = "calm" | "energetic" | "informative";
+
 export function buildVoiceoverText(
   listing: VoiceListingInput,
   sceneCount: number,
   negativeTerms: string[] = [],
+  tone: VoiceoverTone = "calm",
 ): string {
   const targetChars = Math.max(sceneCount, 2) * 5 * 14;
 
@@ -242,19 +246,47 @@ export function buildVoiceoverText(
     (f) => findNegativeTermViolations(f, negativeTerms).length === 0,
   );
 
-  const parts: string[] = [
-    `${location} konumunda ${action} bir fırsat.`,
-  ];
-  if (listing.rooms && listing.grossArea) {
-    parts.push(`${listing.rooms} planlı, ${listing.grossArea} metrekare.`);
-  } else if (listing.rooms) {
-    parts.push(`${listing.rooms} planlı ferah bir yaşam alanı.`);
+  const parts: string[] = [];
+
+  if (tone === "energetic") {
+    // Kısa, vurucu cümleler — FPV tur ve sosyal medya reklamı
+    parts.push(`${location}'da kaçırılmayacak ${action} fırsat!`);
+    if (listing.rooms && listing.grossArea) {
+      parts.push(`${listing.rooms}, tam ${listing.grossArea} metrekare.`);
+    } else if (listing.rooms) {
+      parts.push(`${listing.rooms} planlı ferah bir yaşam alanı.`);
+    }
+    if (safeFeatures.length) {
+      parts.push(`Üstelik ${safeFeatures.slice(0, 2).join(" ve ")} özellikli.`);
+    }
+    parts.push(`Fiyatı sadece ${listing.price}.`);
+    parts.push("Hemen arayın, yerinde görün!");
+  } else if (tone === "informative") {
+    // Bilgilendirici — arsa/tarla: alan, konum ve yatırım vurgusu
+    parts.push(`${location} bölgesinde ${action} arazi.`);
+    if (listing.grossArea) {
+      parts.push(`Toplam ${listing.grossArea} metrekare yüzölçümüne sahip.`);
+    }
+    if (safeFeatures.length) {
+      parts.push(`${safeFeatures.slice(0, 3).join(", ")} özellikleri mevcut.`);
+    }
+    parts.push(`Konumu ve ulaşım imkânlarıyla yatırım için değerlendirilebilir.`);
+    parts.push(`Fiyatı ${listing.price}.`);
+    parts.push("Detaylı bilgi ve parsel sorgusu için bize ulaşın.");
+  } else {
+    // calm — mevcut klasik çıktı
+    parts.push(`${location} konumunda ${action} bir fırsat.`);
+    if (listing.rooms && listing.grossArea) {
+      parts.push(`${listing.rooms} planlı, ${listing.grossArea} metrekare.`);
+    } else if (listing.rooms) {
+      parts.push(`${listing.rooms} planlı ferah bir yaşam alanı.`);
+    }
+    if (safeFeatures.length) {
+      parts.push(`${safeFeatures.slice(0, 3).join(", ")} gibi öne çıkan özellikleriyle.`);
+    }
+    parts.push(`Fiyatı ${listing.price}.`);
+    parts.push("Detaylı bilgi ve randevu için hemen bize ulaşın.");
   }
-  if (safeFeatures.length) {
-    parts.push(`${safeFeatures.slice(0, 3).join(", ")} gibi öne çıkan özellikleriyle.`);
-  }
-  parts.push(`Fiyatı ${listing.price}.`);
-  parts.push("Detaylı bilgi ve randevu için hemen bize ulaşın.");
 
   // Yasaklı kelime içeren cümleler düşürülür (ilk/son cümle güvenli kalıplardır)
   const safeParts = parts.filter(

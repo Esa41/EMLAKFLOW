@@ -249,6 +249,7 @@ export function StudioWorkspace({ listings, credits, history }: Props) {
           ) : (
             <StudioVideoTab
               listingId={selectedListing.id}
+              listingType={selectedListing.type}
               media={selectedListing.media}
               videoCredits={videoCredits}
               onCreditsChange={setVideoCredits}

@@ -3,8 +3,6 @@
 import { useEffect, useState, useTransition } from "react";
 import Image from "next/image";
 import {
-  Plane,
-  Home,
   Clapperboard,
   Check,
   Loader2,
@@ -28,7 +26,12 @@ import {
   regenerateScene,
   approveScene,
   mergeProject,
+  updateOverlayData,
+  setProjectMusic,
+  updateSceneTransition,
+  getStudioMusicOptions,
   type StudioProjectView,
+  type StudioMusicOption,
 } from "@/app/actions/studio-video";
 import {
   generateVoiceSegments,
@@ -42,6 +45,18 @@ import {
   findNegativeTermViolations,
   type RoomKey,
 } from "@/lib/studio-prompts";
+import {
+  TEMPLATES,
+  TRANSITION_LABELS,
+  templateLabel,
+  resolveTemplate,
+  transitionForBoundary,
+  type TemplateKey,
+  type TransitionKey,
+} from "@/lib/studio-templates";
+import { TemplatePicker } from "@/components/studio/template-picker";
+import { OverlayEditor } from "@/components/studio/overlay-editor";
+import { MusicPicker } from "@/components/studio/music-picker";
 import type { StudioJobItem } from "@/app/actions/studio";
 
 type MediaItem = {
@@ -56,6 +71,8 @@ type MediaItem = {
 
 type Props = {
   listingId: string;
+  /** İlan tipi (APARTMENT | LAND | …) — önerilen şablon rozeti için */
+  listingType: string | null;
   media: MediaItem[];
   videoCredits: number;
   onCreditsChange: (credits: number) => void;
@@ -64,39 +81,6 @@ type Props = {
 
 const MAX_SCENES = 8;
 const POLL_MS = 15_000;
-
-const CONCEPTS = [
-  {
-    key: "drone",
-    title: "Arsa / Tarla",
-    subtitle: "Drone uçuşu",
-    description: "Arsanızın veya tarlanızın kuş bakışı sinematik drone çekimi.",
-    icon: Plane,
-    gradient: "from-sky-500/10 to-blue-500/10",
-    borderActive: "border-sky-500",
-    iconColor: "text-sky-600",
-  },
-  {
-    key: "interior",
-    title: "Ev İçi Tur",
-    subtitle: "Odalar arası geçiş",
-    description: "Evin odaları arasında akıcı geçişlerle sanal tur videosu.",
-    icon: Home,
-    gradient: "from-amber-500/10 to-orange-500/10",
-    borderActive: "border-amber-500",
-    iconColor: "text-amber-600",
-  },
-  {
-    key: "social",
-    title: "Reklam / Sosyal Medya",
-    subtitle: "Instagram / TikTok",
-    description: "Dikkat çekici dikey format sosyal medya reklam videosu.",
-    icon: Clapperboard,
-    gradient: "from-violet-500/10 to-purple-500/10",
-    borderActive: "border-violet-500",
-    iconColor: "text-violet-600",
-  },
-] as const;
 
 const SCENE_STATUS_LABEL: Record<string, string> = {
   PENDING: "Sırada",
@@ -107,14 +91,16 @@ const SCENE_STATUS_LABEL: Record<string, string> = {
 
 export function StudioVideoTab({
   listingId,
+  listingType,
   media,
   videoCredits,
   onCreditsChange,
   history,
 }: Props) {
-  const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey | null>(null);
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [roomAssignments, setRoomAssignments] = useState<Record<string, string>>({});
+  const [sceneDurations, setSceneDurations] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [project, setProject] = useState<StudioProjectView | null>(null);
@@ -123,9 +109,11 @@ export function StudioVideoTab({
   const [busySceneId, setBusySceneId] = useState<string | null>(null);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [editingSegment, setEditingSegment] = useState<{ id: string; text: string } | null>(null);
+  const [musicOptions, setMusicOptions] = useState<StudioMusicOption[]>([]);
+  const [overlaySaving, setOverlaySaving] = useState(false);
 
   const photos = media.filter((m) => m.kind === "photo");
-  const concept = CONCEPTS.find((c) => c.key === selectedConcept);
+  const template = selectedTemplate ? TEMPLATES[selectedTemplate] : undefined;
 
   // İlan değişince devam eden projeyi yükle
   useEffect(() => {
@@ -142,6 +130,11 @@ export function StudioVideoTab({
       cancelled = true;
     };
   }, [listingId]);
+
+  // Müzik önizleme seçenekleri (statik liste — bir kez yüklenir)
+  useEffect(() => {
+    getStudioMusicOptions().then(setMusicOptions);
+  }, []);
 
   // Render/birleştirme sürerken durumu Fal ile mutabakatlı sorgula
   const needsPoll =
@@ -189,16 +182,17 @@ export function StudioVideoTab({
   }
 
   function handleGenerate() {
-    if (!selectedConcept) return;
+    if (!selectedTemplate) return;
     setError(null);
 
     startTransition(async () => {
       const result = await createStudioProject({
         listingId,
-        conceptKey: selectedConcept,
+        templateKey: selectedTemplate,
         selectedMedia: selectedPhotos.map((id) => ({
           id,
           roomKey: roomAssignments[id] ?? null,
+          durationSec: sceneDurations[id] === 10 ? 10 : 5,
         })),
       });
 
@@ -209,16 +203,17 @@ export function StudioVideoTab({
         if (result.remainingCredits !== undefined) {
           onCreditsChange(result.remainingCredits);
         }
-        setSelectedConcept(null);
+        setSelectedTemplate(null);
         setSelectedPhotos([]);
         setRoomAssignments({});
+        setSceneDurations({});
       } else {
         setError(result.error);
       }
     });
   }
 
-  function handleRegenerate(sceneId: string) {
+  function handleRegenerate(sceneId: string, cost: number) {
     setError(null);
     setBusySceneId(sceneId);
     startTransition(async () => {
@@ -226,10 +221,19 @@ export function StudioVideoTab({
       setBusySceneId(null);
       if (result.ok) {
         setProject(result.project);
-        onCreditsChange(videoCredits - 1);
+        onCreditsChange(videoCredits - cost);
       } else {
         setError(result.error);
       }
+    });
+  }
+
+  function handleTransitionChange(sceneId: string, transitionKey: string) {
+    setError(null);
+    startTransition(async () => {
+      const result = await updateSceneTransition({ sceneId, transitionKey });
+      if (result.ok) setProject(result.project);
+      else setError(result.error);
     });
   }
 
@@ -316,6 +320,30 @@ export function StudioVideoTab({
     });
   }
 
+  function handleOverlaySave(
+    overlays: { key: string; text: string; enabled: boolean }[],
+  ) {
+    if (!project) return;
+    setError(null);
+    setOverlaySaving(true);
+    startTransition(async () => {
+      const result = await updateOverlayData({ projectId: project.id, overlays });
+      setOverlaySaving(false);
+      if (result.ok) setProject(result.project);
+      else setError(result.error);
+    });
+  }
+
+  function handleMusicChange(musicKey: string) {
+    if (!project) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await setProjectMusic({ projectId: project.id, musicKey });
+      if (result.ok) setProject(result.project);
+      else setError(result.error);
+    });
+  }
+
   const allScenesDone =
     !!project &&
     project.scenes.length > 0 &&
@@ -331,6 +359,15 @@ export function StudioVideoTab({
     parseNegativeTerms(negativeInput),
   );
   const videoJobs = history.filter((j) => j.type === "VIDEO_GENERATE");
+  // Sahne süresi seçimine göre canlı maliyet — 5 sn = 1 kredi, 10 sn = 2 kredi
+  const totalSeconds = selectedPhotos.reduce(
+    (sum, id) => sum + (sceneDurations[id] === 10 ? 10 : 5),
+    0,
+  );
+  const totalCost = selectedPhotos.reduce(
+    (sum, id) => sum + (sceneDurations[id] === 10 ? 2 : 1),
+    0,
+  );
 
   return (
     <div className="space-y-6">
@@ -426,10 +463,14 @@ export function StudioVideoTab({
                       !project.merging &&
                       !project.finalVideoUrl && (
                         <button
-                          onClick={() => handleRegenerate(s.id)}
-                          disabled={pending || videoCredits < 1}
+                          onClick={() =>
+                            handleRegenerate(s.id, s.durationSec === 10 ? 2 : 1)
+                          }
+                          disabled={
+                            pending || videoCredits < (s.durationSec === 10 ? 2 : 1)
+                          }
                           className="flex items-center gap-1 text-[10px] font-semibold text-ink/45 hover:text-brand-600 disabled:opacity-40"
-                          title="1 kredi ile yeniden üret"
+                          title={`${s.durationSec === 10 ? 2 : 1} kredi ile yeniden üret`}
                         >
                           {busySceneId === s.id ? (
                             <Loader2 size={11} className="animate-spin" />
@@ -454,6 +495,28 @@ export function StudioVideoTab({
                       <ShieldCheck size={11} />
                       {s.approved ? "Onaylandı" : "İzledim, Onayla"}
                     </button>
+                  )}
+                  {/* Giriş geçişi — kurgu katmanında uygulanır, yeniden render gerektirmez */}
+                  {s.order > 0 && !project.finalVideoUrl && !project.merging && (
+                    <select
+                      value={
+                        (s.transitionKey as TransitionKey | null) ??
+                        transitionForBoundary(
+                          resolveTemplate(project.templateKey, project.conceptKey),
+                          s.order - 1,
+                        )
+                      }
+                      onChange={(e) => handleTransitionChange(s.id, e.target.value)}
+                      disabled={pending}
+                      className="w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-1.5 py-1 text-[10px] font-medium"
+                      title="Bu sahneye giriş geçiş efekti"
+                    >
+                      {Object.entries(TRANSITION_LABELS).map(([key, label]) => (
+                        <option key={key} value={key}>
+                          Geçiş: {label}
+                        </option>
+                      ))}
+                    </select>
                   )}
                 </div>
               </div>
@@ -627,6 +690,34 @@ export function StudioVideoTab({
                 </div>
               )}
 
+              {/* Ekran yazıları — şablonun bilgi kartları */}
+              {(project.overlayData?.length ?? 0) > 0 && (
+                <div className="border-t border-[var(--app-border)] pt-4">
+                  <OverlayEditor
+                    overlays={project.overlayData!}
+                    disabled={pending || project.merging}
+                    saving={overlaySaving}
+                    onSave={handleOverlaySave}
+                  />
+                </div>
+              )}
+
+              {/* Arka plan müziği */}
+              {musicOptions.length > 0 && (
+                <div className="border-t border-[var(--app-border)] pt-4">
+                  <MusicPicker
+                    options={musicOptions}
+                    value={project.musicKey}
+                    templateDefault={
+                      resolveTemplate(project.templateKey, project.conceptKey)
+                        .musicDefault
+                    }
+                    disabled={pending || project.merging}
+                    onChange={handleMusicChange}
+                  />
+                </div>
+              )}
+
               {/* Birleştirme */}
               <div className="flex flex-wrap items-center gap-3 border-t border-[var(--app-border)] pt-4">
                 <button
@@ -708,62 +799,28 @@ export function StudioVideoTab({
         </div>
       )}
 
-      {/* Konsept seçimi */}
+      {/* Şablon seçimi */}
       <div>
         <h3 className="mb-3 text-sm font-semibold text-ink/70">
-          {project ? "Yeni video oluştur" : "Video konsepti seçin"}
+          {project ? "Yeni video oluştur" : "Hazır şablon seçin"}
         </h3>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {CONCEPTS.map((c) => (
-            <button
-              key={c.key}
-              onClick={() => setSelectedConcept(c.key)}
-              className={`studio-concept-card group relative overflow-hidden rounded-2xl border-2 p-5 text-left transition-all ${
-                selectedConcept === c.key
-                  ? `${c.borderActive} shadow-lg`
-                  : "border-[var(--app-border)] hover:border-ink/20 hover:shadow-md"
-              }`}
-            >
-              <div
-                className={`absolute inset-0 bg-gradient-to-br ${c.gradient} opacity-0 transition-opacity group-hover:opacity-100 ${
-                  selectedConcept === c.key ? "opacity-100" : ""
-                }`}
-              />
-              <div className="relative">
-                <div
-                  className={`mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--app-input-bg)] ${c.iconColor} transition-colors`}
-                >
-                  <c.icon size={22} />
-                </div>
-                <h4 className="text-[15px] font-bold">{c.title}</h4>
-                <p className="mt-0.5 text-xs font-medium text-ink/50">
-                  {c.subtitle}
-                </p>
-                <p className="mt-2 text-xs leading-relaxed text-ink/45">
-                  {c.description}
-                </p>
-                {selectedConcept === c.key && (
-                  <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-brand-600">
-                    <Check size={14} />
-                    Seçildi
-                  </div>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
+        <TemplatePicker
+          listingType={listingType}
+          selected={selectedTemplate}
+          onSelect={setSelectedTemplate}
+        />
       </div>
 
-      {/* Fotoğraf seçimi — konsept seçildikten sonra */}
-      {concept && (
+      {/* Fotoğraf seçimi — şablon seçildikten sonra */}
+      {template && (
         <div className="dash-card p-5">
           <h3 className="mb-1 text-sm font-bold">
             Videoda kullanılacak fotoğrafları seçin
           </h3>
           <p className="mb-4 text-xs text-ink/45">
-            Her fotoğraf 5 saniyelik bir sahne olur ve 1 kredi düşer (en fazla{" "}
-            {MAX_SCENES} sahne). Sıralama videonun akışını belirler.
-            {concept.key === "interior" &&
+            Her fotoğraf bir sahne olur: 5 sn = 1 kredi, 10 sn = 2 kredi (en
+            fazla {MAX_SCENES} sahne). Sıralama videonun akışını belirler.
+            {template.usesRooms &&
               " Her fotoğrafa oda etiketi verin — AI mekânı tanır ve görüntüye sadık kalır."}
           </p>
 
@@ -813,10 +870,10 @@ export function StudioVideoTab({
                 <div className="mt-5 space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-xs font-semibold text-ink/50">
-                      Sıralama ({selectedPhotos.length} sahne ·{" "}
-                      {selectedPhotos.length * 5} saniye)
+                      Sıralama ({selectedPhotos.length} sahne · {totalSeconds}{" "}
+                      saniye · {totalCost} kredi)
                     </p>
-                    {concept.key === "interior" &&
+                    {template.usesRooms &&
                       selectedPhotos.some((id) => roomAssignments[id]) && (
                         <button
                           onClick={applyTemplateOrder}
@@ -849,7 +906,7 @@ export function StudioVideoTab({
                           <span className="text-xs font-bold text-ink/60">
                             #{idx + 1}
                           </span>
-                          {concept.key === "interior" && (
+                          {template.usesRooms && (
                             <select
                               value={roomAssignments[id] ?? ""}
                               onChange={(e) =>
@@ -868,6 +925,20 @@ export function StudioVideoTab({
                               ))}
                             </select>
                           )}
+                          <select
+                            value={sceneDurations[id] === 10 ? "10" : "5"}
+                            onChange={(e) =>
+                              setSceneDurations((prev) => ({
+                                ...prev,
+                                [id]: Number(e.target.value),
+                              }))
+                            }
+                            className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-1.5 py-1 text-[11px] font-medium"
+                            title="Sahne süresi — 10 sn sahne 2 kredi düşer"
+                          >
+                            <option value="5">5 sn · 1 kredi</option>
+                            <option value="10">10 sn · 2 kredi</option>
+                          </select>
                           <div className="flex gap-0.5">
                             <button
                               onClick={(e) => {
@@ -903,9 +974,9 @@ export function StudioVideoTab({
                   onClick={handleGenerate}
                   disabled={
                     pending ||
-                    !selectedConcept ||
+                    !selectedTemplate ||
                     selectedPhotos.length === 0 ||
-                    videoCredits < selectedPhotos.length
+                    videoCredits < totalCost
                   }
                   className="dash-btn-primary"
                 >
@@ -923,9 +994,9 @@ export function StudioVideoTab({
                 </button>
                 <span className="text-xs text-ink/45">
                   {selectedPhotos.length > 0
-                    ? videoCredits >= selectedPhotos.length
-                      ? `${selectedPhotos.length} kredi düşülecek — kalan: ${videoCredits}`
-                      : `Yetersiz kredi: ${selectedPhotos.length} gerekli, ${videoCredits} kaldı`
+                    ? videoCredits >= totalCost
+                      ? `${totalCost} kredi düşülecek — kalan: ${videoCredits}`
+                      : `Yetersiz kredi: ${totalCost} gerekli, ${videoCredits} kaldı`
                     : `Kalan kredi: ${videoCredits}`}
                 </span>
               </div>
@@ -959,11 +1030,7 @@ export function StudioVideoTab({
                   <Film size={16} className="text-ink/40" />
                   <div>
                     <p className="text-sm font-semibold">
-                      {job.videoConceptKey === "drone"
-                        ? "Drone Uçuşu"
-                        : job.videoConceptKey === "interior"
-                          ? "Ev İçi Tur"
-                          : "Sosyal Medya"}{" "}
+                      {templateLabel(null, job.videoConceptKey)}{" "}
                       {job.listing && (
                         <span className="text-ink/45">
                           · {job.listing.refCode}

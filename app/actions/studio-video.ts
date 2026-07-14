@@ -4,25 +4,77 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isPro, isPremium } from "@/lib/plans";
-import {
-  generateVideo,
-  getVideoStatus,
-  getVideoResult,
-  mergeVideoWithAudio,
-  getMergeResult,
-  generateVoice,
-  FFMPEG_COMPOSE_MODEL,
-} from "@/lib/ai-provider-registry";
+import { generateVideo, generateVoice } from "@/lib/ai-provider-registry";
 import { putObject, publicUrl } from "@/lib/r2";
+import { reconcileProject } from "@/lib/studio-reconcile";
 import {
-  buildScenePrompt,
   buildSceneNegativePrompt,
   buildVoiceoverText,
-  getConcept,
 } from "@/lib/studio-prompts";
+import {
+  resolveTemplate,
+  transitionForBoundary,
+  buildTemplateScenePrompt,
+  buildTemplateNegativePrompt,
+  sceneDefaults,
+  isTemplateKey,
+  TEMPLATES,
+  TRANSITION_LABELS,
+  type ResolvedOverlay,
+  type TemplateDef,
+  type TransitionKey,
+} from "@/lib/studio-templates";
+import { MUSIC_TRACKS, isMusicKey, type MusicKey } from "@/lib/studio-music";
+import {
+  submitShotstackRender,
+  buildTimelineFromProject,
+} from "@/lib/shotstack";
+import { getBaseUrl } from "@/lib/url";
 
 // Proje başına sahne üst sınırı — hem maliyet hem action süresi güvencesi
 const MAX_SCENES = 8;
+
+// ── Maliyet/kötüye kullanım koruması (tenant başına) ──
+// Aylık kredi zaten toplam harcamayı sınırlar; bunlar ani yük ve kaçak
+// döngü koruması: aynı anda çok sayıda Fal işi ya da günlük patlama.
+const MAX_CONCURRENT_VIDEO_JOBS = 12; // aynı anda işlemdeki sahne render'ı
+const DAILY_VIDEO_JOB_CAP = 40; // 24 saatte açılabilecek video işi
+
+/** UTC gün başlangıcı — günlük tavan penceresi. */
+function startOfUtcDay(): Date {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
+
+/**
+ * Yeni `additional` sahne render'ı açmadan önce tenant kotasını denetler.
+ * Kota aşılıyorsa kullanıcıya gösterilecek hata mesajı, aksi halde null döner.
+ */
+async function checkVideoQuota(
+  tenantId: string,
+  additional: number,
+): Promise<string | null> {
+  const [inFlight, today] = await Promise.all([
+    prisma.studioJob.count({
+      where: { tenantId, type: "VIDEO_GENERATE", status: "PROCESSING" },
+    }),
+    prisma.studioJob.count({
+      where: {
+        tenantId,
+        type: "VIDEO_GENERATE",
+        createdAt: { gte: startOfUtcDay() },
+      },
+    }),
+  ]);
+  if (inFlight + additional > MAX_CONCURRENT_VIDEO_JOBS) {
+    return `Aynı anda en fazla ${MAX_CONCURRENT_VIDEO_JOBS} sahne işlenebilir — süren üretimlerin bitmesini bekleyin.`;
+  }
+  if (today + additional > DAILY_VIDEO_JOB_CAP) {
+    return `Günlük video üretim sınırına ulaşıldı (${DAILY_VIDEO_JOB_CAP}/gün). Yarın tekrar deneyebilirsiniz.`;
+  }
+  return null;
+}
 
 // ── UI'ya dönen görünümler ──
 
@@ -36,6 +88,7 @@ export type StudioSceneView = {
   errorMessage: string | null;
   durationSec: number;
   roomKey: string | null;
+  transitionKey: string | null;
   approved: boolean;
 };
 
@@ -54,6 +107,9 @@ export type StudioProjectView = {
   title: string;
   status: string; // DRAFT | RENDERING | COMPLETED | FAILED
   conceptKey: string | null;
+  templateKey: string | null;
+  musicKey: string | null;
+  overlayData: ResolvedOverlay[] | null;
   aspectRatio: string;
   voiceText: string | null;
   voiceUrl: string | null;
@@ -70,14 +126,6 @@ type ProjectResult =
   | { ok: false; error: string };
 
 // ── Yardımcılar ──
-
-async function copyUrlToR2(url: string, key: string, fallbackType: string) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Çıktı indirilemedi (${res.status}).`);
-  const contentType = res.headers.get("content-type") ?? fallbackType;
-  await putObject(key, Buffer.from(await res.arrayBuffer()), contentType);
-  return publicUrl(key);
-}
 
 function formatPrice(price: unknown, currency: string): string {
   const n = Number(price);
@@ -107,6 +155,9 @@ async function toProjectView(projectId: string): Promise<StudioProjectView | nul
     title: p.title,
     status: p.status,
     conceptKey: p.conceptKey,
+    templateKey: p.templateKey,
+    musicKey: p.musicKey,
+    overlayData: (p.overlayData as ResolvedOverlay[] | null) ?? null,
     aspectRatio: p.aspectRatio,
     voiceText: p.voiceText,
     voiceUrl: p.voiceUrl,
@@ -124,6 +175,7 @@ async function toProjectView(projectId: string): Promise<StudioProjectView | nul
       errorMessage: s.errorMessage,
       durationSec: s.durationSec,
       roomKey: s.roomKey,
+      transitionKey: s.transitionKey,
       approved: s.approved,
     })),
     voiceSegments: p.voiceSegments.map((v) => ({
@@ -159,13 +211,81 @@ async function submitScene(
   }
 }
 
+// ── Overlay çözümleme — şablon slotları ilan verisiyle doldurulur ──
+// Kullanıcı bu metinleri birleştirmeden önce düzenleyebilir (overlayData).
+
+function resolveOverlayData(
+  template: TemplateDef,
+  listing: {
+    price: unknown;
+    currency: string;
+    grossArea: number | null;
+    netArea: number | null;
+    rooms: string | null;
+    city: string;
+    district: string;
+    neighborhood: string | null;
+    features: string[];
+    deedStatus: string | null;
+  },
+): ResolvedOverlay[] {
+  const location = [listing.neighborhood, listing.district, listing.city]
+    .filter(Boolean)
+    .join(", ");
+  // Ada/parsel: özelliklerde ya da tapu durumunda geçiyorsa yakala
+  const haystack = [...listing.features, listing.deedStatus ?? ""].join(" ");
+  const ada = haystack.match(/ada\s*[:.]?\s*(\d+)/i)?.[1];
+  const parsel = haystack.match(/parsel\s*[:.]?\s*(\d+)/i)?.[1];
+  const adaParsel =
+    ada && parsel ? `Ada ${ada} / Parsel ${parsel}` : ada ? `Ada ${ada}` : "";
+  const area = listing.grossArea ?? listing.netArea;
+
+  return template.overlaySlots.map((slot) => {
+    let text = "";
+    switch (slot.source) {
+      case "price":
+        text = formatPrice(listing.price, listing.currency);
+        break;
+      case "grossArea":
+        text = area ? `${new Intl.NumberFormat("tr-TR").format(area)} m²` : "";
+        break;
+      case "location":
+        text = location;
+        break;
+      case "rooms":
+        text = listing.rooms ?? "";
+        break;
+      case "adaParsel":
+        text = adaParsel;
+        break;
+      case "custom":
+        text = slot.defaultText ?? "";
+        break;
+    }
+    return {
+      key: slot.key,
+      label: slot.label,
+      text,
+      enabled: text.trim().length > 0,
+      placement: slot.placement,
+      startSec: slot.startSec,
+      lengthSec: slot.lengthSec,
+      styleKey: slot.styleKey,
+    };
+  });
+}
+
 // ── 1) Proje oluşturma — seçilen her fotoğraf bir sahne olur ──
 
 export async function createStudioProject(input: {
   listingId: string;
-  conceptKey: string;
-  /** Sıralı seçim — roomKey iç mekân turunda "hangi fotoğraf hangi oda" bilgisi */
-  selectedMedia: { id: string; roomKey?: string | null }[];
+  /** Hazır şablon — sahne reçetesi, geçişler, overlay ve müziği belirler */
+  templateKey: string;
+  /** Sıralı seçim — roomKey iç mekân turunda "hangi fotoğraf hangi oda" bilgisi.
+   *  durationSec: 5 (1 kredi) | 10 (2 kredi — Kling tarafında ~2x maliyet) */
+  selectedMedia: { id: string; roomKey?: string | null; durationSec?: number }[];
+  /** Şablon varsayılanını ezmek için; "none" = müziksiz */
+  musicKey?: string;
 }): Promise<ProjectResult> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Oturum bulunamadı." };
@@ -179,19 +299,40 @@ export async function createStudioProject(input: {
     return { ok: false, error: "AI Stüdyo Pro veya Premium plan gerektirir." };
   }
 
+  if (!isTemplateKey(input.templateKey)) {
+    return { ok: false, error: "Geçersiz şablon." };
+  }
+  const template = TEMPLATES[input.templateKey];
+  if (input.musicKey && !isMusicKey(input.musicKey)) {
+    return { ok: false, error: "Geçersiz müzik seçimi." };
+  }
+
   const selected = input.selectedMedia.slice(0, MAX_SCENES);
   const mediaIds = selected.map((s) => s.id);
   if (!mediaIds.length) {
     return { ok: false, error: "En az bir fotoğraf seçmelisiniz." };
   }
 
-  const cost = mediaIds.length; // sahne başına 1 video kredisi
+  // Sahne süreleri: kullanıcı seçimi > şablon reçetesi. 10 sn sahne 2 kredi.
+  const sceneDurations = selected.map((s, i) =>
+    s.durationSec === 10
+      ? 10
+      : s.durationSec === 5
+        ? 5
+        : sceneDefaults(template, i).durationSec,
+  );
+  const sceneCosts = sceneDurations.map((d) => (d === 10 ? 2 : 1));
+  const cost = sceneCosts.reduce((a, b) => a + b, 0);
   if (tenant.aiVideoCredits < cost) {
     return {
       ok: false,
       error: `Bu video ${cost} kredi gerektirir, kalan krediniz ${tenant.aiVideoCredits}.`,
     };
   }
+
+  // Maliyet/kötüye kullanım tavanı — eşzamanlılık + günlük limit (iş sayısı)
+  const quotaError = await checkVideoQuota(session.tenantId, selected.length);
+  if (quotaError) return { ok: false, error: quotaError };
 
   // Fotoğraflar gerçekten bu ofisin bu ilanına mı ait?
   const listing = await prisma.listing.findFirst({
@@ -205,6 +346,8 @@ export async function createStudioProject(input: {
       neighborhood: true,
       rooms: true,
       grossArea: true,
+      netArea: true,
+      deedStatus: true,
       price: true,
       currency: true,
       purpose: true,
@@ -220,7 +363,6 @@ export async function createStudioProject(input: {
   }
   const mediaById = new Map(listing.media.map((m) => [m.id, m]));
 
-  const concept = getConcept(input.conceptKey);
   const voiceText = buildVoiceoverText(
     {
       title: listing.title,
@@ -234,6 +376,8 @@ export async function createStudioProject(input: {
       features: listing.features,
     },
     mediaIds.length,
+    [],
+    template.voiceTone,
   );
 
   // Krediyi düş — sahne bazında başarısızlıkta tek tek iade edilir
@@ -247,10 +391,13 @@ export async function createStudioProject(input: {
       tenantId: session.tenantId,
       userId: session.userId,
       listingId: listing.id,
-      title: `${concept.label} — ${listing.refCode}`,
+      title: `${template.label} — ${listing.refCode}`,
       status: "RENDERING",
-      conceptKey: input.conceptKey,
-      aspectRatio: concept.aspectRatio,
+      templateKey: template.key,
+      conceptKey: template.legacyConceptKey, // geri uyum: regenerate + geçmiş
+      musicKey: input.musicKey ?? null,
+      overlayData: resolveOverlayData(template, listing),
+      aspectRatio: template.aspectRatio,
       voiceText,
       voiceProvider: "ELEVENLABS",
     },
@@ -260,7 +407,8 @@ export async function createStudioProject(input: {
   for (let i = 0; i < selected.length; i++) {
     const media = mediaById.get(selected[i].id)!;
     const roomKey = selected[i].roomKey ?? null;
-    const prompt = buildScenePrompt(input.conceptKey, i, roomKey);
+    const prompt = buildTemplateScenePrompt(template, i, roomKey);
+    const durationSec = sceneDurations[i];
 
     const job = await prisma.studioJob.create({
       data: {
@@ -272,8 +420,9 @@ export async function createStudioProject(input: {
         status: "PROCESSING",
         inputMediaId: media.id,
         inputUrl: media.url,
-        videoConceptKey: input.conceptKey,
-        creditCost: 1,
+        videoConceptKey: template.legacyConceptKey,
+        provider: "FAL_KLING",
+        creditCost: sceneCosts[i],
       },
     });
 
@@ -285,8 +434,9 @@ export async function createStudioProject(input: {
         sourceImageUrl: media.url,
         prompt,
         roomKey,
+        transitionKey: i === 0 ? null : transitionForBoundary(template, i - 1),
         provider: "FAL_KLING",
-        durationSec: 5,
+        durationSec,
         status: "PROCESSING",
         jobId: job.id,
       },
@@ -294,9 +444,9 @@ export async function createStudioProject(input: {
 
     try {
       await submitScene(
-        { id: scene.id, prompt, sourceImageUrl: media.url, durationSec: 5, jobId: job.id },
-        concept.aspectRatio,
-        buildSceneNegativePrompt(input.conceptKey),
+        { id: scene.id, prompt, sourceImageUrl: media.url, durationSec, jobId: job.id },
+        template.aspectRatio,
+        buildTemplateNegativePrompt(template),
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Render başlatılamadı.";
@@ -311,7 +461,7 @@ export async function createStudioProject(input: {
         }),
         prisma.tenant.update({
           where: { id: session.tenantId },
-          data: { aiVideoCredits: { increment: 1 } },
+          data: { aiVideoCredits: { increment: sceneCosts[i] } },
         }),
       ]);
     }
@@ -335,103 +485,16 @@ export async function getStudioProject(projectId: string): Promise<ProjectResult
   const session = await getSession();
   if (!session) return { ok: false, error: "Oturum bulunamadı." };
 
-  const project = await prisma.studioProject.findFirst({
+  // Tenant sahipliğini doğrula — reconcile'ın kendisi tenant-bağımsızdır
+  const owned = await prisma.studioProject.findFirst({
     where: { id: projectId, tenantId: session.tenantId },
-    include: {
-      scenes: {
-        where: { status: "PROCESSING" },
-        include: { job: { select: { id: true, externalRequestId: true } } },
-      },
-      jobs: {
-        where: { type: "VIDEO_MERGE", status: "PROCESSING" },
-        select: { id: true, externalRequestId: true },
-      },
-    },
+    select: { id: true },
   });
-  if (!project) return { ok: false, error: "Proje bulunamadı." };
+  if (!owned) return { ok: false, error: "Proje bulunamadı." };
 
-  // İşlemdeki sahneleri Fal ile mutabakata al
-  for (const scene of project.scenes) {
-    const requestId = scene.job?.externalRequestId;
-    if (!requestId) continue;
-
-    try {
-      const { status } = await getVideoStatus(requestId, { provider: "FAL_KLING" });
-      if (status !== "COMPLETED") continue;
-
-      const { videoUrl } = await getVideoResult(requestId, { provider: "FAL_KLING" });
-      const key = `studio/${session.tenantId}/scenes/${scene.id}.mp4`;
-      const outputUrl = await copyUrlToR2(videoUrl, key, "video/mp4");
-
-      await prisma.$transaction([
-        prisma.videoScene.update({
-          where: { id: scene.id },
-          data: { status: "COMPLETED", outputUrl, outputKey: key, errorMessage: null },
-        }),
-        prisma.studioJob.update({
-          where: { id: scene.job!.id },
-          data: { status: "COMPLETED", outputUrl, outputKey: key },
-        }),
-      ]);
-    } catch (err) {
-      // Sonuç alınamadı = render başarısız → sahneyi FAILED yap, krediyi iade et
-      const message = err instanceof Error ? err.message : "Render başarısız.";
-      await prisma.$transaction([
-        prisma.videoScene.update({
-          where: { id: scene.id },
-          data: { status: "FAILED", errorMessage: message.slice(0, 500) },
-        }),
-        prisma.studioJob.update({
-          where: { id: scene.job!.id },
-          data: { status: "FAILED", errorMessage: message.slice(0, 500) },
-        }),
-        prisma.tenant.update({
-          where: { id: session.tenantId },
-          data: { aiVideoCredits: { increment: 1 } },
-        }),
-      ]);
-    }
-  }
-
-  // Birleştirme işini mutabakata al
-  const mergeJob = project.jobs[0];
-  if (mergeJob?.externalRequestId) {
-    try {
-      const { status } = await getVideoStatus(mergeJob.externalRequestId, {
-        provider: "FAL_KLING",
-        model: FFMPEG_COMPOSE_MODEL,
-      });
-      if (status === "COMPLETED") {
-        const { videoUrl } = await getMergeResult(mergeJob.externalRequestId);
-        const key = `studio/${session.tenantId}/final/${project.id}.mp4`;
-        const finalVideoUrl = await copyUrlToR2(videoUrl, key, "video/mp4");
-
-        await prisma.$transaction([
-          prisma.studioProject.update({
-            where: { id: project.id },
-            data: { status: "COMPLETED", finalVideoUrl, finalVideoKey: key, errorMessage: null },
-          }),
-          prisma.studioJob.update({
-            where: { id: mergeJob.id },
-            data: { status: "COMPLETED", outputUrl: finalVideoUrl, outputKey: key },
-          }),
-        ]);
-        revalidatePath("/dashboard/studio");
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Birleştirme başarısız.";
-      await prisma.$transaction([
-        prisma.studioProject.update({
-          where: { id: project.id },
-          data: { errorMessage: message.slice(0, 500) },
-        }),
-        prisma.studioJob.update({
-          where: { id: mergeJob.id },
-          data: { status: "FAILED", errorMessage: message.slice(0, 500) },
-        }),
-      ]);
-    }
-  }
+  // İşlemdeki sahne/birleştirme işlerini Fal ile mutabakata al
+  // (aynı mantığı cron sweeper da kullanır — claim korumalı, idempotent).
+  await reconcileProject(projectId);
 
   const view = await toProjectView(projectId);
   return view ? { ok: true, project: view } : { ok: false, error: "Proje bulunamadı." };
@@ -464,7 +527,13 @@ export async function regenerateScene(sceneId: string): Promise<ProjectResult> {
     where: { id: sceneId, project: { tenantId: session.tenantId } },
     include: {
       project: {
-        select: { id: true, listingId: true, aspectRatio: true, conceptKey: true },
+        select: {
+          id: true,
+          listingId: true,
+          aspectRatio: true,
+          conceptKey: true,
+          templateKey: true,
+        },
       },
     },
   });
@@ -473,17 +542,26 @@ export async function regenerateScene(sceneId: string): Promise<ProjectResult> {
     return { ok: false, error: "Bu sahne zaten işleniyor." };
   }
 
+  // Yeniden üretim sahnenin süresini korur — 10 sn sahne 2 kredi
+  const regenCost = scene.durationSec === 10 ? 2 : 1;
   const tenant = await prisma.tenant.findUnique({
     where: { id: session.tenantId },
     select: { aiVideoCredits: true },
   });
-  if (!tenant || tenant.aiVideoCredits < 1) {
-    return { ok: false, error: "Video krediniz kalmadı." };
+  if (!tenant || tenant.aiVideoCredits < regenCost) {
+    return {
+      ok: false,
+      error: `Bu sahne ${regenCost} kredi gerektirir, kalan krediniz ${tenant?.aiVideoCredits ?? 0}.`,
+    };
   }
+
+  // Maliyet/kötüye kullanım tavanı — eşzamanlılık + günlük limit
+  const quotaError = await checkVideoQuota(session.tenantId, 1);
+  if (quotaError) return { ok: false, error: quotaError };
 
   await prisma.tenant.update({
     where: { id: session.tenantId },
-    data: { aiVideoCredits: { decrement: 1 } },
+    data: { aiVideoCredits: { decrement: regenCost } },
   });
 
   const job = await prisma.studioJob.create({
@@ -496,7 +574,8 @@ export async function regenerateScene(sceneId: string): Promise<ProjectResult> {
       status: "PROCESSING",
       inputMediaId: scene.sourceImageId,
       inputUrl: scene.sourceImageUrl,
-      creditCost: 1,
+      provider: "FAL_KLING",
+      creditCost: regenCost,
     },
   });
 
@@ -523,7 +602,11 @@ export async function regenerateScene(sceneId: string): Promise<ProjectResult> {
         jobId: job.id,
       },
       scene.project.aspectRatio,
-      buildSceneNegativePrompt(scene.project.conceptKey ?? "interior"),
+      scene.project.templateKey
+        ? buildTemplateNegativePrompt(
+            resolveTemplate(scene.project.templateKey, scene.project.conceptKey),
+          )
+        : buildSceneNegativePrompt(scene.project.conceptKey ?? "interior"),
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Render başlatılamadı.";
@@ -538,7 +621,7 @@ export async function regenerateScene(sceneId: string): Promise<ProjectResult> {
       }),
       prisma.tenant.update({
         where: { id: session.tenantId },
-        data: { aiVideoCredits: { increment: 1 } },
+        data: { aiVideoCredits: { increment: regenCost } },
       }),
     ]);
   }
@@ -573,6 +656,154 @@ export async function approveScene(input: {
 
   const view = await toProjectView(scene.projectId);
   return view ? { ok: true, project: view } : { ok: false, error: "Proje bulunamadı." };
+}
+
+// ── 3c) Şablon ince ayarları — geçişler + ekran yazıları + müzik ──
+// Birleştirmeden önce düzenlenir; render sırasında kilitli.
+
+const MAX_OVERLAY_TEXT = 80;
+
+/** Sahnenin GİRİŞ geçişini değiştirir — Shotstack katmanı, yeniden render gerektirmez. */
+export async function updateSceneTransition(input: {
+  sceneId: string;
+  transitionKey: string;
+}): Promise<ProjectResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Oturum bulunamadı." };
+  if (!(input.transitionKey in TRANSITION_LABELS)) {
+    return { ok: false, error: "Geçersiz geçiş efekti." };
+  }
+
+  const scene = await prisma.videoScene.findFirst({
+    where: { id: input.sceneId, project: { tenantId: session.tenantId } },
+    select: {
+      id: true,
+      order: true,
+      projectId: true,
+      project: {
+        select: {
+          jobs: {
+            where: { type: "VIDEO_MERGE", status: { in: ["PENDING", "PROCESSING"] } },
+            select: { id: true },
+          },
+        },
+      },
+    },
+  });
+  if (!scene) return { ok: false, error: "Sahne bulunamadı." };
+  if (scene.order === 0) {
+    return { ok: false, error: "İlk sahnenin giriş geçişi yoktur." };
+  }
+  if (scene.project.jobs.length > 0) {
+    return { ok: false, error: "Birleştirme sürerken geçişler değiştirilemez." };
+  }
+
+  await prisma.videoScene.update({
+    where: { id: scene.id },
+    data: { transitionKey: input.transitionKey },
+  });
+
+  const view = await toProjectView(scene.projectId);
+  return view ? { ok: true, project: view } : { ok: false, error: "Proje bulunamadı." };
+}
+
+export async function updateOverlayData(input: {
+  projectId: string;
+  overlays: { key: string; text: string; enabled: boolean }[];
+}): Promise<ProjectResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Oturum bulunamadı." };
+
+  const project = await prisma.studioProject.findFirst({
+    where: { id: input.projectId, tenantId: session.tenantId },
+    select: {
+      id: true,
+      overlayData: true,
+      jobs: {
+        where: { type: "VIDEO_MERGE", status: { in: ["PENDING", "PROCESSING"] } },
+        select: { id: true },
+      },
+    },
+  });
+  if (!project) return { ok: false, error: "Proje bulunamadı." };
+  if (project.jobs.length > 0) {
+    return { ok: false, error: "Birleştirme sürerken ekran yazıları değiştirilemez." };
+  }
+
+  // Yalnızca mevcut slotların metni/aktifliği değişir — slot eklenemez,
+  // zamanlama/stil şablondan gelir (client'tan gelen değerlere güvenilmez).
+  const current = (project.overlayData as ResolvedOverlay[] | null) ?? [];
+  const byKey = new Map(input.overlays.map((o) => [o.key, o]));
+  const next = current.map((slot) => {
+    const edit = byKey.get(slot.key);
+    if (!edit) return slot;
+    return {
+      ...slot,
+      text: edit.text.slice(0, MAX_OVERLAY_TEXT),
+      enabled: edit.enabled && edit.text.trim().length > 0,
+    };
+  });
+
+  await prisma.studioProject.update({
+    where: { id: project.id },
+    data: { overlayData: next },
+  });
+
+  const view = await toProjectView(project.id);
+  return view ? { ok: true, project: view } : { ok: false, error: "Proje bulunamadı." };
+}
+
+export async function setProjectMusic(input: {
+  projectId: string;
+  musicKey: string;
+}): Promise<ProjectResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Oturum bulunamadı." };
+  if (!isMusicKey(input.musicKey)) {
+    return { ok: false, error: "Geçersiz müzik seçimi." };
+  }
+
+  const project = await prisma.studioProject.findFirst({
+    where: { id: input.projectId, tenantId: session.tenantId },
+    select: {
+      id: true,
+      jobs: {
+        where: { type: "VIDEO_MERGE", status: { in: ["PENDING", "PROCESSING"] } },
+        select: { id: true },
+      },
+    },
+  });
+  if (!project) return { ok: false, error: "Proje bulunamadı." };
+  if (project.jobs.length > 0) {
+    return { ok: false, error: "Birleştirme sürerken müzik değiştirilemez." };
+  }
+
+  await prisma.studioProject.update({
+    where: { id: project.id },
+    data: { musicKey: input.musicKey },
+  });
+
+  const view = await toProjectView(project.id);
+  return view ? { ok: true, project: view } : { ok: false, error: "Proje bulunamadı." };
+}
+
+export type StudioMusicOption = {
+  key: string;
+  label: string;
+  mood: string;
+  url: string;
+};
+
+/** Müzik seçici önizlemeleri — R2 public URL'leri sunucuda çözülür. */
+export async function getStudioMusicOptions(): Promise<StudioMusicOption[]> {
+  const session = await getSession();
+  if (!session) return [];
+  return Object.entries(MUSIC_TRACKS).map(([key, t]) => ({
+    key,
+    label: t.label,
+    mood: t.mood,
+    url: publicUrl(t.r2Key),
+  }));
 }
 
 // ── 4) Seslendirme + birleştirme ──
@@ -652,11 +883,52 @@ export async function mergeProject(input: {
       }
     }
 
-    // Birleştirme işini kuyruğa gönder
-    const { requestId } = await mergeVideoWithAudio(
-      completed.map((s) => ({ videoUrl: s.outputUrl!, durationSec: s.durationSec })),
-      audioKeyframes,
-    );
+    // ── Kurgu (Shotstack): geçişler + ekran yazıları + müzik ──
+    const template = resolveTemplate(project.templateKey, project.conceptKey);
+
+    // Müzik: kullanıcı seçimi > şablon varsayılanı; dosya R2'de yoksa
+    // render'ı bozmamak için müzik atlanır (soft-fail).
+    const musicKey = (
+      project.musicKey && isMusicKey(project.musicKey)
+        ? project.musicKey
+        : template.musicDefault
+    ) as MusicKey;
+    let music: { url: string; volume: number } | null = null;
+    if (musicKey !== "none") {
+      const musicUrl = publicUrl(MUSIC_TRACKS[musicKey].r2Key);
+      const head = await fetch(musicUrl, { method: "HEAD" }).catch(() => null);
+      if (head?.ok) music = { url: musicUrl, volume: template.musicVolume };
+    }
+
+    // Sahne geçişleri: kullanıcı override'ı > şablon dizisi (ilk sahnede yok)
+    const scenes = completed.map((s, i) => ({
+      videoUrl: s.outputUrl!,
+      durationSec: s.durationSec,
+      transitionIn:
+        i === 0
+          ? null
+          : ((s.transitionKey as TransitionKey | null) ??
+            transitionForBoundary(template, i - 1)),
+    }));
+
+    const overlays = (project.overlayData as ResolvedOverlay[] | null) ?? [];
+
+    // Webhook: secret tanımlıysa Shotstack bitişte bize haber verir
+    // (kapalı sekmede bile merge tamamlanır); yoksa polling yeterli.
+    const webhookSecret = process.env.SHOTSTACK_WEBHOOK_SECRET;
+    const callbackUrl = webhookSecret
+      ? `${getBaseUrl()}/api/studio/shotstack-webhook?token=${webhookSecret}`
+      : undefined;
+
+    const edit = buildTimelineFromProject({
+      aspectRatio: project.aspectRatio,
+      scenes,
+      voiceKeyframes: audioKeyframes,
+      music,
+      overlays,
+      callbackUrl,
+    });
+    const { renderId } = await submitShotstackRender(edit);
 
     await prisma.studioJob.create({
       data: {
@@ -666,7 +938,8 @@ export async function mergeProject(input: {
         projectId: project.id,
         type: "VIDEO_MERGE",
         status: "PROCESSING",
-        externalRequestId: requestId,
+        provider: "SHOTSTACK",
+        externalRequestId: renderId,
         creditCost: 0, // birleştirme kredi düşmez
       },
     });

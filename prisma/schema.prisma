@@ -165,6 +165,7 @@ enum AiProvider {
   FAL_KLING   // Fal.ai üzerinden Kling (video)
   FAL_SDXL    // Fal.ai üzerinden SDXL (fotoğraf iyileştirme)
   ELEVENLABS  // ElevenLabs (seslendirme)
+  SHOTSTACK   // Shotstack Edit API (kurgu: geçiş + overlay + müzik)
 }
 
 // AI Stüdyo proje durumu (NLE zaman çizelgesi yaşam döngüsü)
@@ -1063,6 +1064,9 @@ model StudioJob {
   creditCost         Int     @default(1)     // düşülen kredi miktarı
   appliedToListing   Boolean @default(false) // çıktı ilana entegre edildi mi
 
+  // Dış sağlayıcı — null = legacy Fal; yeni VIDEO_MERGE işleri SHOTSTACK
+  provider AiProvider?
+
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
@@ -1088,6 +1092,11 @@ model StudioProject {
   title      String
   status     StudioProjectStatus @default(DRAFT)
   conceptKey String? // drone | interior | social — prompt/negatif üretiminde kullanılır
+
+  // ── Şablon sistemi (lib/studio-templates.ts) ──
+  templateKey String? // fpv_tour | classic_interior | land_drone | social_promo (null = legacy)
+  musicKey    String? // lib/studio-music.ts anahtarı; null = şablon varsayılanı, "none" = müziksiz
+  overlayData Json?   // ResolvedOverlay[] — ilan verisinden çözülür, kullanıcı düzenler
 
   // Çıktı formatı
   aspectRatio String @default("16:9") // 16:9 | 9:16 (sosyal medya) | 1:1
@@ -1160,6 +1169,8 @@ model VideoScene {
 
   prompt      String                        // sahne kamera/hareket yönergesi
   roomKey     String?                       // salon | mutfak… — prompt'a oda bağlamı katar
+  motionKey   String?                       // şablon hareket havuzundan seçilen hareket
+  transitionKey String?                     // sahnenin GİRİŞ geçişi; null = şablon varsayılanı
   provider    AiProvider      @default(FAL_KLING)
   durationSec Int             @default(5)   // Kling: 5 | 10
   status      StudioJobStatus @default(PENDING)
