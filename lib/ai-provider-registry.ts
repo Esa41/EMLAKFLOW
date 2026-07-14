@@ -159,6 +159,8 @@ export type GenerateVideoInput = {
   /** Kling: 5 | 10 saniye */
   durationSec?: 5 | 10;
   aspectRatio?: "16:9" | "9:16" | "1:1";
+  /** Görsel sadakat: modelin sahneye EKLEMEMESİ/DEĞİŞTİRMEMESİ gerekenler */
+  negativePrompt?: string;
   /** İş bitince Fal.ai'nin çağıracağı webhook (StudioJob tamamlama ucu) */
   webhookUrl?: string;
 };
@@ -190,6 +192,9 @@ export async function generateVideo(
         image_url: providerConfig.sourceImageUrl,
         duration: String(providerConfig.durationSec ?? 5),
         aspect_ratio: providerConfig.aspectRatio ?? "16:9",
+        ...(providerConfig.negativePrompt
+          ? { negative_prompt: providerConfig.negativePrompt }
+          : {}),
         ...providerConfig.extra,
       }),
     },

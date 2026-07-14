@@ -16,6 +16,7 @@ import {
 import { putObject, publicUrl } from "@/lib/r2";
 import {
   buildScenePrompt,
+  buildSceneNegativePrompt,
   buildVoiceoverText,
   getConcept,
 } from "@/lib/studio-prompts";
@@ -112,12 +113,14 @@ async function toProjectView(projectId: string): Promise<StudioProjectView | nul
 async function submitScene(
   scene: { id: string; prompt: string; sourceImageUrl: string; durationSec: number; jobId: string | null },
   aspectRatio: string,
+  negativePrompt: string,
 ) {
   const { requestId } = await generateVideo(scene.id, scene.prompt, {
     provider: "FAL_KLING",
     sourceImageUrl: scene.sourceImageUrl,
     durationSec: scene.durationSec === 10 ? 10 : 5,
     aspectRatio: aspectRatio as "16:9" | "9:16",
+    negativePrompt,
   });
   if (scene.jobId) {
     await prisma.studioJob.update({
@@ -215,6 +218,7 @@ export async function createStudioProject(input: {
       listingId: listing.id,
       title: `${concept.label} — ${listing.refCode}`,
       status: "RENDERING",
+      conceptKey: input.conceptKey,
       aspectRatio: concept.aspectRatio,
       voiceText,
       voiceProvider: "ELEVENLABS",
@@ -259,6 +263,7 @@ export async function createStudioProject(input: {
       await submitScene(
         { id: scene.id, prompt, sourceImageUrl: media.url, durationSec: 5, jobId: job.id },
         concept.aspectRatio,
+        buildSceneNegativePrompt(input.conceptKey),
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Render başlatılamadı.";
@@ -424,7 +429,11 @@ export async function regenerateScene(sceneId: string): Promise<ProjectResult> {
 
   const scene = await prisma.videoScene.findFirst({
     where: { id: sceneId, project: { tenantId: session.tenantId } },
-    include: { project: { select: { id: true, listingId: true, aspectRatio: true } } },
+    include: {
+      project: {
+        select: { id: true, listingId: true, aspectRatio: true, conceptKey: true },
+      },
+    },
   });
   if (!scene) return { ok: false, error: "Sahne bulunamadı." };
   if (scene.status === "PROCESSING") {
@@ -474,6 +483,7 @@ export async function regenerateScene(sceneId: string): Promise<ProjectResult> {
         jobId: job.id,
       },
       scene.project.aspectRatio,
+      buildSceneNegativePrompt(scene.project.conceptKey ?? "interior"),
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Render başlatılamadı.";

@@ -1085,8 +1085,9 @@ model StudioProject {
   listingId String
   listing   Listing             @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
-  title     String
-  status    StudioProjectStatus @default(DRAFT)
+  title      String
+  status     StudioProjectStatus @default(DRAFT)
+  conceptKey String? // drone | interior | social — prompt/negatif üretiminde kullanılır
 
   // Çıktı formatı
   aspectRatio String @default("16:9") // 16:9 | 9:16 (sosyal medya) | 1:1

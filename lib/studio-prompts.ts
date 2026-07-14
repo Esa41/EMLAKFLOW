@@ -9,16 +9,29 @@ type ConceptDefinition = {
   label: string;
   aspectRatio: "16:9" | "9:16";
   /** Sahne sırasına göre kamera hareketi çeşitlemesi — art arda aynı
-   *  hareket monoton durduğu için sahne index'i ile dönüşümlü seçilir. */
+   *  hareket monoton durduğu için sahne index'i ile dönüşümlü seçilir.
+   *  Görsel sadakat için hareketler bilinçli yavaş/yumuşak tutulur:
+   *  agresif hareket (hızlı orbit vb.) = daha çok halüsinasyon. */
   motions: string[];
   /** Her sahne prompt'unun sonuna eklenen ortak stil çapası */
   style: string;
+  /** Konsepte özel negative prompt ekleri (ortak sete eklenir) */
+  negative: string;
 };
+
+// Ortak koruma seti — modelin fotoğraftaki mekânı "yeniden hayal etmesini"
+// kapatır: duvar/eşya ekleme-çıkarma, mekân morfu, insan, yazı vb. yasak.
+const BASE_NEGATIVE_PROMPT =
+  "structural changes, added or removed walls, added or removed furniture, " +
+  "added or removed objects, morphing rooms, changing room layout, " +
+  "people, faces, text, captions, watermark, logo, distortion, warping, " +
+  "flickering, blurry, low quality";
 
 const CONCEPTS: Record<VideoConceptKey, ConceptDefinition> = {
   drone: {
     label: "Drone Uçuşu",
     aspectRatio: "16:9",
+    // Dış çekimde orbit/crane serbest — açık alanda morf riski düşük
     motions: [
       "slow aerial push-in towards the property, gentle descent",
       "smooth lateral drone pan across the landscape",
@@ -26,32 +39,42 @@ const CONCEPTS: Record<VideoConceptKey, ConceptDefinition> = {
     ],
     style:
       "cinematic drone footage, golden hour sunlight, photorealistic, " +
-      "smooth stabilized motion, high dynamic range",
+      "smooth stabilized motion, high dynamic range, " +
+      "the terrain and buildings remain exactly as in the source photo",
+    negative: "added buildings, added roads, changing terrain, altered landscape",
   },
   interior: {
     label: "Ev İçi Tur",
     aspectRatio: "16:9",
+    // İç mekânda yalnızca yavaş pan/push — dönüş ve orbit yasak
     motions: [
-      "slow steady walk-through push forward into the room",
-      "gentle pan from left to right revealing the space",
-      "slow push-in towards the window, natural parallax",
+      "very slow steady push forward into the room",
+      "gentle slow pan from left to right",
+      "subtle slow push-in with natural parallax",
     ],
     style:
       "real estate interior video tour, bright natural daylight, " +
       "photorealistic, steady gimbal movement, inviting atmosphere, " +
-      "no people, furniture and room layout unchanged",
+      "camera movement only, every piece of furniture and every fixture " +
+      "stays exactly where it is in the source photo",
+    negative:
+      "rotating camera, orbiting, fast movement, rearranged furniture, " +
+      "new decor, changed lighting fixtures, doors or windows appearing or disappearing",
   },
   social: {
     label: "Sosyal Medya",
     aspectRatio: "9:16",
+    // Dikkat çekici ama güvenli: zoom/tilt var, orbit yok
     motions: [
-      "dynamic slow zoom-in with subtle drift",
-      "smooth vertical reveal tilting up",
-      "gentle orbit motion around the focal point",
+      "slow zoom-in with subtle drift",
+      "smooth vertical reveal tilting up slowly",
+      "slow push-in with gentle parallax",
     ],
     style:
       "eye-catching vertical social media property showcase, vibrant colors, " +
-      "crisp details, photorealistic, smooth cinematic motion, no text overlays",
+      "crisp details, photorealistic, smooth cinematic motion, " +
+      "scene content identical to the source photo, camera movement only",
+    negative: "orbiting camera, spinning, fast cuts, added props, staging changes",
   },
 };
 
@@ -64,6 +87,12 @@ export function buildScenePrompt(conceptKey: string, sceneIndex: number): string
   const c = getConcept(conceptKey);
   const motion = c.motions[sceneIndex % c.motions.length];
   return `${motion}, ${c.style}`;
+}
+
+/** Sahne negative prompt'u: ortak koruma seti + konsepte özel ekler. */
+export function buildSceneNegativePrompt(conceptKey: string): string {
+  const c = getConcept(conceptKey);
+  return `${BASE_NEGATIVE_PROMPT}, ${c.negative}`;
 }
 
 // ── Seslendirme metni ──
