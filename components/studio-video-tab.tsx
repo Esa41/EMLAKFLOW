@@ -15,15 +15,33 @@ import {
   RotateCcw,
   Mic,
   Download,
+  Pencil,
+  Trash2,
+  ShieldCheck,
+  Wand2,
+  ListOrdered,
 } from "lucide-react";
 import {
   createStudioProject,
   getStudioProject,
   getLatestStudioProject,
   regenerateScene,
+  approveScene,
   mergeProject,
   type StudioProjectView,
 } from "@/app/actions/studio-video";
+import {
+  generateVoiceSegments,
+  regenerateVoiceSegment,
+  deleteVoiceSegment,
+} from "@/app/actions/studio-voice";
+import {
+  ROOMS,
+  INTERIOR_TEMPLATE_ORDER,
+  parseNegativeTerms,
+  findNegativeTermViolations,
+  type RoomKey,
+} from "@/lib/studio-prompts";
 import type { StudioJobItem } from "@/app/actions/studio";
 
 type MediaItem = {
@@ -96,11 +114,15 @@ export function StudioVideoTab({
 }: Props) {
   const [selectedConcept, setSelectedConcept] = useState<string | null>(null);
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
+  const [roomAssignments, setRoomAssignments] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [project, setProject] = useState<StudioProjectView | null>(null);
   const [voiceDraft, setVoiceDraft] = useState("");
+  const [negativeInput, setNegativeInput] = useState("");
   const [busySceneId, setBusySceneId] = useState<string | null>(null);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const [editingSegment, setEditingSegment] = useState<{ id: string; text: string } | null>(null);
 
   const photos = media.filter((m) => m.kind === "photo");
   const concept = CONCEPTS.find((c) => c.key === selectedConcept);
@@ -113,6 +135,7 @@ export function StudioVideoTab({
       if (!cancelled && p) {
         setProject(p);
         setVoiceDraft(p.voiceText ?? "");
+        setNegativeInput(p.negativeTerms.join(", "));
       }
     });
     return () => {
@@ -154,6 +177,17 @@ export function StudioVideoTab({
     });
   }
 
+  /** Referans şablon: profesyonel tur dizilimine göre sırala (dış cephe → salon → …) */
+  function applyTemplateOrder() {
+    setSelectedPhotos((prev) =>
+      [...prev].sort((a, b) => {
+        const ra = INTERIOR_TEMPLATE_ORDER.indexOf(roomAssignments[a] as RoomKey);
+        const rb = INTERIOR_TEMPLATE_ORDER.indexOf(roomAssignments[b] as RoomKey);
+        return (ra === -1 ? 99 : ra) - (rb === -1 ? 99 : rb);
+      }),
+    );
+  }
+
   function handleGenerate() {
     if (!selectedConcept) return;
     setError(null);
@@ -162,17 +196,22 @@ export function StudioVideoTab({
       const result = await createStudioProject({
         listingId,
         conceptKey: selectedConcept,
-        selectedMediaIds: selectedPhotos,
+        selectedMedia: selectedPhotos.map((id) => ({
+          id,
+          roomKey: roomAssignments[id] ?? null,
+        })),
       });
 
       if (result.ok) {
         setProject(result.project);
         setVoiceDraft(result.project.voiceText ?? "");
+        setNegativeInput(result.project.negativeTerms.join(", "));
         if (result.remainingCredits !== undefined) {
           onCreditsChange(result.remainingCredits);
         }
         setSelectedConcept(null);
         setSelectedPhotos([]);
+        setRoomAssignments({});
       } else {
         setError(result.error);
       }
@@ -194,19 +233,86 @@ export function StudioVideoTab({
     });
   }
 
+  function handleApprove(sceneId: string, approved: boolean) {
+    setError(null);
+    startTransition(async () => {
+      const result = await approveScene({ sceneId, approved });
+      if (result.ok) setProject(result.project);
+      else setError(result.error);
+    });
+  }
+
+  function handleVoiceSegments() {
+    if (!project) return;
+    setError(null);
+    setVoiceBusy(true);
+    startTransition(async () => {
+      const result = await generateVoiceSegments({
+        projectId: project.id,
+        voiceText: voiceDraft,
+        negativeTermsInput: negativeInput,
+      });
+      setVoiceBusy(false);
+      if (result.ok) {
+        setProject((p) => (p ? { ...p, voiceSegments: result.segments, voiceText: voiceDraft } : p));
+      } else {
+        setError(result.error);
+      }
+    });
+  }
+
+  function handleSegmentSave() {
+    if (!editingSegment) return;
+    setError(null);
+    setVoiceBusy(true);
+    startTransition(async () => {
+      const result = await regenerateVoiceSegment({
+        segmentId: editingSegment.id,
+        text: editingSegment.text,
+      });
+      setVoiceBusy(false);
+      setEditingSegment(null);
+      if (result.ok) {
+        setProject((p) => (p ? { ...p, voiceSegments: result.segments } : p));
+      } else {
+        setError(result.error);
+      }
+    });
+  }
+
+  function handleSegmentRevoice(segmentId: string) {
+    setError(null);
+    setVoiceBusy(true);
+    startTransition(async () => {
+      const result = await regenerateVoiceSegment({ segmentId });
+      setVoiceBusy(false);
+      if (result.ok) {
+        setProject((p) => (p ? { ...p, voiceSegments: result.segments } : p));
+      } else {
+        setError(result.error);
+      }
+    });
+  }
+
+  function handleSegmentDelete(segmentId: string) {
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteVoiceSegment({ segmentId });
+      if (result.ok) {
+        setProject((p) => (p ? { ...p, voiceSegments: result.segments } : p));
+      } else {
+        setError(result.error);
+      }
+    });
+  }
+
   function handleMerge() {
     if (!project) return;
     setError(null);
     startTransition(async () => {
-      const result = await mergeProject({
-        projectId: project.id,
-        voiceText: voiceDraft,
-      });
-      if (result.ok) {
-        setProject(result.project);
-      } else {
-        setError(result.error);
-      }
+      const result = await mergeProject({ projectId: project.id });
+      if (result.ok) setProject(result.project);
+      else setError(result.error);
     });
   }
 
@@ -214,7 +320,16 @@ export function StudioVideoTab({
     !!project &&
     project.scenes.length > 0 &&
     project.scenes.every((s) => s.status === "COMPLETED");
+  const allApproved =
+    !!project && allScenesDone && project.scenes.every((s) => s.approved);
   const anyFailed = !!project && project.scenes.some((s) => s.status === "FAILED");
+  const segments = project?.voiceSegments ?? [];
+  const segmentsReady =
+    segments.length > 0 && segments.every((v) => v.status === "COMPLETED");
+  const liveViolations = findNegativeTermViolations(
+    voiceDraft,
+    parseNegativeTerms(negativeInput),
+  );
   const videoJobs = history.filter((j) => j.type === "VIDEO_GENERATE");
 
   return (
@@ -243,7 +358,9 @@ export function StudioVideoTab({
                   : anyFailed
                     ? "Sahne hatası"
                     : allScenesDone
-                      ? "Sahneler hazır"
+                      ? allApproved
+                        ? "Onaylandı — birleştirilebilir"
+                        : "Onay bekliyor"
                       : "Render sürüyor"}
             </span>
           </div>
@@ -253,7 +370,9 @@ export function StudioVideoTab({
             {project.scenes.map((s) => (
               <div
                 key={s.id}
-                className="overflow-hidden rounded-xl ring-1 ring-[var(--app-border)]"
+                className={`overflow-hidden rounded-xl ring-1 ${
+                  s.approved ? "ring-emerald-500/60" : "ring-[var(--app-border)]"
+                }`}
               >
                 <div className="relative aspect-video bg-ink/5">
                   {s.status === "COMPLETED" && s.outputUrl ? (
@@ -263,8 +382,8 @@ export function StudioVideoTab({
                       muted
                       loop
                       playsInline
-                      onMouseEnter={(e) => e.currentTarget.play()}
-                      onMouseLeave={(e) => e.currentTarget.pause()}
+                      controls
+                      preload="metadata"
                     />
                   ) : (
                     <>
@@ -284,70 +403,265 @@ export function StudioVideoTab({
                   )}
                   <span className="absolute top-1.5 left-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white">
                     Sahne {s.order + 1}
+                    {s.roomKey && ROOMS[s.roomKey as RoomKey]
+                      ? ` · ${ROOMS[s.roomKey as RoomKey].label}`
+                      : ""}
                   </span>
                 </div>
-                <div className="flex items-center justify-between px-2.5 py-2">
-                  <span
-                    className={`text-[10px] font-bold uppercase ${
-                      s.status === "COMPLETED"
-                        ? "text-emerald-600"
-                        : s.status === "FAILED"
-                          ? "text-rose-600"
-                          : "text-blue-600"
-                    }`}
-                    title={s.errorMessage ?? undefined}
-                  >
-                    {SCENE_STATUS_LABEL[s.status] ?? s.status}
-                  </span>
-                  {(s.status === "FAILED" || s.status === "COMPLETED") &&
-                    !project.merging &&
-                    !project.finalVideoUrl && (
-                      <button
-                        onClick={() => handleRegenerate(s.id)}
-                        disabled={pending || videoCredits < 1}
-                        className="flex items-center gap-1 text-[10px] font-semibold text-ink/45 hover:text-brand-600 disabled:opacity-40"
-                        title="1 kredi ile yeniden üret"
-                      >
-                        {busySceneId === s.id ? (
-                          <Loader2 size={11} className="animate-spin" />
-                        ) : (
-                          <RotateCcw size={11} />
-                        )}
-                        Yeniden
-                      </button>
-                    )}
+                <div className="space-y-1.5 px-2.5 py-2">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-[10px] font-bold uppercase ${
+                        s.status === "COMPLETED"
+                          ? "text-emerald-600"
+                          : s.status === "FAILED"
+                            ? "text-rose-600"
+                            : "text-blue-600"
+                      }`}
+                      title={s.errorMessage ?? undefined}
+                    >
+                      {SCENE_STATUS_LABEL[s.status] ?? s.status}
+                    </span>
+                    {(s.status === "FAILED" || s.status === "COMPLETED") &&
+                      !project.merging &&
+                      !project.finalVideoUrl && (
+                        <button
+                          onClick={() => handleRegenerate(s.id)}
+                          disabled={pending || videoCredits < 1}
+                          className="flex items-center gap-1 text-[10px] font-semibold text-ink/45 hover:text-brand-600 disabled:opacity-40"
+                          title="1 kredi ile yeniden üret"
+                        >
+                          {busySceneId === s.id ? (
+                            <Loader2 size={11} className="animate-spin" />
+                          ) : (
+                            <RotateCcw size={11} />
+                          )}
+                          Yeniden
+                        </button>
+                      )}
+                  </div>
+                  {/* Onay kapısı */}
+                  {s.status === "COMPLETED" && !project.finalVideoUrl && !project.merging && (
+                    <button
+                      onClick={() => handleApprove(s.id, !s.approved)}
+                      disabled={pending}
+                      className={`flex w-full items-center justify-center gap-1 rounded-lg py-1 text-[10px] font-bold transition-colors ${
+                        s.approved
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-ink/[0.05] text-ink/55 hover:bg-emerald-50 hover:text-emerald-700"
+                      }`}
+                    >
+                      <ShieldCheck size={11} />
+                      {s.approved ? "Onaylandı" : "İzledim, Onayla"}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Seslendirme + birleştirme */}
+          {/* ── Akıllı Senaryo Editörü ── */}
           {allScenesDone && !project.finalVideoUrl && !project.merging && (
-            <div className="space-y-3 border-t border-[var(--app-border)] pt-4">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-ink/60">
-                <Mic size={13} />
-                Seslendirme metni — düzenleyebilirsiniz (boş bırakılırsa video sessiz olur)
-              </label>
-              <textarea
-                value={voiceDraft}
-                onChange={(e) => setVoiceDraft(e.target.value)}
-                rows={3}
-                className="dash-input resize-y text-sm"
-                placeholder="Tanıtım metni…"
-              />
-              <button onClick={handleMerge} disabled={pending} className="dash-btn-primary">
-                {pending ? (
+            <div className="space-y-4 border-t border-[var(--app-border)] pt-4">
+              <h4 className="flex items-center gap-1.5 text-sm font-bold">
+                <Mic size={14} className="text-brand-600" />
+                Akıllı Senaryo Editörü
+              </h4>
+
+              {/* Yasaklı kelimeler */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-ink/60">
+                  Yasaklı kelimeler — bu kelimeler metinde asla geçmez (virgülle ayırın)
+                </label>
+                <input
+                  type="text"
+                  value={negativeInput}
+                  onChange={(e) => setNegativeInput(e.target.value)}
+                  placeholder="örn: acil, kelepir, pazarlıklı"
+                  className="dash-input text-sm"
+                />
+              </div>
+
+              {/* Metin */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-ink/60">
+                  Tanıtım metni — ilan verinizden otomatik oluşturuldu, düzenleyebilirsiniz
+                </label>
+                <textarea
+                  value={voiceDraft}
+                  onChange={(e) => setVoiceDraft(e.target.value)}
+                  rows={3}
+                  className="dash-input resize-y text-sm"
+                  placeholder="Tanıtım metni…"
+                />
+                {liveViolations.length > 0 && (
+                  <p className="flex items-center gap-1 text-xs font-semibold text-rose-600">
+                    <AlertCircle size={12} />
+                    Yasaklı kelime kullanıldı: {liveViolations.join(", ")}
+                  </p>
+                )}
+              </div>
+
+              <button
+                onClick={handleVoiceSegments}
+                disabled={pending || voiceBusy || !voiceDraft.trim() || liveViolations.length > 0}
+                className="dash-btn-secondary"
+              >
+                {voiceBusy ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    Başlatılıyor…
+                    Cümleler seslendiriliyor…
                   </>
                 ) : (
                   <>
-                    <Clapperboard size={14} />
-                    Seslendir ve Birleştir
+                    <Wand2 size={14} />
+                    {segments.length ? "Yeniden Cümle Cümle Seslendir" : "Cümle Cümle Seslendir"}
                   </>
                 )}
               </button>
+
+              {/* Segment listesi */}
+              {segments.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-ink/50">
+                    Seslendirme segmentleri — beğenmediğiniz cümleyi tek başına düzenleyin
+                  </p>
+                  {segments.map((v) => (
+                    <div
+                      key={v.id}
+                      className="space-y-2 rounded-xl bg-[var(--app-input-bg)] px-3 py-2.5"
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5 shrink-0 rounded-md bg-ink/[0.07] px-1.5 py-0.5 text-[10px] font-bold text-ink/55">
+                          {v.order + 1}
+                        </span>
+                        {editingSegment?.id === v.id ? (
+                          <div className="flex-1 space-y-2">
+                            <textarea
+                              value={editingSegment.text}
+                              onChange={(e) =>
+                                setEditingSegment({ id: v.id, text: e.target.value })
+                              }
+                              rows={2}
+                              className="dash-input text-sm"
+                              autoFocus
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handleSegmentSave}
+                                disabled={voiceBusy}
+                                className="dash-btn-primary px-3 py-1 text-xs"
+                              >
+                                {voiceBusy ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : (
+                                  <Check size={12} />
+                                )}
+                                Kaydet ve Seslendir
+                              </button>
+                              <button
+                                onClick={() => setEditingSegment(null)}
+                                className="dash-btn-secondary px-3 py-1 text-xs"
+                              >
+                                Vazgeç
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="flex-1 text-sm leading-relaxed">{v.text}</p>
+                        )}
+                        {editingSegment?.id !== v.id && (
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <button
+                              onClick={() => setEditingSegment({ id: v.id, text: v.text })}
+                              disabled={voiceBusy}
+                              className="rounded-md p-1 text-ink/40 hover:bg-ink/10 hover:text-ink/70"
+                              title="Cümleyi düzenle"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
+                              onClick={() => handleSegmentRevoice(v.id)}
+                              disabled={voiceBusy}
+                              className="rounded-md p-1 text-ink/40 hover:bg-ink/10 hover:text-ink/70"
+                              title="Bu cümleyi yeniden seslendir"
+                            >
+                              <RotateCcw size={13} />
+                            </button>
+                            <button
+                              onClick={() => handleSegmentDelete(v.id)}
+                              disabled={voiceBusy}
+                              className="rounded-md p-1 text-ink/40 hover:bg-rose-50 hover:text-rose-600"
+                              title="Cümleyi sil"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {editingSegment?.id !== v.id && (
+                        <div className="flex items-center gap-2 pl-7">
+                          {v.status === "COMPLETED" && v.audioUrl ? (
+                            <>
+                              <audio src={v.audioUrl} controls preload="none" className="h-8 w-full max-w-[320px]" />
+                              {v.durationMs && (
+                                <span className="text-[10px] text-ink/40">
+                                  {(v.durationMs / 1000).toFixed(1)} sn
+                                </span>
+                              )}
+                            </>
+                          ) : v.status === "FAILED" ? (
+                            <span className="text-xs font-semibold text-rose-600" title={v.errorMessage ?? undefined}>
+                              Seslendirme başarısız — yeniden deneyin
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-xs text-blue-600">
+                              <Loader2 size={11} className="animate-spin" />
+                              Üretiliyor…
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Birleştirme */}
+              <div className="flex flex-wrap items-center gap-3 border-t border-[var(--app-border)] pt-4">
+                <button
+                  onClick={handleMerge}
+                  disabled={
+                    pending ||
+                    voiceBusy ||
+                    !allApproved ||
+                    (segments.length > 0 && !segmentsReady)
+                  }
+                  className="dash-btn-primary"
+                >
+                  {pending ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Başlatılıyor…
+                    </>
+                  ) : (
+                    <>
+                      <Clapperboard size={14} />
+                      {segments.length ? "Videoyu Birleştir" : "Sessiz Birleştir"}
+                    </>
+                  )}
+                </button>
+                {!allApproved && (
+                  <span className="text-xs text-ink/45">
+                    Birleştirme için tüm sahneleri izleyip onaylayın.
+                  </span>
+                )}
+                {allApproved && segments.length === 0 && (
+                  <span className="text-xs text-ink/45">
+                    Seslendirme eklemek için önce "Cümle Cümle Seslendir" kullanın.
+                  </span>
+                )}
+              </div>
             </div>
           )}
 
@@ -449,6 +763,8 @@ export function StudioVideoTab({
           <p className="mb-4 text-xs text-ink/45">
             Her fotoğraf 5 saniyelik bir sahne olur ve 1 kredi düşer (en fazla{" "}
             {MAX_SCENES} sahne). Sıralama videonun akışını belirler.
+            {concept.key === "interior" &&
+              " Her fotoğrafa oda etiketi verin — AI mekânı tanır ve görüntüye sadık kalır."}
           </p>
 
           {photos.length === 0 ? (
@@ -492,13 +808,26 @@ export function StudioVideoTab({
                 })}
               </div>
 
-              {/* Sıralama */}
+              {/* Sıralama + oda etiketleri */}
               {selectedPhotos.length > 0 && (
                 <div className="mt-5 space-y-2">
-                  <p className="text-xs font-semibold text-ink/50">
-                    Sıralama ({selectedPhotos.length} sahne ·{" "}
-                    {selectedPhotos.length * 5} saniye)
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-ink/50">
+                      Sıralama ({selectedPhotos.length} sahne ·{" "}
+                      {selectedPhotos.length * 5} saniye)
+                    </p>
+                    {concept.key === "interior" &&
+                      selectedPhotos.some((id) => roomAssignments[id]) && (
+                        <button
+                          onClick={applyTemplateOrder}
+                          className="flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700"
+                          title="Profesyonel tur dizilimi: Dış Cephe → Salon → Mutfak → Yatak → Banyo → Balkon"
+                        >
+                          <ListOrdered size={13} />
+                          Şablona göre sırala
+                        </button>
+                      )}
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {selectedPhotos.map((id, idx) => {
                       const m = photos.find((p) => p.id === id);
@@ -520,6 +849,25 @@ export function StudioVideoTab({
                           <span className="text-xs font-bold text-ink/60">
                             #{idx + 1}
                           </span>
+                          {concept.key === "interior" && (
+                            <select
+                              value={roomAssignments[id] ?? ""}
+                              onChange={(e) =>
+                                setRoomAssignments((prev) => ({
+                                  ...prev,
+                                  [id]: e.target.value,
+                                }))
+                              }
+                              className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-1.5 py-1 text-[11px] font-medium"
+                            >
+                              <option value="">Oda seçin…</option>
+                              {Object.entries(ROOMS).map(([key, r]) => (
+                                <option key={key} value={key}>
+                                  {r.label}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                           <div className="flex gap-0.5">
                             <button
                               onClick={(e) => {

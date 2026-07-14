@@ -1095,8 +1095,11 @@ model StudioProject {
   // Seslendirme (proje geneli — ElevenLabs)
   voiceText     String?     // seslendirme metni (AI ile üretilebilir)
   voiceProvider AiProvider? // şimdilik hep ELEVENLABS
-  voiceUrl      String?     // üretilen ses dosyası (R2)
+  voiceUrl      String?     // üretilen ses dosyası (R2) — tek parça fallback
   voiceKey      String?     // R2 object key
+
+  // Negative constraints — bu kelimeler tanıtım metninde asla geçemez
+  negativeTerms String[] @default([])
 
   // Nihai birleştirilmiş video (VIDEO_MERGE çıktısı)
   finalVideoUrl String?
@@ -1106,12 +1109,37 @@ model StudioProject {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  scenes VideoScene[]
-  jobs   StudioJob[]
+  scenes        VideoScene[]
+  jobs          StudioJob[]
+  voiceSegments VoiceSegment[]
 
   @@index([tenantId, listingId])
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
+}
+
+// ── AI Stüdyo: Seslendirme Segmenti ──
+// Tanıtım metni cümle cümle bölünür; her cümle ElevenLabs'ten AYRI üretilir.
+// Kullanıcı 3. cümleyi beğenmezse yalnızca onu düzenler/yeniden üretir —
+// diğer sesler aynen kalır. Birleştirmede sırayla zaman çizelgesine dizilir.
+model VoiceSegment {
+  id        String        @id @default(cuid())
+  projectId String
+  project   StudioProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  order Int    @default(0)
+  text  String
+
+  status       StudioJobStatus @default(PENDING)
+  audioUrl     String? // üretilen ses (R2)
+  audioKey     String? // R2 object key
+  durationMs   Int?    // ElevenLabs timestamp hizalamasından gelen gerçek süre
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, order])
 }
 
 // ── AI Stüdyo: Timeline Sahnesi ──
@@ -1131,9 +1159,11 @@ model VideoScene {
   sourceImageUrl String        // medya silinse bile render girdisi korunur
 
   prompt      String                        // sahne kamera/hareket yönergesi
+  roomKey     String?                       // salon | mutfak… — prompt'a oda bağlamı katar
   provider    AiProvider      @default(FAL_KLING)
   durationSec Int             @default(5)   // Kling: 5 | 10
   status      StudioJobStatus @default(PENDING)
+  approved    Boolean         @default(false) // kullanıcı onayı — onaysız sahne birleştirilemez
 
   // Çıktı
   outputUrl    String? // render edilmiş sahne klibi (R2)

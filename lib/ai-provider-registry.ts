@@ -259,13 +259,22 @@ export type MergeSceneInput = {
   durationSec: number;
 };
 
+export type MergeAudioKeyframe = {
+  url: string;
+  /** ms — zaman çizelgesindeki başlangıç */
+  timestamp: number;
+  /** ms */
+  duration: number;
+};
+
 /**
- * Sahneleri (+ varsa ses) Fal.ai ffmpeg compose kuyruğuna gönderir.
+ * Sahneleri (+ varsa ses parçaları) Fal.ai ffmpeg compose kuyruğuna gönderir.
+ * Ses, segment bazlı seslendirmede cümle cümle ayrı keyframe olarak dizilir.
  * Senkron beklemez — requestId döner, sonuç getMergeResult ile alınır.
  */
 export async function mergeVideoWithAudio(
   scenes: MergeSceneInput[],
-  audioUrl: string | null,
+  audioKeyframes: MergeAudioKeyframe[] | null,
   providerConfig?: Partial<ProviderConfig>,
 ): Promise<FalSubmitResult> {
   const config: ProviderConfig = {
@@ -286,12 +295,8 @@ export async function mergeVideoWithAudio(
   const tracks: Record<string, unknown>[] = [
     { id: "video", type: "video", keyframes: videoKeyframes },
   ];
-  if (audioUrl) {
-    tracks.push({
-      id: "voiceover",
-      type: "audio",
-      keyframes: [{ url: audioUrl, timestamp: 0, duration: cursor }],
-    });
+  if (audioKeyframes?.length) {
+    tracks.push({ id: "voiceover", type: "audio", keyframes: audioKeyframes });
   }
 
   const data = await falFetch<{ request_id?: string }>(
@@ -394,4 +399,82 @@ export async function generateVoice(
 
   const buffer = Buffer.from(await res.arrayBuffer());
   return { buffer, mimeType: res.headers.get("content-type") ?? "audio/mpeg" };
+}
+
+// ── 3b) Segment bazlı seslendirme (ElevenLabs with-timestamps) ──
+// Metin cümle cümle üretilir; previous/next bağlamı tonlamayı tek parça gibi
+// akıtır, timestamp hizalaması segmentin gerçek süresini (ms) verir.
+
+export type GenerateVoiceSegmentInput = GenerateVoiceInput & {
+  /** Önceki cümle — ElevenLabs tonlama sürekliliği için */
+  previousText?: string;
+  /** Sonraki cümle */
+  nextText?: string;
+};
+
+export type GenerateVoiceSegmentResult = GenerateVoiceResult & {
+  durationMs: number;
+};
+
+export async function generateVoiceSegment(
+  text: string,
+  providerConfig: ProviderConfig & GenerateVoiceSegmentInput,
+): Promise<GenerateVoiceSegmentResult> {
+  const apiKey = resolveApiKey(providerConfig);
+  const modelId = resolveModel(providerConfig);
+  const voiceId =
+    providerConfig.voiceId ??
+    process.env.ELEVENLABS_VOICE_ID ??
+    DEFAULT_VOICE_ID;
+
+  const res = await fetch(
+    `${ELEVENLABS_BASE}/text-to-speech/${voiceId}/with-timestamps`,
+    {
+      method: "POST",
+      headers: {
+        "xi-api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text,
+        model_id: modelId,
+        voice_settings: {
+          stability: providerConfig.stability ?? 0.5,
+          similarity_boost: providerConfig.similarityBoost ?? 0.75,
+        },
+        ...(providerConfig.previousText
+          ? { previous_text: providerConfig.previousText }
+          : {}),
+        ...(providerConfig.nextText ? { next_text: providerConfig.nextText } : {}),
+        ...providerConfig.extra,
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(
+      `ElevenLabs hatası (${res.status}): ${detail.slice(0, 500)}`,
+    );
+  }
+
+  const data = (await res.json()) as {
+    audio_base64?: string;
+    alignment?: { character_end_times_seconds?: number[] };
+  };
+  if (!data.audio_base64) {
+    throw new Error("ElevenLabs yanıtında ses verisi bulunamadı.");
+  }
+
+  const ends = data.alignment?.character_end_times_seconds;
+  // Hizalama gelmezse Türkçe ~14 karakter/sn tahminiyle düş
+  const durationMs = ends?.length
+    ? Math.round(ends[ends.length - 1] * 1000)
+    : Math.round((text.length / 14) * 1000);
+
+  return {
+    buffer: Buffer.from(data.audio_base64, "base64"),
+    mimeType: "audio/mpeg",
+    durationMs,
+  };
 }
