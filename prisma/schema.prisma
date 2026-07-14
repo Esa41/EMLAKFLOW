@@ -147,7 +147,9 @@ enum AiVideoStatus {
 // AI Stüdyo işlem türü
 enum StudioJobType {
   IMAGE_ENHANCE    // fotoğraf iyileştirme / eşyalandırma
-  VIDEO_GENERATE   // video üretimi
+  VIDEO_GENERATE   // sahne bazlı video üretimi (Fal.ai / Kling)
+  VOICE_GENERATE   // seslendirme üretimi (ElevenLabs)
+  VIDEO_MERGE      // sahneleri + sesi tek videoda birleştirme
 }
 
 // AI Stüdyo işlem durumu
@@ -155,6 +157,21 @@ enum StudioJobStatus {
   PENDING
   PROCESSING
   COMPLETED
+  FAILED
+}
+
+// AI sağlayıcı — lib/ai-provider-registry.ts ile bire bir eşleşir
+enum AiProvider {
+  FAL_KLING   // Fal.ai üzerinden Kling (video)
+  FAL_SDXL    // Fal.ai üzerinden SDXL (fotoğraf iyileştirme)
+  ELEVENLABS  // ElevenLabs (seslendirme)
+}
+
+// AI Stüdyo proje durumu (NLE zaman çizelgesi yaşam döngüsü)
+enum StudioProjectStatus {
+  DRAFT      // kullanıcı timeline üzerinde çalışıyor
+  RENDERING  // sahne/ses/birleştirme işleri sürüyor
+  COMPLETED  // nihai video hazır
   FAILED
 }
 
@@ -287,6 +304,7 @@ model Tenant {
   teamChatReads  TeamChatRead[]
   emailLogs      EmailLog[]
   studioJobs     StudioJob[]
+  studioProjects StudioProject[]
 }
 
 model User {
@@ -315,6 +333,7 @@ model User {
   tasks        Task[]
   teamChatReads TeamChatRead[]
   studioJobs    StudioJob[]
+  studioProjects StudioProject[]
 
   @@index([tenantId])
 }
@@ -478,6 +497,7 @@ model Listing {
   tasks        Task[]
   socialPosts  SocialPost[]
   studioJobs   StudioJob[]
+  studioProjects StudioProject[]
 
   @@unique([tenantId, refCode])
   @@index([tenantId, status])
@@ -501,6 +521,8 @@ model ListingMedia {
   alt       String? // SEO alt metni
 
   createdAt DateTime @default(now())
+
+  videoScenes VideoScene[] // bu fotoğraftan üretilen AI Stüdyo sahneleri
 
   @@index([listingId])
 }
@@ -1018,6 +1040,12 @@ model StudioJob {
   type       StudioJobType
   status     StudioJobStatus  @default(PENDING)
 
+  // Sahne bazlı proje bağlantısı (eski tekil işler için null)
+  projectId  String?
+  project    StudioProject?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // Bu işin aktif olarak bağlı olduğu sahne (VideoScene.jobId üzerinden bire bir)
+  activeScene VideoScene?
+
   // Giriş
   inputMediaId     String?        // ilana ait orijinal fotoğraf (IMAGE_ENHANCE)
   inputUrl         String?        // orijinal fotoğraf URL'si
@@ -1038,4 +1066,83 @@ model StudioJob {
   @@index([tenantId, listingId])
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
+  @@index([projectId])
+}
+
+// ── AI Stüdyo: Sahne Bazlı Video Projesi (NLE) ──
+// Bir proje = bir ilanın tanıtım videosu. Video tek parça üretilmez;
+// timeline üzerindeki VideoScene kayıtları tek tek render edilir,
+// ardından VIDEO_MERGE işiyle seslendirme eklenerek birleştirilir.
+model StudioProject {
+  id        String              @id @default(cuid())
+  tenantId  String
+  tenant    Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing             @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  title     String
+  status    StudioProjectStatus @default(DRAFT)
+
+  // Çıktı formatı
+  aspectRatio String @default("16:9") // 16:9 | 9:16 (sosyal medya) | 1:1
+
+  // Seslendirme (proje geneli — ElevenLabs)
+  voiceText     String?     // seslendirme metni (AI ile üretilebilir)
+  voiceProvider AiProvider? // şimdilik hep ELEVENLABS
+  voiceUrl      String?     // üretilen ses dosyası (R2)
+  voiceKey      String?     // R2 object key
+
+  // Nihai birleştirilmiş video (VIDEO_MERGE çıktısı)
+  finalVideoUrl String?
+  finalVideoKey String?
+  errorMessage  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  scenes VideoScene[]
+  jobs   StudioJob[]
+
+  @@index([tenantId, listingId])
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
+}
+
+// ── AI Stüdyo: Timeline Sahnesi ──
+// Her sahne tek başına render edilir ve tek başına "Regenerate" edilebilir.
+// jobId her zaman sahnenin AKTİF (son) StudioJob kaydını gösterir;
+// yeniden üretimde yeni bir StudioJob açılır ve jobId güncellenir.
+model VideoScene {
+  id        String        @id @default(cuid())
+  projectId String
+  project   StudioProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  order Int @default(0) // timeline sırası
+
+  // Giriş: sahnenin üretileceği kaynak fotoğraf
+  sourceImageId  String?
+  sourceImage    ListingMedia? @relation(fields: [sourceImageId], references: [id], onDelete: SetNull)
+  sourceImageUrl String        // medya silinse bile render girdisi korunur
+
+  prompt      String                        // sahne kamera/hareket yönergesi
+  provider    AiProvider      @default(FAL_KLING)
+  durationSec Int             @default(5)   // Kling: 5 | 10
+  status      StudioJobStatus @default(PENDING)
+
+  // Çıktı
+  outputUrl    String? // render edilmiş sahne klibi (R2)
+  outputKey    String? // R2 object key
+  errorMessage String?
+
+  // Aktif render işi — timeline arayüzü durumunu buradan izler
+  jobId String?    @unique
+  job   StudioJob? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, order])
+  @@index([projectId, status])
 }
