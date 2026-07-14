@@ -109,6 +109,8 @@ export function StudioVideoTab({
   const [busySceneId, setBusySceneId] = useState<string | null>(null);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [editingSegment, setEditingSegment] = useState<{ id: string; text: string } | null>(null);
+  const [captionsOn, setCaptionsOn] = useState(true);
+  const [outroOn, setOutroOn] = useState(true);
   const [musicOptions, setMusicOptions] = useState<StudioMusicOption[]>([]);
   const [overlaySaving, setOverlaySaving] = useState(false);
 
@@ -314,7 +316,11 @@ export function StudioVideoTab({
     if (!project) return;
     setError(null);
     startTransition(async () => {
-      const result = await mergeProject({ projectId: project.id });
+      const result = await mergeProject({
+        projectId: project.id,
+        captions: captionsOn,
+        outro: outroOn,
+      });
       if (result.ok) setProject(result.project);
       else setError(result.error);
     });
@@ -719,7 +725,41 @@ export function StudioVideoTab({
               )}
 
               {/* Birleştirme */}
-              <div className="flex flex-wrap items-center gap-3 border-t border-[var(--app-border)] pt-4">
+              <div className="space-y-3 border-t border-[var(--app-border)] pt-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  <label
+                    className={`flex cursor-pointer items-center gap-2 text-xs font-semibold ${
+                      segments.length === 0 ? "opacity-40" : "text-ink/60"
+                    }`}
+                    title={
+                      segments.length === 0
+                        ? "Altyazı için önce cümle cümle seslendirme yapın"
+                        : "Konuşma metni videonun altında kısa gruplar halinde akar"
+                    }
+                  >
+                    <input
+                      type="checkbox"
+                      checked={captionsOn && segments.length > 0}
+                      onChange={(e) => setCaptionsOn(e.target.checked)}
+                      disabled={segments.length === 0}
+                      className="h-3.5 w-3.5 accent-[var(--brand-fill,#4f46e5)]"
+                    />
+                    Altyazı
+                  </label>
+                  <label
+                    className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-ink/60"
+                    title="Video sonuna ofis adı/telefon/logo kartı + sahnelerde köşe filigranı"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={outroOn}
+                      onChange={(e) => setOutroOn(e.target.checked)}
+                      className="h-3.5 w-3.5 accent-[var(--brand-fill,#4f46e5)]"
+                    />
+                    Kapanış kartı + logo
+                  </label>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={handleMerge}
                   disabled={
@@ -752,6 +792,7 @@ export function StudioVideoTab({
                     Seslendirme eklemek için önce "Cümle Cümle Seslendir" kullanın.
                   </span>
                 )}
+                </div>
               </div>
             </div>
           )}

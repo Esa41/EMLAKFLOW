@@ -80,6 +80,7 @@ async function renderSegmentAudio(
         audioUrl: publicUrl(audioKey),
         audioKey,
         durationMs: voice.durationMs,
+        wordTimings: voice.wordTimings, // altyazı zamanlaması
         errorMessage: null,
       },
     });

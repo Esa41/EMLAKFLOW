@@ -1143,6 +1143,7 @@ model VoiceSegment {
   audioUrl     String? // üretilen ses (R2)
   audioKey     String? // R2 object key
   durationMs   Int?    // ElevenLabs timestamp hizalamasından gelen gerçek süre
+  wordTimings  Json?   // [{word,startMs,endMs}] — altyazı (caption) zamanlaması
   errorMessage String?
 
   createdAt DateTime @default(now())

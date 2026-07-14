@@ -28,7 +28,10 @@ import { MUSIC_TRACKS, isMusicKey, type MusicKey } from "@/lib/studio-music";
 import {
   submitShotstackRender,
   buildTimelineFromProject,
+  buildCaptionChunks,
+  type TimelineBranding,
 } from "@/lib/shotstack";
+import type { WordTiming } from "@/lib/ai-provider-registry";
 import { getBaseUrl } from "@/lib/url";
 
 // Proje başına sahne üst sınırı — hem maliyet hem action süresi güvencesi
@@ -811,6 +814,10 @@ export async function getStudioMusicOptions(): Promise<StudioMusicOption[]> {
 export async function mergeProject(input: {
   projectId: string;
   voiceText?: string; // segment yoksa tek parça fallback; boş string = sessiz video
+  /** Altyazı bandı — yalnızca segment bazlı seslendirmede (varsayılan açık) */
+  captions?: boolean;
+  /** Kapanış kartı (ofis adı/telefon/logo) + köşe filigranı (varsayılan açık) */
+  outro?: boolean;
 }): Promise<ProjectResult> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Oturum bulunamadı." };
@@ -913,6 +920,35 @@ export async function mergeProject(input: {
 
     const overlays = (project.overlayData as ResolvedOverlay[] | null) ?? [];
 
+    // Altyazılar: segment bazlı seslendirme varsa kelime zamanlamalarından
+    // kısa gruplar üretilir (varsayılan açık; tek parça fallback'te yok)
+    const captions =
+      (input.captions ?? true) && project.voiceSegments.length > 0
+        ? buildCaptionChunks(
+            project.voiceSegments.map((v) => ({
+              text: v.text,
+              durationMs: v.durationMs ?? 0,
+              wordTimings: (v.wordTimings as WordTiming[] | null) ?? null,
+            })),
+          )
+        : [];
+
+    // Kapanış kartı + filigran — ofis kimliği
+    let branding: TimelineBranding | null = null;
+    if (input.outro ?? true) {
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: session.tenantId },
+        select: { name: true, phone: true, logoUrl: true },
+      });
+      if (tenant) {
+        branding = {
+          name: tenant.name,
+          phone: tenant.phone,
+          logoUrl: tenant.logoUrl,
+        };
+      }
+    }
+
     // Webhook: secret tanımlıysa Shotstack bitişte bize haber verir
     // (kapalı sekmede bile merge tamamlanır); yoksa polling yeterli.
     const webhookSecret = process.env.SHOTSTACK_WEBHOOK_SECRET;
@@ -926,6 +962,8 @@ export async function mergeProject(input: {
       voiceKeyframes: audioKeyframes,
       music,
       overlays,
+      captions,
+      branding,
       callbackUrl,
     });
     const { renderId } = await submitShotstackRender(edit);

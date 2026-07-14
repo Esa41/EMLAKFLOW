@@ -51,13 +51,16 @@ async function shotstackFetch<T>(path: string, init?: RequestInit): Promise<T> {
 type ShotstackAsset =
   | { type: "video"; url: string; volume?: number }
   | { type: "audio"; url: string; volume?: number; effect?: "fadeIn" | "fadeOut" | "fadeInFadeOut" }
-  | { type: "html"; html: string; css: string; width: number; height: number };
+  | { type: "html"; html: string; css: string; width: number; height: number }
+  | { type: "image"; url: string };
 
 type ShotstackClip = {
   asset: ShotstackAsset;
   start: number; // saniye
   length: number; // saniye
   fit?: "crop" | "cover" | "contain" | "none";
+  scale?: number; // çıktı genişliğine oranla boyut (filigran/logo)
+  opacity?: number;
   position?:
     | "top" | "topRight" | "right" | "bottomRight" | "bottom"
     | "bottomLeft" | "left" | "topLeft" | "center";
@@ -154,7 +157,8 @@ const OVERLAY_STYLES: Record<OverlayStyleKey, (text: string) => OverlayRender> =
     width: 1000,
     height: 100,
     position: "bottom",
-    offset: { y: 0.07 },
+    // Altyazı bandının (y ~0.05-0.15) üstünde durur — çakışma yok
+    offset: { y: 0.2 },
     transition: { in: "slideUp", out: "fade" },
   }),
   bigCenter: (text) => ({
@@ -180,7 +184,8 @@ const OVERLAY_STYLES: Record<OverlayStyleKey, (text: string) => OverlayRender> =
     width: 900,
     height: 110,
     position: "bottom",
-    offset: { y: 0.1 },
+    // Altyazı bandının üstünde durur — çakışma yok
+    offset: { y: 0.2 },
     transition: { in: "slideUp", out: "fade" },
   }),
 };
@@ -194,6 +199,18 @@ export type TimelineSceneInput = {
   transitionIn: TransitionKey | null;
 };
 
+/** Altyazı parçası — kelime zamanlamalarından gruplanmış kısa metin. */
+export type CaptionChunk = { text: string; startMs: number; endMs: number };
+
+/** Ofis kimliği — kapanış kartı + köşe filigranı. */
+export type TimelineBranding = {
+  name: string;
+  phone: string | null;
+  logoUrl: string | null;
+};
+
+const OUTRO_SEC = 3.5;
+
 export function buildTimelineFromProject(input: {
   aspectRatio: string; // "16:9" | "9:16"
   scenes: TimelineSceneInput[];
@@ -201,10 +218,15 @@ export function buildTimelineFromProject(input: {
   voiceKeyframes: { url: string; timestamp: number; duration: number }[] | null;
   music: { url: string; volume: number } | null;
   overlays: ResolvedOverlay[];
+  /** Boş dizi = altyazı yok */
+  captions?: CaptionChunk[];
+  /** null = kapanış kartı/filigran yok */
+  branding?: TimelineBranding | null;
   callbackUrl?: string;
 }): ShotstackEdit {
   const portrait = input.aspectRatio === "9:16";
-  const totalSec = input.scenes.reduce((sum, s) => sum + s.durationSec, 0);
+  const scenesSec = input.scenes.reduce((sum, s) => sum + s.durationSec, 0);
+  const totalSec = scenesSec + (input.branding ? OUTRO_SEC : 0);
 
   // Sahne başlangıç zamanları (bitişik dizilim)
   const sceneStarts: number[] = [];
@@ -270,7 +292,8 @@ export function buildTimelineFromProject(input: {
     length: kf.duration / 1000,
   }));
 
-  // [3] Müzik — tek klip, seslendirme altında sabit düşük seviye (duck)
+  // [3] Müzik — tek klip, seslendirme altında sabit düşük seviye (duck);
+  // kapanış kartı varsa müzik onu da kaplar ve fade-out ile biter
   const musicClips: ShotstackClip[] = input.music
     ? [
         {
@@ -286,17 +309,87 @@ export function buildTimelineFromProject(input: {
       ]
     : [];
 
+  // [A] Altyazılar — alt bantta kısa kelime grupları (kelime zamanlamalı)
+  const captionClips: ShotstackClip[] = (input.captions ?? [])
+    .filter((c) => c.text.trim() && c.endMs > c.startMs)
+    .map((c) => ({
+      asset: {
+        type: "html" as const,
+        html: `<div class="cap">${escapeHtml(c.text)}</div>`,
+        css: portrait
+          ? `.cap { font-family: "Montserrat"; font-size: 52px; font-weight: 800; color: #ffffff; text-align: center; text-shadow: 0 3px 14px rgba(0,0,0,0.9); }`
+          : `.cap { font-family: "Montserrat"; font-size: 42px; font-weight: 800; color: #ffffff; text-align: center; text-shadow: 0 3px 14px rgba(0,0,0,0.9); }`,
+        width: portrait ? 960 : 1500,
+        height: portrait ? 150 : 110,
+      },
+      start: c.startMs / 1000,
+      length: (c.endMs - c.startMs) / 1000,
+      position: "bottom" as const,
+      // 9:16'da platform arayüzü (beğen/paylaş) alta biner — biraz yukarıda
+      offset: { y: portrait ? 0.14 : 0.05 },
+    }));
+
+  // [B] Ofis kimliği — köşe filigranı + kapanış kartı
+  const brandingClips: ShotstackClip[] = [];
+  if (input.branding) {
+    const b = input.branding;
+    if (b.logoUrl) {
+      // Filigran: sahneler boyunca köşede yarı saydam logo
+      brandingClips.push({
+        asset: { type: "image", url: b.logoUrl },
+        start: 0,
+        length: scenesSec,
+        fit: "none",
+        scale: 0.08,
+        opacity: 0.55,
+        position: "topRight",
+        offset: { x: -0.03, y: -0.03 },
+      });
+      // Kapanış kartı: siyah zemin üzerinde logo
+      brandingClips.push({
+        asset: { type: "image", url: b.logoUrl },
+        start: scenesSec,
+        length: OUTRO_SEC,
+        fit: "none",
+        scale: 0.22,
+        position: "center",
+        offset: { y: 0.12 },
+        transition: { in: "fade" },
+      });
+    }
+    const contact = [b.name, b.phone].filter(Boolean).join(" · ");
+    brandingClips.push({
+      asset: {
+        type: "html",
+        html: `<div class="outro">${escapeHtml(contact)}</div>`,
+        css: `.outro { font-family: "Montserrat"; font-size: ${portrait ? 44 : 48}px; font-weight: 700; color: #ffffff; text-align: center; }`,
+        width: portrait ? 960 : 1400,
+        height: 180,
+      },
+      start: scenesSec + 0.3,
+      length: OUTRO_SEC - 0.3,
+      position: "center",
+      offset: { y: b.logoUrl ? -0.1 : 0 },
+      transition: { in: "fade" },
+    });
+  }
+
   // Track sırası: Shotstack ilk track'i EN ÜSTTE render eder
   const tracks: { clips: ShotstackClip[] }[] = [];
+  if (captionClips.length) tracks.push({ clips: captionClips });
+  if (brandingClips.length) tracks.push({ clips: brandingClips });
   if (overlayClips.length) tracks.push({ clips: overlayClips });
   tracks.push({ clips: videoClips });
   if (voiceClips.length) tracks.push({ clips: voiceClips });
   if (musicClips.length) tracks.push({ clips: musicClips });
 
+  const usesHtml =
+    overlayClips.length > 0 || captionClips.length > 0 || brandingClips.length > 0;
+
   return {
     timeline: {
       background: "#000000",
-      ...(overlayClips.length ? { fonts: [{ src: MONTSERRAT }] } : {}),
+      ...(usesHtml ? { fonts: [{ src: MONTSERRAT }] } : {}),
       tracks,
     },
     output: {
@@ -307,4 +400,60 @@ export function buildTimelineFromProject(input: {
     },
     ...(input.callbackUrl ? { callback: input.callbackUrl } : {}),
   };
+}
+
+// ── 4) Altyazı parçalayıcı — segment kelime zamanlamalarından kısa gruplar ──
+// Kelime zamanlaması olan segmentler 3-4 kelimelik parçalara bölünür;
+// olmayanlar (eski kayıtlar) cümle bütünüyle segment süresine yayılır.
+
+const CAPTION_MAX_WORDS = 4;
+const CAPTION_MAX_CHARS = 26;
+
+export function buildCaptionChunks(
+  segments: {
+    text: string;
+    durationMs: number;
+    wordTimings: { word: string; startMs: number; endMs: number }[] | null;
+  }[],
+): CaptionChunk[] {
+  const chunks: CaptionChunk[] = [];
+  let cursor = 0; // segmentin timeline offset'i (ms)
+
+  for (const seg of segments) {
+    const words = seg.wordTimings ?? [];
+    if (!words.length) {
+      // Fallback: cümle bütünüyle göster
+      chunks.push({ text: seg.text, startMs: cursor, endMs: cursor + seg.durationMs });
+      cursor += seg.durationMs;
+      continue;
+    }
+
+    let group: typeof words = [];
+    const flush = () => {
+      if (!group.length) return;
+      chunks.push({
+        text: group.map((w) => w.word).join(" "),
+        startMs: cursor + group[0].startMs,
+        endMs: cursor + group[group.length - 1].endMs,
+      });
+      group = [];
+    };
+    for (const w of words) {
+      const candidate = [...group, w].map((x) => x.word).join(" ");
+      if (group.length >= CAPTION_MAX_WORDS || candidate.length > CAPTION_MAX_CHARS) {
+        flush();
+      }
+      group.push(w);
+    }
+    flush();
+    cursor += seg.durationMs;
+  }
+
+  // Parçalar arası mikro boşlukları kapat (titreşim önleme): her parçanın
+  // sonu bir sonrakinin başına uzatılır (en fazla 400 ms).
+  for (let i = 0; i < chunks.length - 1; i++) {
+    const gap = chunks[i + 1].startMs - chunks[i].endMs;
+    if (gap > 0) chunks[i].endMs += Math.min(gap, 400);
+  }
+  return chunks;
 }

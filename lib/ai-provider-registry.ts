@@ -475,9 +475,50 @@ export type GenerateVoiceSegmentInput = GenerateVoiceInput & {
   nextText?: string;
 };
 
+/** Kelime bazlı zamanlama — altyazı (caption) üretimi için. */
+export type WordTiming = { word: string; startMs: number; endMs: number };
+
 export type GenerateVoiceSegmentResult = GenerateVoiceResult & {
   durationMs: number;
+  /** Hizalama gelmezse boş dizi — altyazı cümle bazlı fallback'e düşer */
+  wordTimings: WordTiming[];
 };
+
+/** ElevenLabs karakter hizalamasını kelime zamanlamalarına çevirir. */
+function parseWordTimings(alignment?: {
+  characters?: string[];
+  character_start_times_seconds?: number[];
+  character_end_times_seconds?: number[];
+}): WordTiming[] {
+  const chars = alignment?.characters;
+  const starts = alignment?.character_start_times_seconds;
+  const ends = alignment?.character_end_times_seconds;
+  if (!chars?.length || starts?.length !== chars.length || ends?.length !== chars.length) {
+    return [];
+  }
+
+  const words: WordTiming[] = [];
+  let current = "";
+  let startIdx = -1;
+  for (let i = 0; i <= chars.length; i++) {
+    const c = i < chars.length ? chars[i] : " "; // son kelimeyi kapat
+    if (/\s/.test(c)) {
+      if (current) {
+        words.push({
+          word: current,
+          startMs: Math.round(starts[startIdx] * 1000),
+          endMs: Math.round(ends[i - 1] * 1000),
+        });
+        current = "";
+        startIdx = -1;
+      }
+    } else {
+      if (!current) startIdx = i;
+      current += c;
+    }
+  }
+  return words;
+}
 
 export async function generateVoiceSegment(
   text: string,
@@ -523,7 +564,11 @@ export async function generateVoiceSegment(
 
   const data = (await res.json()) as {
     audio_base64?: string;
-    alignment?: { character_end_times_seconds?: number[] };
+    alignment?: {
+      characters?: string[];
+      character_start_times_seconds?: number[];
+      character_end_times_seconds?: number[];
+    };
   };
   if (!data.audio_base64) {
     throw new Error("ElevenLabs yanıtında ses verisi bulunamadı.");
@@ -539,5 +584,6 @@ export async function generateVoiceSegment(
     buffer: Buffer.from(data.audio_base64, "base64"),
     mimeType: "audio/mpeg",
     durationMs,
+    wordTimings: parseWordTimings(data.alignment),
   };
 }
