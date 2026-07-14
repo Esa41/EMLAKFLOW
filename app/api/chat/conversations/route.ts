@@ -65,13 +65,15 @@ export async function GET() {
     lastBySession.set(m.sessionId, m);
   }
 
+  // Hoisted fonksiyon içinde TS null daraltması kaybolmasın diye yerel kopya
+  const currentUserId = session.userId;
   function unreadFor(sessionId: string): number {
     const since = readMap.get(sessionId) ?? new Date(0);
     return messages.filter(
       (m) =>
         m.sessionId === sessionId &&
         m.createdAt > since &&
-        m.senderId !== session.userId,
+        m.senderId !== currentUserId,
     ).length;
   }
 

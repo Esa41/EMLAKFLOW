@@ -94,7 +94,7 @@ export function AgendaWeekGrid({
               {dayTasks.map((t) => {
                 const overdue =
                   t.status === "OPEN" &&
-                  t.dueAt &&
+                  !!t.dueAt &&
                   new Date(t.dueAt).getTime() < Date.now() - 86400000;
                 return (
                   <EventBlock

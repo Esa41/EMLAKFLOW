@@ -16,7 +16,9 @@ function safePaint(
 ) {
   if (!map.getLayer(layerId)) return;
   try {
-    map.setPaintProperty(layerId, property, value);
+    // Katman/özellik adları stil sürümüne göre değiştiği için dinamik string
+    // kullanılır; geçersiz kombinasyon try/catch ile yutulur.
+    map.setPaintProperty(layerId, property as never, value as never);
   } catch {
     /* katman bu stilde farklı olabilir */
   }

@@ -35,7 +35,7 @@ export function ShareButton({
   const xUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
 
   // Web Share API destekleniyorsa native kullan
-  if (typeof navigator !== "undefined" && navigator.share) {
+  if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
     return (
       <button
         type="button"
