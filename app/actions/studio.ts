@@ -5,6 +5,9 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { forTenant } from "@/lib/tenant";
 import { isPro, isPremium } from "@/lib/plans";
+import { generateImage } from "@/lib/ai-provider-registry";
+import { putObject, publicUrl, deleteObject } from "@/lib/r2";
+import { processListingImage, variantKeys } from "@/lib/images";
 
 // ── Plan bazlı aylık kredi limitleri ──
 const PLAN_CREDITS = {
@@ -168,6 +171,13 @@ type EnhanceResult =
   | { ok: true; jobId: string; outputUrl: string; remainingCredits: number }
   | { ok: false; error: string };
 
+// Emlak fotoğrafı iyileştirme yönergesi — düşük strength ile birlikte
+// mekânın yapısını korur, yalnızca ışık/netlik/renk kalitesini yükseltir.
+const ENHANCE_PROMPT =
+  "professional real estate photography, bright natural lighting, HDR, " +
+  "crisp details, vivid but realistic colors, wide dynamic range, " +
+  "magazine quality interior photo, no distortion";
+
 export async function enhancePhoto(input: {
   listingId: string;
   mediaId: string;
@@ -192,40 +202,101 @@ export async function enhancePhoto(input: {
     return { ok: false, error: "Fotoğraf iyileştirme krediniz kalmadı. Aylık yenilenme bekleniyor." };
   }
 
-  // Krediyi düş
+  // Fotoğraf gerçekten bu ofisin bu ilanına mı ait?
+  const media = await prisma.listingMedia.findUnique({
+    where: { id: input.mediaId },
+    select: {
+      id: true,
+      url: true,
+      listingId: true,
+      listing: { select: { tenantId: true } },
+    },
+  });
+  if (
+    !media ||
+    media.listingId !== input.listingId ||
+    media.listing.tenantId !== session.tenantId
+  ) {
+    return { ok: false, error: "Fotoğraf bulunamadı." };
+  }
+
+  // Krediyi düş — iş başarısız olursa aşağıda iade edilir
   await prisma.tenant.update({
     where: { id: session.tenantId },
     data: { aiImageCredits: { decrement: 1 } },
   });
 
-  // StudioJob kaydı oluştur
   const job = await prisma.studioJob.create({
     data: {
       tenantId: session.tenantId,
       userId: session.userId,
       listingId: input.listingId,
       type: "IMAGE_ENHANCE",
-      status: "COMPLETED", // Stub: hemen tamamlandı olarak işaretle
-      inputMediaId: input.mediaId,
-      inputUrl: input.mediaUrl,
-      outputUrl: input.mediaUrl, // Stub: aynı URL'yi döndür (gerçek AI entegrasyonunda değişecek)
+      status: "PROCESSING",
+      inputMediaId: media.id,
+      inputUrl: media.url,
       creditCost: 1,
     },
   });
 
-  const updatedTenant = await prisma.tenant.findUnique({
-    where: { id: session.tenantId },
-    select: { aiImageCredits: true },
-  });
+  try {
+    // Fal.ai SDXL image-to-image — düşük strength: oda düzeni değişmez
+    const result = await generateImage(ENHANCE_PROMPT, {
+      provider: "FAL_SDXL",
+      sourceImageUrl: media.url,
+      strength: 0.25,
+    });
 
-  revalidatePath("/dashboard/studio");
+    // Fal çıktısı geçici URL'dir — kalıcı olması için R2'ye kopyala
+    const res = await fetch(result.imageUrl);
+    if (!res.ok) {
+      throw new Error(`AI çıktısı indirilemedi (${res.status}).`);
+    }
+    const contentType = res.headers.get("content-type") ?? "image/jpeg";
+    const ext = contentType.includes("png")
+      ? "png"
+      : contentType.includes("webp")
+        ? "webp"
+        : "jpg";
+    const outputKey = `studio/${session.tenantId}/${job.id}.${ext}`;
+    await putObject(outputKey, Buffer.from(await res.arrayBuffer()), contentType);
+    const outputUrl = publicUrl(outputKey);
 
-  return {
-    ok: true,
-    jobId: job.id,
-    outputUrl: job.outputUrl!,
-    remainingCredits: updatedTenant?.aiImageCredits ?? 0,
-  };
+    await prisma.studioJob.update({
+      where: { id: job.id },
+      data: { status: "COMPLETED", outputUrl, outputKey },
+    });
+
+    const updatedTenant = await prisma.tenant.findUnique({
+      where: { id: session.tenantId },
+      select: { aiImageCredits: true },
+    });
+
+    revalidatePath("/dashboard/studio");
+
+    return {
+      ok: true,
+      jobId: job.id,
+      outputUrl,
+      remainingCredits: updatedTenant?.aiImageCredits ?? 0,
+    };
+  } catch (err) {
+    // Başarısız iş: krediyi iade et, işi FAILED işaretle
+    const message = err instanceof Error ? err.message : "AI iyileştirme başarısız.";
+    await prisma.$transaction([
+      prisma.tenant.update({
+        where: { id: session.tenantId },
+        data: { aiImageCredits: { increment: 1 } },
+      }),
+      prisma.studioJob.update({
+        where: { id: job.id },
+        data: { status: "FAILED", errorMessage: message.slice(0, 500) },
+      }),
+    ]);
+
+    revalidatePath("/dashboard/studio");
+    return { ok: false, error: `İyileştirme başarısız oldu, krediniz iade edildi. (${message.slice(0, 200)})` };
+  }
 }
 
 // ── İlana Uygulama ──
@@ -242,48 +313,88 @@ export async function applyEnhancedPhoto(input: {
   const session = await getSession();
   if (!session) return { ok: false, error: "Oturum bulunamadı." };
 
-  const db = forTenant(session.tenantId);
-
-  const job = await db.studioJob.findUnique({
-    where: { id: input.jobId },
-    select: { outputUrl: true, outputKey: true, status: true },
-  });
-  if (!job || job.status !== "COMPLETED") {
-    return { ok: false, error: "İşlem bulunamadı veya tamamlanmadı." };
-  }
-  if (!job.outputUrl) {
-    return { ok: false, error: "AI çıktısı bulunamadı." };
-  }
-
-  // Orijinal fotoğrafın sırasını al
-  const originalMedia = await prisma.listingMedia.findUnique({
-    where: { id: input.originalMediaId },
-    select: { order: true, key: true },
-  });
-  const order = originalMedia?.order ?? 0;
-
-  // İşlemi transaction ile yap
-  // 1. Orijinal medyayı sil
-  await prisma.listingMedia.delete({
-    where: { id: input.originalMediaId },
-  });
-
-  // 2. AI çıktısını yeni medya olarak ekle (aynı sırada)
-  await prisma.listingMedia.create({
-    data: {
-      listingId: input.listingId,
-      url: job.outputUrl,
-      key: job.outputKey ?? `studio/${input.jobId}`,
-      kind: "photo",
-      order,
+  const job = await prisma.studioJob.findFirst({
+    where: { id: input.jobId, tenantId: session.tenantId },
+    select: {
+      outputUrl: true,
+      outputKey: true,
+      status: true,
+      inputMediaId: true,
+      listingId: true,
+      appliedToListing: true,
     },
   });
+  if (!job || job.status !== "COMPLETED" || job.listingId !== input.listingId) {
+    return { ok: false, error: "İşlem bulunamadı veya tamamlanmadı." };
+  }
+  if (!job.outputUrl || !job.outputKey) {
+    return { ok: false, error: "AI çıktısı bulunamadı." };
+  }
+  if (job.appliedToListing) {
+    return { ok: false, error: "Bu çıktı zaten ilana uygulanmış." };
+  }
+  if (job.inputMediaId !== input.originalMediaId) {
+    return { ok: false, error: "Fotoğraf eşleşmedi." };
+  }
 
-  // 3. Job'u güncelle
-  await db.studioJob.update({
-    where: { id: input.jobId },
-    data: { appliedToListing: true },
+  // Orijinal fotoğraf — sırası ve R2 anahtarları değişimden önce alınır
+  const originalMedia = await prisma.listingMedia.findUnique({
+    where: { id: input.originalMediaId },
+    select: {
+      order: true,
+      key: true,
+      alt: true,
+      listingId: true,
+      listing: { select: { tenantId: true } },
+    },
   });
+  if (
+    !originalMedia ||
+    originalMedia.listingId !== input.listingId ||
+    originalMedia.listing.tenantId !== session.tenantId
+  ) {
+    return { ok: false, error: "Orijinal fotoğraf bulunamadı." };
+  }
+
+  // AI çıktısı için thumb/card varyantlarını üret (vitrin performansı).
+  // Best-effort: başarısız olursa UI orijinal URL'ye düşer.
+  let variants = null;
+  try {
+    variants = await processListingImage(job.outputKey);
+  } catch {
+    variants = null;
+  }
+
+  // Değişim tek transaction'da: silme ve ekleme ya birlikte olur ya hiç —
+  // hiçbir aşamada ilan fotoğrafsız kalmaz.
+  await prisma.$transaction([
+    prisma.listingMedia.delete({
+      where: { id: input.originalMediaId },
+    }),
+    prisma.listingMedia.create({
+      data: {
+        listingId: input.listingId,
+        url: job.outputUrl,
+        key: job.outputKey,
+        kind: "photo",
+        order: originalMedia.order,
+        thumbUrl: variants?.thumbUrl ?? null,
+        cardUrl: variants?.cardUrl ?? null,
+        width: variants?.width ?? null,
+        height: variants?.height ?? null,
+        alt: originalMedia.alt,
+      },
+    }),
+    prisma.studioJob.update({
+      where: { id: input.jobId },
+      data: { appliedToListing: true },
+    }),
+  ]);
+
+  // Eski fotoğrafın R2 nesnelerini temizle (orijinal + varyantlar) —
+  // yer açmak için; best-effort, hata değişimi geri almaz.
+  const oldKeys = [originalMedia.key, ...variantKeys(originalMedia.key)];
+  await Promise.allSettled(oldKeys.map((k) => deleteObject(k)));
 
   revalidatePath("/dashboard/studio");
   revalidatePath(`/portfoy/${input.listingId}`);

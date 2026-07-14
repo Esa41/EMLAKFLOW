@@ -1,5 +1,9 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+
+// AI iyileştirme (Fal.ai çağrısı + R2 kopyalama) varsayılan süre sınırını
+// aşabilir — bu sayfadan tetiklenen server action'lar için süreyi uzat.
+export const maxDuration = 60;
 import { getStudioCredits, getStudioListings, getStudioHistory } from "@/app/actions/studio";
 import { StudioWorkspace } from "@/components/studio-workspace";
 import { isPro } from "@/lib/plans";
