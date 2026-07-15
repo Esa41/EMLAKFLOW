@@ -140,10 +140,12 @@ const interiorSlots = (motions: string[]): SceneSlotDef[] =>
     durationSec: 5,
   }));
 
+// Kamera fotoğrafta görünen alanın İÇİNDE kalır — "kapıdan geç" gibi ifadeler
+// modele olmayan mekân uydurtuyordu (Esa geri bildirimi, 16 Tem 2026).
 const FPV_MOTIONS = [
-  "FPV drone flight moving forward through the doorway, smooth continuous forward motion",
-  "first-person fly-through gliding forward through the room, steady altitude",
-  "FPV drone smoothly weaving forward past furniture, continuous glide",
+  "FPV drone gliding slowly forward inside the room, smooth continuous forward motion, camera stays within the space visible in the photo",
+  "first-person fly-through moving gently forward across the room, steady altitude, staying inside the photographed space",
+  "FPV drone smooth forward push within the room, continuous glide, no new areas revealed",
 ];
 
 const CLASSIC_MOTIONS = [
@@ -156,17 +158,17 @@ const CLASSIC_MOTIONS = [
 // Kling'e istenir. Bilinçli olarak agresif — halüsinasyon riski yüksektir;
 // sahne onay kapısı + tek sahne regenerate bu riski yönetir.
 const CINEMATIC_FPV_MOTIONS = [
-  "dynamic FPV drone shot accelerating forward through the doorway, speed ramp from slow to fast, natural motion blur",
-  "sweeping first-person drone flight through the room, quick acceleration then smooth deceleration, cinematic motion blur",
-  "FPV drone diving forward with a dramatic speed ramp, adrenaline pacing, motion blur on fast movement",
+  "dynamic FPV drone push-in inside the room, speed ramp from slow to fast, natural motion blur, camera stays within the space visible in the photo",
+  "sweeping first-person drone move forward across the room, quick acceleration then smooth deceleration, cinematic motion blur, staying inside the photographed space",
+  "FPV drone forward glide with a dramatic speed ramp, adrenaline pacing, motion blur on fast movement, no doorway crossing",
 ];
 
 // FPV Reels: sinematik FPV'nin dikey (9:16) sürümü — hız rampası + motion
 // blur dikey kadrajda, sosyal medya için hook temposu.
 const FPV_REELS_MOTIONS = [
-  "vertical FPV drone shot rushing forward through the doorway, speed ramp, natural motion blur, dynamic energy",
-  "first-person drone gliding forward through the room in vertical framing, quick acceleration, cinematic motion blur",
-  "FPV drone sweeping forward past furniture, punchy pacing, motion blur on fast movement",
+  "vertical FPV drone push-in inside the room, speed ramp, natural motion blur, dynamic energy, camera stays within the space visible in the photo",
+  "first-person drone gliding forward across the room in vertical framing, quick acceleration, cinematic motion blur, staying inside the photographed space",
+  "FPV drone forward sweep within the room, punchy pacing, motion blur on fast movement, no doorway crossing",
 ];
 
 // Lüks Vitrin: yavaş, zarif, sığ alan derinliği (bokeh) + anamorfik lens

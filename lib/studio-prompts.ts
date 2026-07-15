@@ -26,7 +26,11 @@ export const BASE_NEGATIVE_PROMPT =
   "structural changes, added or removed walls, added or removed furniture, " +
   "added or removed objects, morphing rooms, changing room layout, " +
   "people, faces, text, captions, watermark, logo, distortion, warping, " +
-  "flickering, blurry, low quality";
+  "flickering, blurry, low quality, " +
+  // Kamera fotoğrafta GÖRÜNEN alanın dışına çıkamaz: kapıdan geçip yeni oda
+  // uydurmak en sık görülen halüsinasyon — mekân fotoğrafla sınırlı kalmalı.
+  "revealing areas not visible in the source photo, invented spaces, " +
+  "new rooms, passing through doorways, camera leaving the photographed space";
 
 const CONCEPTS: Record<VideoConceptKey, ConceptDefinition> = {
   drone: {
