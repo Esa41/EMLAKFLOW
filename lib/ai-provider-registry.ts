@@ -289,7 +289,15 @@ function falAppId(model: string): string {
 // Sahne sahne üretip birleştirmeye gerek kalmaz — tur akışı tek çekimde.
 // Native ses üretebilir (generate_audio).
 
-export const SEEDANCE_REF_MODEL = "bytedance/seedance-2.0/reference-to-video";
+// fast: $0.24/sn (max 720p) — sosyal medya için yeterli, standart tier'ın
+// ($0.30/sn, 1080p) ~%20 altında. Env ile tier yükseltilebilir:
+//   FAL_SEEDANCE_MODEL="bytedance/seedance-2.0/reference-to-video"  (1080p)
+const SEEDANCE_DEFAULT_MODEL = "bytedance/seedance-2.0/fast/reference-to-video";
+
+/** Env çağrı anında okunur (registry geleneği) — build gerektirmeden tier değişir. */
+export function resolveSeedanceModel(): string {
+  return process.env.FAL_SEEDANCE_MODEL?.trim() || SEEDANCE_DEFAULT_MODEL;
+}
 
 export type ReferenceVideoInput = {
   /** En fazla 9 — prompt'ta @Image1, @Image2… diye referans verilir */
@@ -305,7 +313,7 @@ export type ReferenceVideoInput = {
 /**
  * Seedance kuyruğuna referans-tabanlı video işi gönderir.
  * Sonuç getVideoStatus/getVideoResult ile alınır (çıktı şeması Kling ile
- * aynı: video.url) — model olarak SEEDANCE_REF_MODEL geçilmeli.
+ * aynı: video.url) — model olarak resolveSeedanceModel() geçilmeli.
  */
 export async function generateReferenceVideo(
   prompt: string,
@@ -315,7 +323,7 @@ export async function generateReferenceVideo(
   const config: ProviderConfig = {
     provider: "FAL_KLING", // FAL_KEY paylaşılır
     ...providerConfig,
-    model: providerConfig?.model ?? SEEDANCE_REF_MODEL,
+    model: providerConfig?.model ?? resolveSeedanceModel(),
   };
   const apiKey = resolveApiKey(config);
   const model = config.model!;
