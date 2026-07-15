@@ -30,10 +30,11 @@ export type TemplateKey =
   | "land_drone"
   | "social_promo";
 
-/** Shotstack clip transition adları ile bire bir. */
+/** Shotstack clip transition adları ile bire bir (Fast = whip/blur hissi). */
 export type TransitionKey =
   | "fade"
   | "zoom"
+  | "zoomFast"
   | "wipeLeft"
   | "wipeRight"
   | "slideLeft"
@@ -44,6 +45,7 @@ export type TransitionKey =
 export const TRANSITION_LABELS: Record<TransitionKey, string> = {
   fade: "Yumuşak Geçiş",
   zoom: "Zoom",
+  zoomFast: "Hızlı Zoom (whip)",
   wipeLeft: "Silme (Sola)",
   wipeRight: "Silme (Sağa)",
   slideLeft: "Kaydırma (Sola)",
@@ -248,7 +250,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       slots: interiorSlots(CINEMATIC_FPV_MOTIONS),
       fallback: { motions: CINEMATIC_FPV_MOTIONS, durationSec: 5 },
     },
-    transitions: { default: "zoom", sequence: ["zoom", "carouselLeft", "zoom"] },
+    transitions: { default: "zoomFast", sequence: ["zoomFast", "carouselLeft", "zoomFast"] },
     overlaySlots: [
       {
         key: "location",
@@ -300,7 +302,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       slots: interiorSlots(FPV_REELS_MOTIONS),
       fallback: { motions: FPV_REELS_MOTIONS, durationSec: 5 },
     },
-    transitions: { default: "zoom", sequence: ["zoom", "slideUp", "carouselLeft"] },
+    transitions: { default: "zoomFast", sequence: ["zoomFast", "slideUp", "carouselLeft"] },
     overlaySlots: [
       {
         key: "hook",
