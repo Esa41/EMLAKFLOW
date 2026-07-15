@@ -38,12 +38,16 @@ type PendingScene = {
   requestId: string | null;
   /** İşin düşülen kredisi — başarısızlıkta aynen iade edilir (10 sn = 2) */
   creditCost: number;
+  /** Submit anında çözülen TAM model yolu — Kling ve Seedance farklı uçlar;
+   *  null = eski işler (env/varsayılan Kling'e düşer). */
+  model: string | null;
 };
 
 /** Tamamlanan sahneyi R2'ye alıp COMPLETED'a çeker (claim korumalı). */
 async function completeScene(scene: PendingScene, tenantId: string) {
   const { videoUrl } = await getVideoResult(scene.requestId!, {
-    provider: "FAL_KLING",
+    provider: "FAL_KLING", // FAL_KEY paylaşılır
+    ...(scene.model ? { model: scene.model } : {}),
   });
   const key = `studio/${tenantId}/scenes/${scene.id}.mp4`;
   const outputUrl = await copyUrlToR2(videoUrl, key, "video/mp4");
@@ -100,7 +104,13 @@ export async function reconcileProject(projectId: string): Promise<void> {
         select: {
           id: true,
           jobId: true,
-          job: { select: { externalRequestId: true, creditCost: true } },
+          job: {
+            select: {
+              externalRequestId: true,
+              creditCost: true,
+              externalModel: true,
+            },
+          },
         },
       },
       jobs: {
@@ -120,10 +130,14 @@ export async function reconcileProject(projectId: string): Promise<void> {
       jobId: s.jobId,
       requestId,
       creditCost: s.job?.creditCost ?? 1,
+      model: s.job?.externalModel ?? null,
     };
 
     try {
-      const { status } = await getVideoStatus(requestId, { provider: "FAL_KLING" });
+      const { status } = await getVideoStatus(requestId, {
+        provider: "FAL_KLING", // FAL_KEY paylaşılır
+        ...(scene.model ? { model: scene.model } : {}),
+      });
       if (status !== "COMPLETED") continue;
       await completeScene(scene, project.tenantId);
     } catch (err) {

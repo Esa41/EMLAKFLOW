@@ -4,8 +4,12 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isPro, isPremium } from "@/lib/plans";
-import { generateVideo, generateVoice } from "@/lib/ai-provider-registry";
-import { putObject, publicUrl } from "@/lib/r2";
+import {
+  generateVideo,
+  generateVoice,
+  generateReferenceVideo,
+} from "@/lib/ai-provider-registry";
+import { putObject, publicUrl, presignDownload } from "@/lib/r2";
 import { reconcileProject } from "@/lib/studio-reconcile";
 import {
   buildSceneNegativePrompt,
@@ -17,6 +21,9 @@ import {
   buildTemplateScenePrompt,
   buildTemplateNegativePrompt,
   sceneDefaults,
+  buildTemplateTourPrompt,
+  REFERENCE_DURATION_SEC,
+  REFERENCE_CREDIT_COST,
   isTemplateKey,
   TEMPLATES,
   TRANSITION_LABELS,
@@ -199,7 +206,7 @@ async function submitScene(
   aspectRatio: string,
   negativePrompt: string,
 ) {
-  const { requestId } = await generateVideo(scene.id, scene.prompt, {
+  const { requestId, model } = await generateVideo(scene.id, scene.prompt, {
     provider: "FAL_KLING",
     sourceImageUrl: scene.sourceImageUrl,
     durationSec: scene.durationSec === 10 ? 10 : 5,
@@ -209,7 +216,9 @@ async function submitScene(
   if (scene.jobId) {
     await prisma.studioJob.update({
       where: { id: scene.jobId },
-      data: { externalRequestId: requestId, status: "PROCESSING" },
+      // externalModel: reconcile AYNI model yolunu kullanmalı (env ile model
+      // değişse bile uçuştaki iş strand olmasın)
+      data: { externalRequestId: requestId, externalModel: model, status: "PROCESSING" },
     });
   }
 }
@@ -316,7 +325,10 @@ export async function createStudioProject(input: {
     return { ok: false, error: "En az bir fotoğraf seçmelisiniz." };
   }
 
-  // Sahne süreleri: kullanıcı seçimi > şablon reçetesi. 10 sn sahne 2 kredi.
+  // reference: TÜM fotoğraflar tek Seedance çağrısına referans → tek video,
+  //            sabit bedel (sahne yok, birleştirme yok)
+  // per_scene: her fotoğraf ayrı Kling klibi; 10 sn sahne 2 kredi
+  const isReference = template.generationMode === "reference";
   const sceneDurations = selected.map((s, i) =>
     s.durationSec === 10
       ? 10
@@ -325,7 +337,9 @@ export async function createStudioProject(input: {
         : sceneDefaults(template, i).durationSec,
   );
   const sceneCosts = sceneDurations.map((d) => (d === 10 ? 2 : 1));
-  const cost = sceneCosts.reduce((a, b) => a + b, 0);
+  const cost = isReference
+    ? REFERENCE_CREDIT_COST
+    : sceneCosts.reduce((a, b) => a + b, 0);
   if (tenant.aiVideoCredits < cost) {
     return {
       ok: false,
@@ -357,7 +371,8 @@ export async function createStudioProject(input: {
       features: true,
       media: {
         where: { id: { in: mediaIds }, kind: "photo" },
-        select: { id: true, url: true },
+        // key: reference modunda Seedance'e imzalı URL vermek için gerekir
+        select: { id: true, url: true, key: true },
       },
     },
   });
@@ -406,7 +421,93 @@ export async function createStudioProject(input: {
     },
   });
 
-  // Sahneleri sırayla oluştur ve Fal kuyruğuna gönder
+  // ── reference modu: TEK Seedance çağrısı → TEK bütünlüklü tur videosu ──
+  // Tek sahne kaydı açılır: onay kapısı, ekran yazıları, altyazı, müzik ve
+  // kapanış kartı mevcut birleştirme yolundan aynen geçer.
+  if (isReference) {
+    const ordered = selected.map((s) => mediaById.get(s.id)!);
+    const prompt = buildTemplateTourPrompt(
+      template,
+      selected.map((s) => ({ roomKey: s.roomKey ?? null })),
+    );
+
+    const job = await prisma.studioJob.create({
+      data: {
+        tenantId: session.tenantId,
+        userId: session.userId,
+        listingId: listing.id,
+        projectId: project.id,
+        type: "VIDEO_GENERATE",
+        status: "PROCESSING",
+        inputMediaId: ordered[0].id,
+        inputUrl: ordered[0].url,
+        videoConceptKey: template.legacyConceptKey,
+        provider: "FAL_SEEDANCE",
+        creditCost: cost,
+      },
+    });
+
+    const scene = await prisma.videoScene.create({
+      data: {
+        projectId: project.id,
+        order: 0,
+        sourceImageId: ordered[0].id,
+        sourceImageUrl: ordered[0].url, // şerit önizlemesi için kapak
+        prompt,
+        provider: "FAL_SEEDANCE",
+        durationSec: REFERENCE_DURATION_SEC,
+        status: "PROCESSING",
+        jobId: job.id,
+      },
+    });
+
+    try {
+      // Fal'ın fotoğrafları çekebilmesi için imzalı URL — R2 public URL'i
+      // bağlı olmadığından ham url güvenilmez.
+      const imageUrls = await Promise.all(
+        ordered.map((m) => presignDownload(m.key, 6 * 3600)),
+      );
+      const { requestId, model } = await generateReferenceVideo(prompt, {
+        imageUrls,
+        durationSec: REFERENCE_DURATION_SEC,
+        aspectRatio: template.aspectRatio,
+        resolution: "720p",
+        generateAudio: false, // ses bizim seslendirme + müzik katmanımızdan
+      });
+      await prisma.studioJob.update({
+        where: { id: job.id },
+        data: { externalRequestId: requestId, externalModel: model },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Render başlatılamadı.";
+      await prisma.$transaction([
+        prisma.videoScene.update({
+          where: { id: scene.id },
+          data: { status: "FAILED", errorMessage: message.slice(0, 500) },
+        }),
+        prisma.studioJob.update({
+          where: { id: job.id },
+          data: { status: "FAILED", errorMessage: message.slice(0, 500) },
+        }),
+        prisma.tenant.update({
+          where: { id: session.tenantId },
+          data: { aiVideoCredits: { increment: cost } },
+        }),
+      ]);
+    }
+
+    const updatedRef = await prisma.tenant.findUnique({
+      where: { id: session.tenantId },
+      select: { aiVideoCredits: true },
+    });
+    revalidatePath("/dashboard/studio");
+    const viewRef = await toProjectView(project.id);
+    return viewRef
+      ? { ok: true, project: viewRef, remainingCredits: updatedRef?.aiVideoCredits ?? 0 }
+      : { ok: false, error: "Proje oluşturulamadı." };
+  }
+
+  // ── per_scene modu: her fotoğraf ayrı Kling klibi ──
   for (let i = 0; i < selected.length; i++) {
     const media = mediaById.get(selected[i].id)!;
     const roomKey = selected[i].roomKey ?? null;

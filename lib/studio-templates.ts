@@ -56,6 +56,26 @@ export const TRANSITION_LABELS: Record<TransitionKey, string> = {
 
 export type VoiceTone = "calm" | "energetic" | "informative";
 
+/**
+ * Üretim modu — şablonun videoyu nasıl ürettiği:
+ *  reference : TÜM fotoğraflar tek Seedance çağrısına referans verilir
+ *              (@Image1..@ImageN) → TEK bütünlüklü tur videosu. Akıcı,
+ *              "geçiş" sorunu yok; ama beğenilmezse tamamı yeniden üretilir.
+ *  per_scene : Her fotoğraf ayrı Kling klibi → tek tek onay/yeniden üretim →
+ *              Shotstack'te geçişlerle birleştirilir (sahne bazlı kontrol).
+ */
+export type GenerationMode = "reference" | "per_scene";
+
+/** reference modunda üretilen tek videonun süresi (Seedance: 4-15 sn). */
+export const REFERENCE_DURATION_SEC = 10;
+/**
+ * reference modu kredi bedeli. Seedance fast 10 sn ≈ $2.4 — Kling 5 sn'lik
+ * klibin (~$0.25 = 1 kredi) ~10 katı. FİYATLANDIRMA KARARI BEKLİYOR:
+ * gerçek maliyete birebir bağlansa 10 kredi olmalı ama Pro'nun aylık 10
+ * video kredisi tek videoya giderdi. Şimdilik 5'te tutuldu.
+ */
+export const REFERENCE_CREDIT_COST = 5;
+
 export type OverlayStyleKey =
   | "bannerBottom"
   | "bigCenter"
@@ -114,6 +134,8 @@ export type TemplateDef = {
   description: string;
   badge?: string;
   aspectRatio: "16:9" | "9:16";
+  /** Videonun nasıl üretileceği — bkz. GenerationMode */
+  generationMode: GenerationMode;
   /** Otomatik öneri hedefi — LAND ilanlar "land", konutlar "housing" */
   targetListingTypes: "land" | "housing" | "any";
   /** Oda etiketi seçici bu şablonda gösterilsin mi */
@@ -197,6 +219,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       "Fotoğraflarınızdan odadan odaya süzülen FPV drone tarzı dinamik bir ev turu. Zoom geçişler ve enerjik anlatımla.",
     badge: "Yeni",
     aspectRatio: "16:9",
+    generationMode: "reference",
     targetListingTypes: "housing",
     usesRooms: true,
     sceneRecipe: {
@@ -246,6 +269,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       "Agresif FPV uçuş: hız rampaları, doğal motion blur ve sinematik renk tonu doğrudan AI'dan istenir. En etkileyici sonuç — sahne başına bozulma riski daha yüksek, beğenmediğiniz sahneyi yeniden üretin.",
     badge: "Pro",
     aspectRatio: "16:9",
+    generationMode: "reference",
     targetListingTypes: "housing",
     usesRooms: true,
     sceneRecipe: {
@@ -298,6 +322,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       "Sinematik FPV'nin dikey sürümü: hız rampası, motion blur ve hook temposu. Instagram Reels / TikTok için birebir.",
     badge: "Pro",
     aspectRatio: "9:16",
+    generationMode: "reference",
     targetListingTypes: "housing",
     usesRooms: true,
     sceneRecipe: {
@@ -357,6 +382,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       "Villa ve rezidanslar için: yavaş zarif hareketler, sığ alan derinliği (bokeh), anamorfik lens ışığı ve prestijli sıcak-koyu ton.",
     badge: "Yeni",
     aspectRatio: "16:9",
+    generationMode: "reference",
     targetListingTypes: "housing",
     usesRooms: true,
     sceneRecipe: {
@@ -416,6 +442,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     description:
       "Dış cephe, bahçe ve manzara ağırlıklı ilanlar için: gün batımı sıcak ışığı, uzun gölgeler, lens flare ve havadan crane/orbit çekim.",
     aspectRatio: "16:9",
+    generationMode: "reference",
     targetListingTypes: "any",
     usesRooms: false,
     sceneRecipe: {
@@ -466,6 +493,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     description:
       "Yavaş kamera hareketleri, yumuşak geçişler ve sakin piyano eşliğinde profesyonel bir iç mekân turu.",
     aspectRatio: "16:9",
+    generationMode: "reference",
     targetListingTypes: "housing",
     usesRooms: true,
     sceneRecipe: {
@@ -506,6 +534,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     description:
       "Arsanızın havadan sinematik uçuşu; konum, metrekare ve fiyat bilgisi ekranda kartlar halinde.",
     aspectRatio: "16:9",
+    generationMode: "per_scene",
     targetListingTypes: "land",
     usesRooms: false,
     sceneRecipe: {
@@ -597,6 +626,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       "Instagram/TikTok için dikey format: hook açılışı, hızlı kesmeler, bold fiyat ve konum yazıları, enerjik müzik.",
     badge: "Popüler",
     aspectRatio: "9:16",
+    generationMode: "per_scene",
     targetListingTypes: "any",
     usesRooms: false,
     sceneRecipe: {
@@ -750,6 +780,36 @@ export function buildTemplateScenePrompt(
   const motion = fpvTemplate ? templateMotion : (room?.motion ?? templateMotion);
   const context = room ? `${room.en}, ` : "";
   return `${context}${motion}, ${template.style}`;
+}
+
+/**
+ * TEK VİDEO tur prompt'u (generationMode="reference" — Seedance).
+ * Seçilen fotoğraflar sırayla @Image1..@ImageN olarak referans verilir;
+ * şablonun kamera dili + stil çapası + sadakat kısıtı eklenir.
+ */
+export function buildTemplateTourPrompt(
+  template: TemplateDef,
+  photos: { roomKey?: string | null }[],
+): string {
+  const seq = photos
+    .map((p, i) => {
+      const room = p.roomKey ? ROOMS[p.roomKey as RoomKey] : undefined;
+      return room ? `@Image${i + 1} (${room.en})` : `@Image${i + 1}`;
+    })
+    .join(" → ");
+
+  // Kamera kimliği şablonun hareket havuzunun ilkinden gelir (FPV hız rampası,
+  // lüks bokeh, golden hour crane… hepsi buradan)
+  const camera = template.sceneRecipe.fallback.motions[0];
+
+  return [
+    "Cinematic real estate tour of a single property, one continuous smooth camera flow.",
+    `Move through the property in this exact order: ${seq}.`,
+    `Camera language: ${camera}.`,
+    template.style + ".",
+    "Each reference image is a real space of this property — the camera stays strictly inside the spaces shown in the reference images.",
+    "Do not invent rooms, do not pass into spaces that are not in the references, do not change the layout; furniture and fixtures stay exactly as in the photos.",
+  ].join(" ");
 }
 
 /** Sahne negative prompt'u: ortak koruma seti + şablon negatifleri. */

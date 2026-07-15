@@ -254,20 +254,46 @@ export function buildTimelineFromProject(input: {
     if (!o.enabled || !o.text.trim()) continue;
     const style = OVERLAY_STYLES[o.styleKey] ?? OVERLAY_STYLES.bannerBottom;
     const render = style(o.text.trim());
-    const targets: number[] =
-      o.placement === "first"
-        ? [0]
-        : o.placement === "last"
-          ? [input.scenes.length - 1]
-          : o.placement === "all"
-            ? input.scenes.map((_, i) => i)
-            : [Math.min(Math.max(o.placement, 0), input.scenes.length - 1)];
-    for (const sceneIndex of targets) {
-      const sceneStart = sceneStarts[sceneIndex];
-      const sceneLen = input.scenes[sceneIndex].durationSec;
-      const start = sceneStart + Math.min(o.startSec, Math.max(sceneLen - 1, 0));
-      const length = Math.min(o.lengthSec, sceneStart + sceneLen - start);
-      if (length <= 0) continue;
+    // Tek sahne (reference modu — Seedance tek video): sahne index'i yok,
+    // yerleşim ZAMANA göre hesaplanır. Aksi halde "son sahne" işaretli
+    // fiyat/CTA videonun başında çıkardı.
+    const windows: { start: number; length: number }[] = [];
+    if (input.scenes.length === 1) {
+      const total = input.scenes[0].durationSec;
+      let start: number;
+      if (o.placement === "last") {
+        start = Math.max(0, total - o.lengthSec - 0.5);
+      } else if (o.placement === "first" || o.placement === "all") {
+        start = o.startSec;
+      } else {
+        // sahne index'i → orantılı zaman (0=baş, N=son)
+        const ratio = Math.min(Math.max(o.placement, 0), 4) / 5;
+        start = Math.min(total * ratio + o.startSec, Math.max(total - 1, 0));
+      }
+      const length = Math.min(
+        o.placement === "all" ? total : o.lengthSec,
+        total - start,
+      );
+      if (length > 0) windows.push({ start, length });
+    } else {
+      const targets: number[] =
+        o.placement === "first"
+          ? [0]
+          : o.placement === "last"
+            ? [input.scenes.length - 1]
+            : o.placement === "all"
+              ? input.scenes.map((_, i) => i)
+              : [Math.min(Math.max(o.placement, 0), input.scenes.length - 1)];
+      for (const sceneIndex of targets) {
+        const sceneStart = sceneStarts[sceneIndex];
+        const sceneLen = input.scenes[sceneIndex].durationSec;
+        const start = sceneStart + Math.min(o.startSec, Math.max(sceneLen - 1, 0));
+        const length = Math.min(o.lengthSec, sceneStart + sceneLen - start);
+        if (length > 0) windows.push({ start, length });
+      }
+    }
+
+    for (const { start, length } of windows) {
       overlayClips.push({
         asset: {
           type: "html",

@@ -166,6 +166,7 @@ enum AiProvider {
   FAL_SDXL    // Fal.ai üzerinden SDXL (fotoğraf iyileştirme)
   ELEVENLABS  // ElevenLabs (seslendirme)
   SHOTSTACK   // Shotstack Edit API (kurgu: geçiş + overlay + müzik)
+  FAL_SEEDANCE // Fal.ai üzerinden ByteDance Seedance (referans→tek video)
 }
 
 // AI Stüdyo proje durumu (NLE zaman çizelgesi yaşam döngüsü)
@@ -1066,6 +1067,10 @@ model StudioJob {
 
   // Dış sağlayıcı — null = legacy Fal; yeni VIDEO_MERGE işleri SHOTSTACK
   provider AiProvider?
+  // Submit anında çözülen TAM model yolu. Reconcile aynı string'i kullanmalı:
+  // Kling ve Seedance farklı uçlar, ayrıca env ile model değişebiliyor —
+  // sabit varsayım yapılırsa uçuştaki işler strand olur.
+  externalModel String?
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt

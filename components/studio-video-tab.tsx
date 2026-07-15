@@ -51,6 +51,8 @@ import {
   templateLabel,
   resolveTemplate,
   transitionForBoundary,
+  REFERENCE_DURATION_SEC,
+  REFERENCE_CREDIT_COST,
   type TemplateKey,
   type TransitionKey,
 } from "@/lib/studio-templates";
@@ -368,15 +370,21 @@ export function StudioVideoTab({
     parseNegativeTerms(negativeInput),
   );
   const videoJobs = history.filter((j) => j.type === "VIDEO_GENERATE");
-  // Sahne süresi seçimine göre canlı maliyet — 5 sn = 1 kredi, 10 sn = 2 kredi
-  const totalSeconds = selectedPhotos.reduce(
-    (sum, id) => sum + (sceneDurations[id] === 10 ? 10 : 5),
-    0,
-  );
-  const totalCost = selectedPhotos.reduce(
-    (sum, id) => sum + (sceneDurations[id] === 10 ? 2 : 1),
-    0,
-  );
+  // reference: tüm fotoğraflar tek videoya girer → sabit süre/bedel
+  // per_scene: 5 sn = 1 kredi, 10 sn = 2 kredi
+  const isReference = template?.generationMode === "reference";
+  const totalSeconds = isReference
+    ? REFERENCE_DURATION_SEC
+    : selectedPhotos.reduce(
+        (sum, id) => sum + (sceneDurations[id] === 10 ? 10 : 5),
+        0,
+      );
+  const totalCost = isReference
+    ? REFERENCE_CREDIT_COST
+    : selectedPhotos.reduce(
+        (sum, id) => sum + (sceneDurations[id] === 10 ? 2 : 1),
+        0,
+      );
 
   return (
     <div className="space-y-6">
@@ -863,8 +871,20 @@ export function StudioVideoTab({
             Videoda kullanılacak fotoğrafları seçin
           </h3>
           <p className="mb-4 text-xs text-ink/45">
-            Her fotoğraf bir sahne olur: 5 sn = 1 kredi, 10 sn = 2 kredi (en
-            fazla {MAX_SCENES} sahne). Sıralama videonun akışını belirler.
+            {isReference ? (
+              <>
+                Seçtiğiniz fotoğrafların tamamı AI'a referans verilir ve{" "}
+                <strong>tek akıcı tur videosu</strong> üretilir (
+                {REFERENCE_DURATION_SEC} sn, {REFERENCE_CREDIT_COST} kredi — en
+                fazla {MAX_SCENES} fotoğraf). Sıralama turun akışını belirler:
+                kamera fotoğraflarınızı bu sırayla dolaşır.
+              </>
+            ) : (
+              <>
+                Her fotoğraf bir sahne olur: 5 sn = 1 kredi, 10 sn = 2 kredi (en
+                fazla {MAX_SCENES} sahne). Sıralama videonun akışını belirler.
+              </>
+            )}
             {template.usesRooms &&
               " Her fotoğrafa oda etiketi verin — AI mekânı tanır ve görüntüye sadık kalır."}
           </p>
@@ -970,20 +990,24 @@ export function StudioVideoTab({
                               ))}
                             </select>
                           )}
-                          <select
-                            value={sceneDurations[id] === 10 ? "10" : "5"}
-                            onChange={(e) =>
-                              setSceneDurations((prev) => ({
-                                ...prev,
-                                [id]: Number(e.target.value),
-                              }))
-                            }
-                            className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-1.5 py-1 text-[11px] font-medium"
-                            title="Sahne süresi — 10 sn sahne 2 kredi düşer"
-                          >
-                            <option value="5">5 sn · 1 kredi</option>
-                            <option value="10">10 sn · 2 kredi</option>
-                          </select>
+                          {/* reference modunda süre tüm videoya ait — sahne
+                              başına seçim anlamsız */}
+                          {!isReference && (
+                            <select
+                              value={sceneDurations[id] === 10 ? "10" : "5"}
+                              onChange={(e) =>
+                                setSceneDurations((prev) => ({
+                                  ...prev,
+                                  [id]: Number(e.target.value),
+                                }))
+                              }
+                              className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-1.5 py-1 text-[11px] font-medium"
+                              title="Sahne süresi — 10 sn sahne 2 kredi düşer"
+                            >
+                              <option value="5">5 sn · 1 kredi</option>
+                              <option value="10">10 sn · 2 kredi</option>
+                            </select>
+                          )}
                           <div className="flex gap-0.5">
                             <button
                               onClick={(e) => {
