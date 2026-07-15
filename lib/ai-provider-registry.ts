@@ -283,6 +283,70 @@ function falAppId(model: string): string {
   return model.split("/").slice(0, 2).join("/");
 }
 
+// ── 2a) Referans-tabanlı video (ByteDance Seedance 2.0) ──
+// Kling'den FARKI: tek fotoğraf → tek klip değil; 9 fotoğrafa kadar REFERANS
+// alıp TEK bütünlüklü video üretir (prompt'ta @Image1..@Image9 ile anılır).
+// Sahne sahne üretip birleştirmeye gerek kalmaz — tur akışı tek çekimde.
+// Native ses üretebilir (generate_audio).
+
+export const SEEDANCE_REF_MODEL = "bytedance/seedance-2.0/reference-to-video";
+
+export type ReferenceVideoInput = {
+  /** En fazla 9 — prompt'ta @Image1, @Image2… diye referans verilir */
+  imageUrls: string[];
+  /** 4-15 sn; verilmezse modelin "auto"su */
+  durationSec?: number;
+  aspectRatio?: "16:9" | "9:16" | "1:1";
+  resolution?: "480p" | "720p" | "1080p" | "4k";
+  /** Native ses üretimi (varsayılan modelde açık) */
+  generateAudio?: boolean;
+};
+
+/**
+ * Seedance kuyruğuna referans-tabanlı video işi gönderir.
+ * Sonuç getVideoStatus/getVideoResult ile alınır (çıktı şeması Kling ile
+ * aynı: video.url) — model olarak SEEDANCE_REF_MODEL geçilmeli.
+ */
+export async function generateReferenceVideo(
+  prompt: string,
+  input: ReferenceVideoInput,
+  providerConfig?: Partial<ProviderConfig>,
+): Promise<FalSubmitResult> {
+  const config: ProviderConfig = {
+    provider: "FAL_KLING", // FAL_KEY paylaşılır
+    ...providerConfig,
+    model: providerConfig?.model ?? SEEDANCE_REF_MODEL,
+  };
+  const apiKey = resolveApiKey(config);
+  const model = config.model!;
+
+  if (!input.imageUrls.length || input.imageUrls.length > 9) {
+    throw new Error("Seedance için 1-9 arası referans görsel gerekir.");
+  }
+
+  const data = await falFetch<{ request_id?: string }>(
+    `${FAL_QUEUE_BASE}/${model}`,
+    apiKey,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        prompt,
+        image_urls: input.imageUrls,
+        ...(input.durationSec ? { duration: String(input.durationSec) } : {}),
+        aspect_ratio: input.aspectRatio ?? "16:9",
+        resolution: input.resolution ?? "1080p",
+        generate_audio: input.generateAudio ?? false,
+        ...config.extra,
+      }),
+    },
+  );
+
+  if (!data.request_id) {
+    throw new Error("Seedance kuyruk yanıtında request_id yok.");
+  }
+  return { requestId: data.request_id, model };
+}
+
 /** Kuyruktaki video işinin durumunu sorgular (worker polling). */
 export async function getVideoStatus(
   requestId: string,
