@@ -23,6 +23,9 @@ import type { MusicKey } from "@/lib/studio-music";
 export type TemplateKey =
   | "fpv_tour"
   | "cinematic_fpv"
+  | "fpv_reels"
+  | "luxury_showcase"
+  | "golden_hour"
   | "classic_interior"
   | "land_drone"
   | "social_promo";
@@ -156,6 +159,30 @@ const CINEMATIC_FPV_MOTIONS = [
   "FPV drone diving forward with a dramatic speed ramp, adrenaline pacing, motion blur on fast movement",
 ];
 
+// FPV Reels: sinematik FPV'nin dikey (9:16) sürümü — hız rampası + motion
+// blur dikey kadrajda, sosyal medya için hook temposu.
+const FPV_REELS_MOTIONS = [
+  "vertical FPV drone shot rushing forward through the doorway, speed ramp, natural motion blur, dynamic energy",
+  "first-person drone gliding forward through the room in vertical framing, quick acceleration, cinematic motion blur",
+  "FPV drone sweeping forward past furniture, punchy pacing, motion blur on fast movement",
+];
+
+// Lüks Vitrin: yavaş, zarif, sığ alan derinliği (bokeh) + anamorfik lens
+// hissi. Halüsinasyon riski düşük — hareketler yumuşak.
+const LUXURY_MOTIONS = [
+  "very slow elegant push-in, shallow depth of field with soft bokeh, anamorphic lens flare",
+  "smooth graceful slow pan revealing the space, cinematic shallow focus, luxury real estate look",
+  "slow refined dolly forward, soft background blur, high-end architectural digest aesthetic",
+];
+
+// Golden Hour Dış Cephe: gün batımı sıcak tonu + lens flare + uzun gölgeler,
+// dış çekim (crane/orbit serbest — açık alanda morf riski düşük).
+const GOLDEN_HOUR_MOTIONS = [
+  "slow cinematic crane shot rising over the exterior at golden hour, warm sunset light, long shadows, gentle lens flare",
+  "smooth aerial orbit around the property in warm sunset glow, floating dust particles in the light",
+  "slow drone push-in towards the entrance at golden hour, warm rim light, atmospheric haze",
+];
+
 export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
   fpv_tour: {
     key: "fpv_tour",
@@ -256,6 +283,175 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     negative:
       "360 spin, continuous spinning, rearranged furniture, new decor, " +
       "changed lighting fixtures, doors or windows appearing or disappearing",
+  },
+
+  fpv_reels: {
+    key: "fpv_reels",
+    legacyConceptKey: "social",
+    label: "FPV Reels",
+    subtitle: "9:16 dikey sinematik FPV",
+    description:
+      "Sinematik FPV'nin dikey sürümü: hız rampası, motion blur ve hook temposu. Instagram Reels / TikTok için birebir.",
+    badge: "Pro",
+    aspectRatio: "9:16",
+    targetListingTypes: "housing",
+    usesRooms: true,
+    sceneRecipe: {
+      slots: interiorSlots(FPV_REELS_MOTIONS),
+      fallback: { motions: FPV_REELS_MOTIONS, durationSec: 5 },
+    },
+    transitions: { default: "zoom", sequence: ["zoom", "slideUp", "carouselLeft"] },
+    overlaySlots: [
+      {
+        key: "hook",
+        label: "Açılış Mesajı",
+        source: "custom",
+        placement: "first",
+        startSec: 0.3,
+        lengthSec: 3,
+        styleKey: "hook",
+        defaultText: "Bu evi görmelisiniz!",
+      },
+      {
+        key: "location",
+        label: "Konum",
+        source: "location",
+        placement: "all",
+        startSec: 0.5,
+        lengthSec: 4,
+        styleKey: "cardTopLeft",
+      },
+      {
+        key: "price",
+        label: "Fiyat",
+        source: "price",
+        placement: "last",
+        startSec: 0.5,
+        lengthSec: 4,
+        styleKey: "bigCenter",
+      },
+    ],
+    musicDefault: "energetic_pop",
+    musicVolume: 0.22,
+    voiceTone: "energetic",
+    style:
+      "cinematic vertical FPV drone footage, dramatic speed ramps, natural " +
+      "motion blur on fast movement, cinematic teal and orange color grade, " +
+      "film look, high contrast, photorealistic, the room layout, furniture " +
+      "and fixtures remain exactly as in the source photo",
+    negative:
+      "360 spin, continuous spinning, rearranged furniture, new decor, " +
+      "changed lighting fixtures, doors or windows appearing or disappearing",
+  },
+
+  luxury_showcase: {
+    key: "luxury_showcase",
+    legacyConceptKey: "interior",
+    label: "Lüks Vitrin",
+    subtitle: "Zarif, sığ odak, film tonu",
+    description:
+      "Villa ve rezidanslar için: yavaş zarif hareketler, sığ alan derinliği (bokeh), anamorfik lens ışığı ve prestijli sıcak-koyu ton.",
+    badge: "Yeni",
+    aspectRatio: "16:9",
+    targetListingTypes: "housing",
+    usesRooms: true,
+    sceneRecipe: {
+      slots: interiorSlots(LUXURY_MOTIONS),
+      fallback: { motions: LUXURY_MOTIONS, durationSec: 5 },
+    },
+    transitions: { default: "fade" },
+    overlaySlots: [
+      {
+        key: "location",
+        label: "Konum",
+        source: "location",
+        placement: "first",
+        startSec: 0.8,
+        lengthSec: 3.5,
+        styleKey: "cardTopLeft",
+      },
+      {
+        key: "price",
+        label: "Fiyat",
+        source: "price",
+        placement: "last",
+        startSec: 0.5,
+        lengthSec: 4,
+        styleKey: "bigCenter",
+      },
+      {
+        key: "cta",
+        label: "Kapanış Mesajı",
+        source: "custom",
+        placement: "last",
+        startSec: 1.5,
+        lengthSec: 3,
+        styleKey: "cta",
+        defaultText: "Ayrıcalıklı yaşam için bize ulaşın",
+      },
+    ],
+    musicDefault: "epic_cinematic",
+    musicVolume: 0.18,
+    voiceTone: "calm",
+    style:
+      "luxury real estate cinematic tour, shallow depth of field, soft bokeh, " +
+      "anamorphic lens flare, rich warm and dark color grade, elegant film " +
+      "look, architectural digest aesthetic, photorealistic, camera movement " +
+      "only, every piece of furniture and every fixture stays exactly where " +
+      "it is in the source photo",
+    negative:
+      "rotating camera, orbiting, fast movement, rearranged furniture, " +
+      "new decor, changed lighting fixtures, doors or windows appearing or disappearing",
+  },
+
+  golden_hour: {
+    key: "golden_hour",
+    legacyConceptKey: "drone",
+    label: "Golden Hour Dış Cephe",
+    subtitle: "Gün batımı tonu + lens flare",
+    description:
+      "Dış cephe, bahçe ve manzara ağırlıklı ilanlar için: gün batımı sıcak ışığı, uzun gölgeler, lens flare ve havadan crane/orbit çekim.",
+    aspectRatio: "16:9",
+    targetListingTypes: "any",
+    usesRooms: false,
+    sceneRecipe: {
+      slots: [],
+      fallback: { motions: GOLDEN_HOUR_MOTIONS, durationSec: 5 },
+    },
+    transitions: { default: "fade", sequence: ["fade", "zoom", "fade"] },
+    overlaySlots: [
+      {
+        key: "location",
+        label: "Konum",
+        source: "location",
+        placement: "first",
+        startSec: 0.8,
+        lengthSec: 3.5,
+        styleKey: "cardTopLeft",
+      },
+      {
+        key: "price",
+        label: "Fiyat",
+        source: "price",
+        placement: "last",
+        startSec: 0.5,
+        lengthSec: 4,
+        styleKey: "bigCenter",
+      },
+    ],
+    musicDefault: "epic_cinematic",
+    musicVolume: 0.18,
+    voiceTone: "calm",
+    // Golden hour aydınlatma stili prompt'tan istenir — mimari yapı korunur,
+    // yalnızca ışık/atmosfer tonlanır.
+    style:
+      "cinematic exterior real estate footage at golden hour, warm sunset " +
+      "light, long shadows, gentle lens flare, atmospheric haze, high dynamic " +
+      "range, photorealistic, the building and landscape structure remains " +
+      "exactly as in the source photo",
+    negative:
+      "added buildings, added roads, changing architecture, altered landscape, " +
+      "people, added vehicles",
   },
 
   classic_interior: {
@@ -478,6 +674,9 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
 export const TEMPLATE_LIST: TemplateDef[] = [
   TEMPLATES.fpv_tour,
   TEMPLATES.cinematic_fpv,
+  TEMPLATES.fpv_reels,
+  TEMPLATES.luxury_showcase,
+  TEMPLATES.golden_hour,
   TEMPLATES.classic_interior,
   TEMPLATES.land_drone,
   TEMPLATES.social_promo,
@@ -540,7 +739,10 @@ export function buildTemplateScenePrompt(
   const templateMotion = slot.motions[sceneIndex % slot.motions.length];
   // FPV şablonlarında hareket kimliği (hız rampası/uçuş) şablondan gelir;
   // klasik turda odanın kendi güvenli hareketi tercih edilir.
-  const fpvTemplate = template.key === "fpv_tour" || template.key === "cinematic_fpv";
+  const fpvTemplate =
+    template.key === "fpv_tour" ||
+    template.key === "cinematic_fpv" ||
+    template.key === "fpv_reels";
   const motion = fpvTemplate ? templateMotion : (room?.motion ?? templateMotion);
   const context = room ? `${room.en}, ` : "";
   return `${context}${motion}, ${template.style}`;
@@ -548,12 +750,14 @@ export function buildTemplateScenePrompt(
 
 /** Sahne negative prompt'u: ortak koruma seti + şablon negatifleri. */
 export function buildTemplateNegativePrompt(template: TemplateDef): string {
-  // Sinematik FPV motion blur İSTER — ortak setteki "blurry" yasağı bunu
-  // bastırmasın diye bu şablonda çıkarılır (diğer korumalar aynen kalır).
-  const base =
-    template.key === "cinematic_fpv"
-      ? BASE_NEGATIVE_PROMPT.replace("blurry, ", "")
-      : BASE_NEGATIVE_PROMPT;
+  // Sinematik FPV şablonları motion blur İSTER — ortak setteki "blurry"
+  // yasağı bunu bastırmasın diye bu şablonlarda çıkarılır (diğer korumalar
+  // aynen kalır).
+  const wantsMotionBlur =
+    template.key === "cinematic_fpv" || template.key === "fpv_reels";
+  const base = wantsMotionBlur
+    ? BASE_NEGATIVE_PROMPT.replace("blurry, ", "")
+    : BASE_NEGATIVE_PROMPT;
   return `${base}, ${template.negative}`;
 }
 

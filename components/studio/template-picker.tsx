@@ -1,6 +1,17 @@
 "use client";
 
-import { Check, Clapperboard, Flame, Home, Plane, Rocket, Sparkles } from "lucide-react";
+import {
+  Check,
+  Clapperboard,
+  Flame,
+  Gem,
+  Home,
+  Plane,
+  Rocket,
+  Smartphone,
+  Sparkles,
+  Sunset,
+} from "lucide-react";
 import {
   TEMPLATE_LIST,
   suggestedTemplateFor,
@@ -29,6 +40,24 @@ const TEMPLATE_STYLES: Record<
     gradient: "from-rose-500/10 to-orange-500/10",
     borderActive: "border-rose-500",
     iconColor: "text-rose-600",
+  },
+  fpv_reels: {
+    icon: Smartphone,
+    gradient: "from-fuchsia-500/10 to-pink-500/10",
+    borderActive: "border-fuchsia-500",
+    iconColor: "text-fuchsia-600",
+  },
+  luxury_showcase: {
+    icon: Gem,
+    gradient: "from-amber-500/10 to-yellow-500/10",
+    borderActive: "border-amber-500",
+    iconColor: "text-amber-600",
+  },
+  golden_hour: {
+    icon: Sunset,
+    gradient: "from-orange-500/10 to-amber-500/10",
+    borderActive: "border-orange-500",
+    iconColor: "text-orange-600",
   },
   classic_interior: {
     icon: Home,
