@@ -272,16 +272,27 @@ export async function generateVideo(
   return { requestId: data.request_id, model };
 }
 
+/**
+ * Fal kuyruk durum/sonuç uçları, SUBMIT'in tam model yolunu değil yalnızca
+ * APP kimliğini (ilk iki segment) kullanır:
+ *   submit → queue.fal.run/fal-ai/kling-video/v2.1/standard/image-to-video
+ *   status → queue.fal.run/fal-ai/kling-video/requests/{id}/status
+ * Tam yolla sorgu 405 döner (sahne asla tamamlanmaz, kredi iade edilir).
+ */
+function falAppId(model: string): string {
+  return model.split("/").slice(0, 2).join("/");
+}
+
 /** Kuyruktaki video işinin durumunu sorgular (worker polling). */
 export async function getVideoStatus(
   requestId: string,
   providerConfig: ProviderConfig,
 ): Promise<{ status: FalQueueStatus }> {
   const apiKey = resolveApiKey(providerConfig);
-  const model = resolveModel(providerConfig);
+  const appId = falAppId(resolveModel(providerConfig));
 
   return falFetch<{ status: FalQueueStatus }>(
-    `${FAL_QUEUE_BASE}/${model}/requests/${requestId}/status`,
+    `${FAL_QUEUE_BASE}/${appId}/requests/${requestId}/status`,
     apiKey,
     { method: "GET" },
   );
@@ -297,10 +308,10 @@ export async function getVideoResult(
   providerConfig: ProviderConfig,
 ): Promise<GenerateVideoResult> {
   const apiKey = resolveApiKey(providerConfig);
-  const model = resolveModel(providerConfig);
+  const appId = falAppId(resolveModel(providerConfig));
 
   const data = await falFetch<{ video?: { url?: string } }>(
-    `${FAL_QUEUE_BASE}/${model}/requests/${requestId}`,
+    `${FAL_QUEUE_BASE}/${appId}/requests/${requestId}`,
     apiKey,
     { method: "GET" },
   );
@@ -390,7 +401,7 @@ export async function getMergeResult(
   const data = await falFetch<{
     video_url?: string;
     video?: { url?: string };
-  }>(`${FAL_QUEUE_BASE}/${FFMPEG_COMPOSE_MODEL}/requests/${requestId}`, apiKey, {
+  }>(`${FAL_QUEUE_BASE}/${falAppId(FFMPEG_COMPOSE_MODEL)}/requests/${requestId}`, apiKey, {
     method: "GET",
   });
 
