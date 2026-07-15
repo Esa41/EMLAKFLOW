@@ -21,6 +21,11 @@ const r2 = new S3Client({
     accessKeyId: process.env.R2_ACCESS_KEY_ID!,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
   },
+  // Yeni SDK varsayılanı presigned GET'e `x-amz-checksum-mode=ENABLED` ekliyor;
+  // bu imzalı param bazı tarayıcı/R2 kombinasyonlarında GET'i bozar. R2 zaten
+  // SigV4 imzasını doğruluyor — checksum'ı yalnızca gerektiğinde hesapla.
+  requestChecksumCalculation: "WHEN_REQUIRED",
+  responseChecksumValidation: "WHEN_REQUIRED",
 });
 
 const BUCKET = process.env.R2_BUCKET ?? "emlakflow-media";
@@ -36,6 +41,15 @@ export async function presignUpload(key: string, contentType: string) {
     ContentType: contentType,
   });
   return getSignedUrl(r2, cmd, { expiresIn: 300 });
+}
+
+/**
+ * İmzalı GET URL — R2 public URL'i kapalı/bağlanmamış olsa bile nesneyi
+ * doğrudan tarayıcıdan indirilebilir/oynatılabilir kılar (süreli).
+ */
+export async function presignDownload(key: string, expiresIn = 3600) {
+  const cmd = new GetObjectCommand({ Bucket: BUCKET, Key: key });
+  return getSignedUrl(r2, cmd, { expiresIn });
 }
 
 export async function deleteObject(key: string) {
