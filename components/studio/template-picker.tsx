@@ -1,12 +1,12 @@
 "use client";
 
 import {
-  Check,
   Clapperboard,
   Flame,
   Gem,
   Home,
   Plane,
+  Play,
   Rocket,
   Smartphone,
   Sparkles,
@@ -84,9 +84,11 @@ type Props = {
   listingType: string | null;
   selected: TemplateKey | null;
   onSelect: (key: TemplateKey) => void;
+  /** templateKey → imzalı örnek klip URL'si (yoksa "örnek yakında") */
+  previews: Record<string, string>;
 };
 
-export function TemplatePicker({ listingType, selected, onSelect }: Props) {
+export function TemplatePicker({ listingType, selected, onSelect, previews }: Props) {
   const suggested = suggestedTemplateFor(listingType);
 
   return (
@@ -94,11 +96,23 @@ export function TemplatePicker({ listingType, selected, onSelect }: Props) {
       {TEMPLATE_LIST.map((t) => {
         const s = TEMPLATE_STYLES[t.key];
         const isSelected = selected === t.key;
+        const previewUrl = previews[t.key];
+        const portrait = t.aspectRatio === "9:16";
         return (
-          <button
+          // Kart içinde <video controls> olduğu için <button> değil <div>:
+          // video kontrolleri iç içe interaktif eleman sorununu önler.
+          <div
             key={t.key}
+            role="button"
+            tabIndex={0}
             onClick={() => onSelect(t.key)}
-            className={`studio-concept-card group relative overflow-hidden rounded-2xl border-2 p-5 text-left transition-all ${
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect(t.key);
+              }
+            }}
+            className={`studio-concept-card group relative cursor-pointer overflow-hidden rounded-2xl border-2 p-5 text-left transition-all ${
               isSelected
                 ? `${s.borderActive} shadow-lg`
                 : "border-[var(--app-border)] hover:border-ink/20 hover:shadow-md"
@@ -140,14 +154,39 @@ export function TemplatePicker({ listingType, selected, onSelect }: Props) {
               <p className="mt-2 text-xs leading-relaxed text-ink/45">
                 {t.description}
               </p>
-              {isSelected && (
-                <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-brand-600">
-                  <Check size={14} />
-                  Seçildi
+
+              {/* Örnek klip — seçilince oynar; kontroller kartı seçmesin */}
+              {isSelected && previewUrl && (
+                <div
+                  className="mt-3 flex justify-center overflow-hidden rounded-xl bg-black"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <video
+                    src={previewUrl}
+                    controls
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className={portrait ? "max-h-[340px] w-auto" : "aspect-video w-full object-cover"}
+                  />
+                </div>
+              )}
+
+              {isSelected && !previewUrl && (
+                <div className="mt-3 rounded-lg bg-ink/[0.05] px-3 py-2 text-[11px] font-medium text-ink/45">
+                  Örnek video yakında eklenecek.
+                </div>
+              )}
+
+              {!isSelected && previewUrl && (
+                <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-ink/45">
+                  <Play size={11} className="fill-current" />
+                  Örneği izlemek için seçin
                 </div>
               )}
             </div>
-          </button>
+          </div>
         );
       })}
     </div>

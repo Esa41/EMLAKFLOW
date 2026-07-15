@@ -18,9 +18,11 @@ type Props = {
   listings: StudioListing[];
   credits: StudioCredits;
   history: StudioJobItem[];
+  /** Şablon örnek klipleri — templateKey → imzalı R2 URL */
+  templatePreviews: Record<string, string>;
 };
 
-export function StudioWorkspace({ listings, credits, history }: Props) {
+export function StudioWorkspace({ listings, credits, history, templatePreviews }: Props) {
   const [selectedListingId, setSelectedListingId] = useState<string | null>(
     null,
   );
@@ -254,6 +256,7 @@ export function StudioWorkspace({ listings, credits, history }: Props) {
               videoCredits={videoCredits}
               onCreditsChange={setVideoCredits}
               history={listingHistory}
+              templatePreviews={templatePreviews}
             />
           )}
         </div>

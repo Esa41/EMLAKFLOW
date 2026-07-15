@@ -77,6 +77,8 @@ type Props = {
   videoCredits: number;
   onCreditsChange: (credits: number) => void;
   history: StudioJobItem[];
+  /** Şablon örnek klipleri — templateKey → imzalı R2 URL */
+  templatePreviews: Record<string, string>;
 };
 
 const MAX_SCENES = 8;
@@ -96,6 +98,7 @@ export function StudioVideoTab({
   videoCredits,
   onCreditsChange,
   history,
+  templatePreviews,
 }: Props) {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey | null>(null);
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
@@ -849,6 +852,7 @@ export function StudioVideoTab({
           listingType={listingType}
           selected={selectedTemplate}
           onSelect={setSelectedTemplate}
+          previews={templatePreviews}
         />
       </div>
 

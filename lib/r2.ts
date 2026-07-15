@@ -3,6 +3,8 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
+  CopyObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -61,6 +63,31 @@ export async function getObjectBuffer(key: string): Promise<Buffer> {
   const res = await r2.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
   const bytes = await res.Body!.transformToByteArray();
   return Buffer.from(bytes);
+}
+
+/** Bir önek altındaki nesne anahtarlarını listeler (ör. şablon önizlemeleri). */
+export async function listKeys(prefix: string): Promise<string[]> {
+  const keys: string[] = [];
+  let token: string | undefined;
+  do {
+    const res = await r2.send(
+      new ListObjectsV2Command({ Bucket: BUCKET, Prefix: prefix, ContinuationToken: token }),
+    );
+    for (const o of res.Contents ?? []) if (o.Key) keys.push(o.Key);
+    token = res.IsTruncated ? res.NextContinuationToken : undefined;
+  } while (token);
+  return keys;
+}
+
+/** Aynı bucket içinde nesne kopyalar (ör. onaylı örneği şablon önizlemesine). */
+export async function copyObject(srcKey: string, destKey: string) {
+  await r2.send(
+    new CopyObjectCommand({
+      Bucket: BUCKET,
+      CopySource: `${BUCKET}/${srcKey}`,
+      Key: destKey,
+    }),
+  );
 }
 
 /** Sunucudan R2'ye doğrudan yükleme — üretilen görsel varyantları için. */
