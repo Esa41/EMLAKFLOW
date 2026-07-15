@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 
 type Props = {
   beforeUrl: string;
@@ -60,12 +61,17 @@ export function StudioBeforeAfter({ beforeUrl, afterUrl }: Props) {
       }}
     >
       {/* After (full background) */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      {/* next/image ŞART: R2 public URL'i (pub-*.r2.dev) tarayıcıdan doğrudan
+          açılmıyor; next/image sunucu tarafında çekip yeniden servis eder.
+          Ham <img> kullanılırsa iyileştirilen görsel boş görünür. */}
+      <Image
         src={afterUrl}
         alt="Sonrası"
-        className="absolute inset-0 h-full w-full object-cover"
+        fill
+        sizes="(min-width: 768px) 60vw, 100vw"
+        className="object-cover"
         draggable={false}
+        unoptimized={false}
       />
 
       {/* Before (clipped) */}
@@ -73,11 +79,12 @@ export function StudioBeforeAfter({ beforeUrl, afterUrl }: Props) {
         className="absolute inset-0 overflow-hidden"
         style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={beforeUrl}
           alt="Öncesi"
-          className="h-full w-full object-cover"
+          fill
+          sizes="(min-width: 768px) 60vw, 100vw"
+          className="object-cover"
           draggable={false}
         />
       </div>
