@@ -60,6 +60,17 @@ export function isPremium(plan: string | null | undefined): boolean {
 }
 
 /**
+ * AI Stüdyo TEST MODU — kredi kapıları kapalı, üretim sınırsız.
+ * Test bitince env'den kaldırılır; kredi muhasebesi kaldığı yerden işler.
+ * Not: kötüye kullanım tavanları (eşzamanlı/günlük iş sayısı) BU BAYRAKTAN
+ * ETKİLENMEZ — kaçak döngü Fal bakiyesini yakmasın diye açık kalır.
+ * Env çağrı anında okunur (Vercel'de değişince build gerekmesin).
+ */
+export function isStudioUnlimited(): boolean {
+  return process.env.STUDIO_UNLIMITED === "true";
+}
+
+/**
  * Super-admin (site yöneticisi) e-posta kontrolü.
  * SUPER_ADMIN_EMAILS env'i virgülle ayrılmış e-posta listesi tutar.
  */

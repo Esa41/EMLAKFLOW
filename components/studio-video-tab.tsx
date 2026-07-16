@@ -72,6 +72,8 @@ type MediaItem = {
 };
 
 type Props = {
+  /** Test modu — kredi kapıları kapalı (sunucu da bedel almıyor) */
+  unlimited: boolean;
   listingId: string;
   /** İlan tipi (APARTMENT | LAND | …) — önerilen şablon rozeti için */
   listingType: string | null;
@@ -94,6 +96,7 @@ const SCENE_STATUS_LABEL: Record<string, string> = {
 };
 
 export function StudioVideoTab({
+  unlimited,
   listingId,
   listingType,
   media,
@@ -484,7 +487,9 @@ export function StudioVideoTab({
                             handleRegenerate(s.id, s.durationSec === 10 ? 2 : 1)
                           }
                           disabled={
-                            pending || videoCredits < (s.durationSec === 10 ? 2 : 1)
+                            pending ||
+                            (!unlimited &&
+                              videoCredits < (s.durationSec === 10 ? 2 : 1))
                           }
                           className="flex items-center gap-1 text-[10px] font-semibold text-ink/45 hover:text-brand-600 disabled:opacity-40"
                           title={`${s.durationSec === 10 ? 2 : 1} kredi ile yeniden üret`}
@@ -1045,7 +1050,7 @@ export function StudioVideoTab({
                     pending ||
                     !selectedTemplate ||
                     selectedPhotos.length === 0 ||
-                    videoCredits < totalCost
+                    (!unlimited && videoCredits < totalCost)
                   }
                   className="dash-btn-primary"
                 >
@@ -1063,9 +1068,11 @@ export function StudioVideoTab({
                 </button>
                 <span className="text-xs text-ink/45">
                   {selectedPhotos.length > 0
-                    ? videoCredits >= totalCost
-                      ? `${totalCost} kredi düşülecek — kalan: ${videoCredits}`
-                      : `Yetersiz kredi: ${totalCost} gerekli, ${videoCredits} kaldı`
+                    ? unlimited
+                      ? "Test modu — kredi düşülmez"
+                      : videoCredits >= totalCost
+                        ? `${totalCost} kredi düşülecek — kalan: ${videoCredits}`
+                        : `Yetersiz kredi: ${totalCost} gerekli, ${videoCredits} kaldı`
                     : `Kalan kredi: ${videoCredits}`}
                 </span>
               </div>

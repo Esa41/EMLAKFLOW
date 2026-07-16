@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { forTenant } from "@/lib/tenant";
-import { isPro, isPremium } from "@/lib/plans";
+import { isPro, isPremium, isStudioUnlimited } from "@/lib/plans";
 import { enhanceImage } from "@/lib/ai-provider-registry";
 import { putObject, publicUrl, deleteObject } from "@/lib/r2";
 import { processListingImage, variantKeys } from "@/lib/images";
@@ -69,6 +69,8 @@ export type StudioCredits = {
   imageCredits: number;
   videoCredits: number;
   plan: string;
+  /** Test modu — kredi kapıları kapalı, üretim sınırsız */
+  unlimited: boolean;
 };
 
 export type StudioJobItem = {
@@ -100,6 +102,7 @@ export async function getStudioCredits(): Promise<StudioCredits | null> {
     imageCredits: tenant.aiImageCredits,
     videoCredits: tenant.aiVideoCredits,
     plan: tenant.plan,
+    unlimited: isStudioUnlimited(),
   };
 }
 
@@ -191,7 +194,10 @@ export async function enhancePhoto(input: {
     return { ok: false, error: "AI Stüdyo Pro veya Premium plan gerektirir." };
   }
 
-  if (tenant.aiImageCredits < 1) {
+  // Test modunda kredi kapısı kapalı (bedel 0 → iade de no-op)
+  const unlimited = isStudioUnlimited();
+  const enhanceCost = unlimited ? 0 : 1;
+  if (!unlimited && tenant.aiImageCredits < 1) {
     return { ok: false, error: "Fotoğraf iyileştirme krediniz kalmadı. Aylık yenilenme bekleniyor." };
   }
 
@@ -215,10 +221,12 @@ export async function enhancePhoto(input: {
   }
 
   // Krediyi düş — iş başarısız olursa aşağıda iade edilir
-  await prisma.tenant.update({
-    where: { id: session.tenantId },
-    data: { aiImageCredits: { decrement: 1 } },
-  });
+  if (enhanceCost > 0) {
+    await prisma.tenant.update({
+      where: { id: session.tenantId },
+      data: { aiImageCredits: { decrement: enhanceCost } },
+    });
+  }
 
   const job = await prisma.studioJob.create({
     data: {
@@ -229,7 +237,7 @@ export async function enhancePhoto(input: {
       status: "PROCESSING",
       inputMediaId: media.id,
       inputUrl: media.url,
-      creditCost: 1,
+      creditCost: enhanceCost,
     },
   });
 
@@ -280,7 +288,7 @@ export async function enhancePhoto(input: {
     await prisma.$transaction([
       prisma.tenant.update({
         where: { id: session.tenantId },
-        data: { aiImageCredits: { increment: 1 } },
+        data: { aiImageCredits: { increment: enhanceCost } },
       }),
       prisma.studioJob.update({
         where: { id: job.id },

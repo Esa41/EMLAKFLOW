@@ -77,9 +77,9 @@ export function StudioWorkspace({ listings, credits, history, templatePreviews }
               Fotoğraf
             </p>
             <p className="font-display text-[22px] font-bold leading-none tracking-tight tabular-nums">
-              {imageCredits}
+              {credits.unlimited ? "∞" : imageCredits}
               <span className="ml-1 text-[12px] font-medium text-ink/35">
-                kredi
+                {credits.unlimited ? "test modu" : "kredi"}
               </span>
             </p>
           </div>
@@ -94,9 +94,9 @@ export function StudioWorkspace({ listings, credits, history, templatePreviews }
               Video
             </p>
             <p className="font-display text-[22px] font-bold leading-none tracking-tight tabular-nums">
-              {videoCredits}
+              {credits.unlimited ? "∞" : videoCredits}
               <span className="ml-1 text-[12px] font-medium text-ink/35">
-                kredi
+                {credits.unlimited ? "test modu" : "kredi"}
               </span>
             </p>
           </div>
@@ -243,6 +243,7 @@ export function StudioWorkspace({ listings, credits, history, templatePreviews }
           {/* Tab içerikleri */}
           {activeTab === "photo" ? (
             <StudioPhotoTab
+              unlimited={credits.unlimited}
               listingId={selectedListing.id}
               media={selectedListing.media}
               imageCredits={imageCredits}
@@ -250,6 +251,7 @@ export function StudioWorkspace({ listings, credits, history, templatePreviews }
             />
           ) : (
             <StudioVideoTab
+              unlimited={credits.unlimited}
               listingId={selectedListing.id}
               listingType={selectedListing.type}
               media={selectedListing.media}

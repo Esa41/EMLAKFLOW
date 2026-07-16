@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isPro, isPremium } from "@/lib/plans";
+import { isPro, isPremium, isStudioUnlimited } from "@/lib/plans";
 import {
   generateVideo,
   generateVoice,
@@ -336,11 +336,18 @@ export async function createStudioProject(input: {
         ? 5
         : sceneDefaults(template, i).durationSec,
   );
-  const sceneCosts = sceneDurations.map((d) => (d === 10 ? 2 : 1));
-  const cost = isReference
-    ? REFERENCE_CREDIT_COST
-    : sceneCosts.reduce((a, b) => a + b, 0);
-  if (tenant.aiVideoCredits < cost) {
+  // Test modunda tüm bedeller 0 → kredi düşülmez; iş kayıtlarının creditCost'u
+  // da 0 olduğu için başarısızlıktaki iade (increment: creditCost) no-op olur.
+  const unlimited = isStudioUnlimited();
+  const sceneCosts: number[] = sceneDurations.map((d) =>
+    unlimited ? 0 : d === 10 ? 2 : 1,
+  );
+  const cost = unlimited
+    ? 0
+    : isReference
+      ? REFERENCE_CREDIT_COST
+      : sceneCosts.reduce((a, b) => a + b, 0);
+  if (!unlimited && tenant.aiVideoCredits < cost) {
     return {
       ok: false,
       error: `Bu video ${cost} kredi gerektirir, kalan krediniz ${tenant.aiVideoCredits}.`,
@@ -399,10 +406,13 @@ export async function createStudioProject(input: {
   );
 
   // Krediyi düş — sahne bazında başarısızlıkta tek tek iade edilir
-  await prisma.tenant.update({
-    where: { id: session.tenantId },
-    data: { aiVideoCredits: { decrement: cost } },
-  });
+  // (test modunda cost=0 → düşülmez)
+  if (cost > 0) {
+    await prisma.tenant.update({
+      where: { id: session.tenantId },
+      data: { aiVideoCredits: { decrement: cost } },
+    });
+  }
 
   const project = await prisma.studioProject.create({
     data: {
@@ -647,15 +657,18 @@ export async function regenerateScene(sceneId: string): Promise<ProjectResult> {
   }
 
   // Yeniden üretim sahnenin süresini korur — 10 sn sahne 2 kredi
-  const regenCost = scene.durationSec === 10 ? 2 : 1;
+  // (test modunda bedelsiz)
+  const unlimited = isStudioUnlimited();
+  const regenCost = unlimited ? 0 : scene.durationSec === 10 ? 2 : 1;
   const tenant = await prisma.tenant.findUnique({
     where: { id: session.tenantId },
     select: { aiVideoCredits: true },
   });
-  if (!tenant || tenant.aiVideoCredits < regenCost) {
+  if (!tenant) return { ok: false, error: "Ofis bulunamadı." };
+  if (!unlimited && tenant.aiVideoCredits < regenCost) {
     return {
       ok: false,
-      error: `Bu sahne ${regenCost} kredi gerektirir, kalan krediniz ${tenant?.aiVideoCredits ?? 0}.`,
+      error: `Bu sahne ${regenCost} kredi gerektirir, kalan krediniz ${tenant.aiVideoCredits}.`,
     };
   }
 
@@ -663,10 +676,12 @@ export async function regenerateScene(sceneId: string): Promise<ProjectResult> {
   const quotaError = await checkVideoQuota(session.tenantId, 1);
   if (quotaError) return { ok: false, error: quotaError };
 
-  await prisma.tenant.update({
-    where: { id: session.tenantId },
-    data: { aiVideoCredits: { decrement: regenCost } },
-  });
+  if (regenCost > 0) {
+    await prisma.tenant.update({
+      where: { id: session.tenantId },
+      data: { aiVideoCredits: { decrement: regenCost } },
+    });
+  }
 
   const job = await prisma.studioJob.create({
     data: {

@@ -27,6 +27,8 @@ type MediaItem = {
 };
 
 type Props = {
+  /** Test modu — kredi kapıları kapalı */
+  unlimited: boolean;
   listingId: string;
   media: MediaItem[];
   imageCredits: number;
@@ -42,6 +44,7 @@ type EnhanceState = {
 };
 
 export function StudioPhotoTab({
+  unlimited,
   listingId,
   media,
   imageCredits,
@@ -167,9 +170,11 @@ export function StudioPhotoTab({
               <div>
                 <p className="text-sm font-semibold">Seçili fotoğraf</p>
                 <p className="text-xs text-ink/45">
-                  {imageCredits > 0
-                    ? `${imageCredits} iyileştirme hakkınız var`
-                    : "Krediniz kalmadı"}
+                  {unlimited
+                    ? "Test modu — sınırsız iyileştirme"
+                    : imageCredits > 0
+                      ? `${imageCredits} iyileştirme hakkınız var`
+                      : "Krediniz kalmadı"}
                 </p>
               </div>
             </div>
@@ -183,7 +188,7 @@ export function StudioPhotoTab({
               </button>
               <button
                 onClick={handleEnhance}
-                disabled={pending || imageCredits < 1}
+                disabled={pending || (!unlimited && imageCredits < 1)}
                 className="dash-btn-primary"
               >
                 {pending ? (
