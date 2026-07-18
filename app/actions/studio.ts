@@ -29,7 +29,9 @@ async function ensureMonthlyReset(tenantId: string) {
   const resetMonth = resetAt.getMonth();
   const resetYear = resetAt.getFullYear();
 
-  // Ay değişmişse reset yap
+  // Ay değişmişse SADECE foto hakkını yenile. Video kredisi SATIN ALINAN
+  // bakiyedir → asla sıfırlanmaz (yoksa kullanıcının parayla aldığı krediler
+  // her ay silinir). Video yalnızca satın alma / admin yükleme ile artar.
   if (now.getMonth() !== resetMonth || now.getFullYear() !== resetYear) {
     const planKey = isPremium(tenant.plan) ? "premium" : isPro(tenant.plan) ? "pro" : "free";
     const limits = PLAN_CREDITS[planKey];
@@ -38,8 +40,8 @@ async function ensureMonthlyReset(tenantId: string) {
       where: { id: tenantId },
       data: {
         aiImageCredits: limits.image,
-        aiVideoCredits: limits.video,
         aiCreditsResetAt: now,
+        // aiVideoCredits KASITLI olarak dokunulmaz — satın alınan bakiye
       },
     });
   }

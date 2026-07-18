@@ -2,32 +2,36 @@ import { prisma } from "./prisma";
 import { forTenant } from "./tenant";
 import { getSession } from "./auth";
 
-/** Ücretsiz (Pro/Premium olmayan) planda izin verilen maksimum ilan sayısı. */
-export const FREE_LISTING_LIMIT = 3;
+/**
+ * Ücretsiz planda izin verilen maksimum ilan sayısı. Bunu aşan ofis Pro'ya
+ * (₺25.000/yıl) geçmek zorunda. Model: CRM ücretsiz (edinme kancası) →
+ * gelir AI video kredilerinden + 20+ ilanlı ofisin yıllık paketinden.
+ */
+export const FREE_LISTING_LIMIT = 20;
 
 /**
- * Paket mimarisi: Başlangıç + Pro + Premium (white-label).
- * Premium = Pro hakları + kendi marka / alan adı + panelde EmlakFlow gizleme.
- * Tenant.plan: trial | starter | free | pro | premium
+ * Paket mimarisi: CRM ÜCRETSİZ (20 ilana kadar) → 20+ ilan mecburi Pro.
+ * Video her planda AYRI KREDİ (satın alınır, sıfırlanmaz). Foto aylık hediye.
+ * Tenant.plan: trial | free | pro | premium
  */
 export const PLANS = {
   free: {
     key: "free",
-    name: "Başlangıç",
+    name: "Ücretsiz",
     monthlyTRY: 0,
     yearlyTRY: 0,
     listingLimit: FREE_LISTING_LIMIT,
-    userLimit: 1,
-    tagline: "Tek başına çalışan danışman için",
+    userLimit: null,
+    tagline: "Emlak ofisinin ücretsiz işletim sistemi",
   },
   pro: {
     key: "pro",
     name: "Pro",
-    monthlyTRY: 2000,
-    yearlyTRY: 20000, // 10 × aylık — 2 ay hediye
+    monthlyTRY: 0, // yalnızca yıllık
+    yearlyTRY: 25000, // 20+ ilanlı ofis için mecburi yıllık paket
     listingLimit: null, // sınırsız
     userLimit: null,
-    tagline: "Emlak ofisinin tüm işletim sistemi",
+    tagline: "20+ ilanlı ofisler için — sınırsız portföy",
   },
   premium: {
     key: "premium",
@@ -43,25 +47,27 @@ export const PLANS = {
 export type PlanKey = keyof typeof PLANS;
 
 /**
- * AI Stüdyo aylık dahil kredileri (plan bazlı reset).
- * Video pahalı (~₺100/adet gerçek maliyet) → cömert bundle'lanmaz; fazlası
- * top-up. Foto ucuz (~₺3.5) → cömert. Tek kaynak — app/actions/studio.ts
- * PLAN_CREDITS buradan türer.
+ * AI Stüdyo aylık ÜCRETSİZ FOTO hakkı (plan bazlı reset).
+ * VIDEO buraya girmez — video satın alınan kredidir (sıfırlanmaz, bkz.
+ * CREDIT_TOPUP_PACKS). Foto ucuz (~₺5/adet) → aylık hediye, edinme kancası.
+ * Tek kaynak — app/actions/studio.ts PLAN_CREDITS buradan türer.
  */
 export const STUDIO_ALLOTMENT = {
-  free: { image: 0, video: 0 },
-  pro: { image: 100, video: 5 },
-  premium: { image: 500, video: 15 },
+  free: { image: 10, video: 0 }, // ücretsiz aylık 10 foto (video: satın alınır)
+  pro: { image: 100, video: 0 },
+  premium: { image: 500, video: 0 },
 } as const;
 
 /**
- * Video kredisi top-up paketleri (şimdilik manuel havale → süper-admin yükler).
- * Fiyatlar ~₺100/video maliyet üzerine marjlı; kur değişince güncellenmeli.
+ * Video kredisi paketleri. Video her planda satın alınır — kredi bakiyesi
+ * ay sonunda SIFIRLANMAZ, kullanılana dek kalır. Gerçek maliyet ~₺125/video
+ * (10sn/720p); fiyatlar 2.4-3.2x marjlı. Kur değişince güncellenmeli.
+ * Şimdilik manuel havale → süper-admin bakiyeyi yükler.
  */
 export const CREDIT_TOPUP_PACKS = [
-  { key: "v5", videos: 5, priceTRY: 999 },
-  { key: "v10", videos: 10, priceTRY: 1799, badge: "Popüler" },
-  { key: "v25", videos: 25, priceTRY: 3999, badge: "En avantajlı" },
+  { key: "v1", videos: 1, priceTRY: 400 },
+  { key: "v5", videos: 5, priceTRY: 2000, badge: "Popüler" },
+  { key: "v10", videos: 10, priceTRY: 3000, badge: "En avantajlı" },
 ] as const;
 
 /** Tenant.plan (serbest string) → paket anahtarı. */

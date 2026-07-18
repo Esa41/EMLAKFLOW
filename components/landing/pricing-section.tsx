@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
-import { PLANS, STUDIO_ALLOTMENT, CREDIT_TOPUP_PACKS } from "@/lib/plans";
+import { PLANS, STUDIO_ALLOTMENT, CREDIT_TOPUP_PACKS, FREE_LISTING_LIMIT } from "@/lib/plans";
 
 const tlFmt = new Intl.NumberFormat("tr-TR");
 
@@ -27,12 +27,13 @@ const CARDS = [
     priceSuffix: "her zaman",
     yearlyNote: null as string | null,
     features: [
-      `${PLANS.free.listingLimit} ilan hakkı`,
-      "1 kullanıcı",
-      "Portföy ve kişi yönetimi",
-      "Fırsat panosu (kanban)",
-      "Harita vitrini (EmlakFlow rozetli)",
-      "Vitrin talep formu",
+      `${PLANS.free.listingLimit} ilana kadar ücretsiz`,
+      "Sınırsız kullanıcı — tüm ekibin",
+      "Portföy, kişi ve fırsat yönetimi",
+      "Harita vitrini + talep formu",
+      "Ajanda, görev, kira takibi",
+      `AI Stüdyo: ayda ${STUDIO_ALLOTMENT.free.image} ücretsiz foto iyileştirme`,
+      "AI tanıtım videosu — kredi ile (₺400'den başlayan)",
     ],
   },
   {
@@ -42,21 +43,20 @@ const CARDS = [
     cta: "Pro'ya geç",
     href: "/register",
     highlight: true,
-    priceLabel: `₺${tl.format(PLANS.pro.monthlyTRY)}`,
-    priceSuffix: "/ ay · ofis başına",
-    yearlyNote: `Yıllık ödemede ₺${tl.format(PLANS.pro.yearlyTRY)}/yıl — 2 ay hediye`,
+    priceLabel: `₺${tl.format(PLANS.pro.yearlyTRY)}`,
+    priceSuffix: "/ yıl · ofis başına",
+    yearlyNote: `${FREE_LISTING_LIMIT}+ ilanlı ofisler için — sınırsız portföy`,
     features: [
-      "Sınırsız ilan",
+      "Sınırsız ilan (20+ ilan için gerekli)",
       "Sınırsız kullanıcı — tüm ekibine hesap aç",
       "Alıcı–portföy akıllı eşleştirme",
       "AI ilan metni, SEO ve fiyat danışmanı",
       "Haftalık mülk sahibi raporu (WhatsApp/PDF)",
       "Vitrin dönüşüm analitiği",
-      "Ajanda, görev ve yer gösterme takibi",
       "Ekip sohbeti + vitrin canlı sohbet",
-      "Kira takibi ve otomatik hatırlatmalar",
       "Sözleşme üretimi + danışman kazanç paylaşımı",
-      `AI Stüdyo: ayda ${STUDIO_ALLOTMENT.pro.video} tanıtım videosu + ${STUDIO_ALLOTMENT.pro.image} foto iyileştirme`,
+      `AI Stüdyo: ayda ${STUDIO_ALLOTMENT.pro.image} foto iyileştirme dahil`,
+      "AI tanıtım videosu — kredi ile (Pro üye indirimi)",
     ],
   },
   {
@@ -72,7 +72,7 @@ const CARDS = [
     yearlyNote: "Özel fiyatlandırma · white-label dahil",
     features: [
       "Pro’daki tüm özellikler dahil",
-      `AI Stüdyo: ayda ${STUDIO_ALLOTMENT.premium.video} tanıtım videosu + ${STUDIO_ALLOTMENT.premium.image} foto iyileştirme`,
+      `AI Stüdyo: ayda ${STUDIO_ALLOTMENT.premium.image} foto iyileştirme dahil`,
       "Rozetsiz vitrin + kendi logon ve marka rengin",
       "Kendi alan adınız (custom domain)",
       "Panel ve vitrinde EmlakFlow gizlenir",
@@ -204,8 +204,9 @@ export function PricingSection() {
               Daha fazla tanıtım videosu mu gerek?
             </h3>
             <p className="mt-2 text-[13px] text-ink/55">
-              Plan dahili videolar bitince kredi paketi ekleyin. Her kredi = bir
-              ilan tanıtım videosu.
+              Ücretsiz planda bile video üretin — her kredi = bir ilan tanıtım
+              videosu. Kredi bakiyeniz kullanılana dek durur, ay sonunda
+              sıfırlanmaz.
             </p>
           </div>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
