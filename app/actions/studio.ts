@@ -4,16 +4,16 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { forTenant } from "@/lib/tenant";
-import { isPro, isPremium, isStudioUnlimited } from "@/lib/plans";
-import { enhanceImage } from "@/lib/ai-provider-registry";
+import { isPro, isPremium, isStudioUnlimited, STUDIO_ALLOTMENT } from "@/lib/plans";
+import { enhanceImage, enhanceCostUsd } from "@/lib/ai-provider-registry";
 import { putObject, publicUrl, deleteObject } from "@/lib/r2";
 import { processListingImage, variantKeys } from "@/lib/images";
 
-// ── Plan bazlı aylık kredi limitleri ──
+// ── Plan bazlı aylık kredi limitleri — tek kaynak: lib/plans.ts ──
 const PLAN_CREDITS = {
-  pro:     { image: 300, video: 10 },
-  premium: { image: 1000, video: 30 },
-  free:    { image: 0, video: 0 },
+  pro: STUDIO_ALLOTMENT.pro,
+  premium: STUDIO_ALLOTMENT.premium,
+  free: STUDIO_ALLOTMENT.free,
 } as const;
 
 /** Aylık kredi reset kontrolü — gerekirse kredileri sıfırlar ve yeni hakları yazar. */
@@ -264,9 +264,19 @@ export async function enhancePhoto(input: {
     await putObject(outputKey, Buffer.from(await res.arrayBuffer()), contentType);
     const outputUrl = publicUrl(outputKey);
 
+    // Gerçek maliyet: çıktı megapiksel × clarity fiyatı (muhasebe)
+    const outMp =
+      result.width && result.height
+        ? (result.width * result.height) / 1e6
+        : 3.5; // çıktı boyutu yoksa tipik kırpık foto ~3.5MP
     await prisma.studioJob.update({
       where: { id: job.id },
-      data: { status: "COMPLETED", outputUrl, outputKey },
+      data: {
+        status: "COMPLETED",
+        outputUrl,
+        outputKey,
+        costUsd: enhanceCostUsd(outMp),
+      },
     });
 
     const updatedTenant = await prisma.tenant.findUnique({

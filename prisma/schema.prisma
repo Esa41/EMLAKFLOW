@@ -1064,6 +1064,7 @@ model StudioJob {
 
   creditCost         Int     @default(1)     // düşülen kredi miktarı
   appliedToListing   Boolean @default(false) // çıktı ilana entegre edildi mi
+  costUsd            Float?                   // gerçek vendor maliyeti (muhasebe)
 
   // Dış sağlayıcı — null = legacy Fal; yeni VIDEO_MERGE işleri SHOTSTACK
   provider AiProvider?

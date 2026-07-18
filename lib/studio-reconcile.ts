@@ -17,6 +17,7 @@ import {
   getVideoStatus,
   getVideoResult,
   getMergeResult,
+  videoCostUsd,
   FFMPEG_COMPOSE_MODEL,
 } from "@/lib/ai-provider-registry";
 import { getShotstackRender } from "@/lib/shotstack";
@@ -41,6 +42,8 @@ type PendingScene = {
   /** Submit anında çözülen TAM model yolu — Kling ve Seedance farklı uçlar;
    *  null = eski işler (env/varsayılan Kling'e düşer). */
   model: string | null;
+  /** Gerçek maliyet hesabı için süre (Kling 5/10, Seedance ~10). */
+  durationSec: number;
 };
 
 /** Tamamlanan sahneyi R2'ye alıp COMPLETED'a çeker (claim korumalı). */
@@ -60,7 +63,13 @@ async function completeScene(scene: PendingScene, tenantId: string) {
   if (claimed.count > 0 && scene.jobId) {
     await prisma.studioJob.update({
       where: { id: scene.jobId },
-      data: { status: "COMPLETED", outputUrl, outputKey: key },
+      data: {
+        status: "COMPLETED",
+        outputUrl,
+        outputKey: key,
+        // Gerçek vendor maliyeti (Kling/Seedance × süre) — muhasebe
+        costUsd: videoCostUsd(scene.model ?? "kling", scene.durationSec),
+      },
     });
   }
 }
@@ -104,6 +113,7 @@ export async function reconcileProject(projectId: string): Promise<void> {
         select: {
           id: true,
           jobId: true,
+          durationSec: true,
           job: {
             select: {
               externalRequestId: true,
@@ -131,6 +141,7 @@ export async function reconcileProject(projectId: string): Promise<void> {
       requestId,
       creditCost: s.job?.creditCost ?? 1,
       model: s.job?.externalModel ?? null,
+      durationSec: s.durationSec,
     };
 
     try {

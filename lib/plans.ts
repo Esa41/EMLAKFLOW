@@ -42,6 +42,28 @@ export const PLANS = {
 
 export type PlanKey = keyof typeof PLANS;
 
+/**
+ * AI Stüdyo aylık dahil kredileri (plan bazlı reset).
+ * Video pahalı (~₺100/adet gerçek maliyet) → cömert bundle'lanmaz; fazlası
+ * top-up. Foto ucuz (~₺3.5) → cömert. Tek kaynak — app/actions/studio.ts
+ * PLAN_CREDITS buradan türer.
+ */
+export const STUDIO_ALLOTMENT = {
+  free: { image: 0, video: 0 },
+  pro: { image: 100, video: 5 },
+  premium: { image: 500, video: 15 },
+} as const;
+
+/**
+ * Video kredisi top-up paketleri (şimdilik manuel havale → süper-admin yükler).
+ * Fiyatlar ~₺100/video maliyet üzerine marjlı; kur değişince güncellenmeli.
+ */
+export const CREDIT_TOPUP_PACKS = [
+  { key: "v5", videos: 5, priceTRY: 999 },
+  { key: "v10", videos: 10, priceTRY: 1799, badge: "Popüler" },
+  { key: "v25", videos: 25, priceTRY: 3999, badge: "En avantajlı" },
+] as const;
+
 /** Tenant.plan (serbest string) → paket anahtarı. */
 export function planKeyFromTenant(plan: string | null | undefined): PlanKey {
   if (plan === "premium") return "premium";

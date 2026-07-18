@@ -8,6 +8,7 @@ import {
   generateVideo,
   generateVoice,
   generateReferenceVideo,
+  mergeCostUsd,
 } from "@/lib/ai-provider-registry";
 import { putObject, publicUrl, presignDownload } from "@/lib/r2";
 import { reconcileProject } from "@/lib/studio-reconcile";
@@ -1084,6 +1085,11 @@ export async function mergeProject(input: {
     });
     const { renderId } = await submitShotstackRender(edit);
 
+    // Gerçek maliyet: Shotstack render (toplam süre) + seslendirme karakteri.
+    // Shotstack tamamlansa da olmasa da faturalanır → submit anında yazılır.
+    const totalSec = scenes.reduce((sum, s) => sum + s.durationSec, 0);
+    const voiceChars = (audioKeyframes ? project.voiceText?.length : 0) ?? 0;
+
     await prisma.studioJob.create({
       data: {
         tenantId: session.tenantId,
@@ -1095,6 +1101,7 @@ export async function mergeProject(input: {
         provider: "SHOTSTACK",
         externalRequestId: renderId,
         creditCost: 0, // birleştirme kredi düşmez
+        costUsd: mergeCostUsd(totalSec, voiceChars),
       },
     });
 

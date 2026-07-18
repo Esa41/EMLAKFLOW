@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
-import { PLANS } from "@/lib/plans";
+import { PLANS, STUDIO_ALLOTMENT, CREDIT_TOPUP_PACKS } from "@/lib/plans";
+
+const tlFmt = new Intl.NumberFormat("tr-TR");
 
 /**
  * Landing fiyatlandırma — Başlangıç + Pro + Kurumsal (white-label).
@@ -54,6 +56,7 @@ const CARDS = [
       "Ekip sohbeti + vitrin canlı sohbet",
       "Kira takibi ve otomatik hatırlatmalar",
       "Sözleşme üretimi + danışman kazanç paylaşımı",
+      `AI Stüdyo: ayda ${STUDIO_ALLOTMENT.pro.video} tanıtım videosu + ${STUDIO_ALLOTMENT.pro.image} foto iyileştirme`,
     ],
   },
   {
@@ -69,6 +72,7 @@ const CARDS = [
     yearlyNote: "Özel fiyatlandırma · white-label dahil",
     features: [
       "Pro’daki tüm özellikler dahil",
+      `AI Stüdyo: ayda ${STUDIO_ALLOTMENT.premium.video} tanıtım videosu + ${STUDIO_ALLOTMENT.premium.image} foto iyileştirme`,
       "Rozetsiz vitrin + kendi logon ve marka rengin",
       "Kendi alan adınız (custom domain)",
       "Panel ve vitrinde EmlakFlow gizlenir",
@@ -188,6 +192,46 @@ export function PricingSection() {
               </div>
             );
           })}
+        </div>
+
+        {/* AI Stüdyo ek video kredisi paketleri */}
+        <div className="mx-auto mt-14 max-w-3xl rounded-2xl border border-ink/12 bg-paper p-7">
+          <div className="text-center">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-brand-600">
+              AI Stüdyo — Ek Video Kredisi
+            </p>
+            <h3 className="mt-2 font-display text-xl font-extrabold tracking-tight">
+              Daha fazla tanıtım videosu mu gerek?
+            </h3>
+            <p className="mt-2 text-[13px] text-ink/55">
+              Plan dahili videolar bitince kredi paketi ekleyin. Her kredi = bir
+              ilan tanıtım videosu.
+            </p>
+          </div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {CREDIT_TOPUP_PACKS.map((pack) => (
+              <div
+                key={pack.key}
+                className="relative rounded-xl border border-ink/12 bg-white p-5 text-center"
+              >
+                {"badge" in pack && pack.badge && (
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                    {pack.badge}
+                  </span>
+                )}
+                <p className="font-display text-2xl font-extrabold tracking-tight">
+                  {pack.videos}
+                  <span className="ml-1 text-sm font-medium text-ink/50">video</span>
+                </p>
+                <p className="mt-1 text-lg font-bold text-brand-600">
+                  ₺{tlFmt.format(pack.priceTRY)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-ink/45">
+                  video başı ₺{tlFmt.format(Math.round(pack.priceTRY / pack.videos))}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <p className="mt-8 text-center text-[12px] text-ink/45">

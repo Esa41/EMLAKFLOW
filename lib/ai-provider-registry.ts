@@ -41,6 +41,43 @@ export const PROVIDER_REGISTRY: Record<AiProviderKey, ProviderDefinition> = {
   },
 };
 
+// ── Gerçek vendor maliyeti (muhasebe) ──
+// Fal/Shotstack/ElevenLabs güncel liste fiyatları (USD). Fiyat değişirse
+// burayı güncelle; StudioJob.costUsd bu fonksiyonlarla yazılır.
+export const COST_RATES_USD = {
+  klingPerSec: 0.056, // Kling v2.1 standard image-to-video
+  seedanceFastPerSec: 0.24, // Seedance 2.0 fast (720p)
+  seedanceStandardPerSec: 0.3, // Seedance 2.0 standard (1080p)
+  clarityPerMegapixel: 0.03, // Clarity upscaler (çıktı MP başına)
+  shotstackPerMin: 0.4, // Shotstack pay-as-you-go
+  elevenPer1kChars: 0.3, // ElevenLabs (aşım fiyatı)
+} as const;
+
+const round4 = (n: number) => Math.round(n * 1e4) / 1e4;
+
+/** Video üretim maliyeti — model + süreden. Seedance fast/standard ayrımı yapılır. */
+export function videoCostUsd(model: string, durationSec: number): number {
+  if (model.includes("seedance")) {
+    const rate = model.includes("/fast/")
+      ? COST_RATES_USD.seedanceFastPerSec
+      : COST_RATES_USD.seedanceStandardPerSec;
+    return round4(rate * durationSec);
+  }
+  return round4(COST_RATES_USD.klingPerSec * durationSec); // Kling varsayılan
+}
+
+/** Foto iyileştirme maliyeti — çıktı megapiksel başına. */
+export function enhanceCostUsd(outputMegapixels: number): number {
+  return round4(COST_RATES_USD.clarityPerMegapixel * Math.max(outputMegapixels, 1));
+}
+
+/** Shotstack birleştirme + (varsa) seslendirme maliyeti — toplam süre + karakter. */
+export function mergeCostUsd(totalSec: number, voiceChars = 0): number {
+  const shotstack = (COST_RATES_USD.shotstackPerMin / 60) * totalSec;
+  const voice = (COST_RATES_USD.elevenPer1kChars / 1000) * voiceChars;
+  return round4(shotstack + voice);
+}
+
 export type ProviderConfig = {
   provider: AiProviderKey;
   /** Verilmezse ilgili .env değişkeninden okunur */
