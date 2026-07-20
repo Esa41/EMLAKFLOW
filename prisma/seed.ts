@@ -18,6 +18,7 @@ const prisma = new PrismaClient();
 const SLUG_ATLAS = "atlas-gayrimenkul";
 const SLUG_VIP = "vip-gayrimenkul";
 const SLUG_GALERI = "akdeniz-otomotiv"; // AUTO_DEALER dikeyi demo galerisi
+const SLUG_PRESTIJ = "prestij-gayrimenkul"; // AI Stüdyo vitrin ofisi (referans videolar)
 // Prisma, Decimal alanlara number kabul eder — P sadece okunabilirlik için
 const P = (n: number) => n;
 
@@ -75,7 +76,7 @@ function daysFromNow(n: number, h = 10, m = 0) {
 
 async function main() {
   // Önceki demo'ları temizle (cascade tüm alt kayıtları siler)
-  await prisma.tenant.deleteMany({ where: { slug: { in: [SLUG_ATLAS, SLUG_VIP, SLUG_GALERI] } } });
+  await prisma.tenant.deleteMany({ where: { slug: { in: [SLUG_ATLAS, SLUG_VIP, SLUG_GALERI, SLUG_PRESTIJ] } } });
 
   const passwordHash = await hash("demo1234", 12);
 
@@ -1620,6 +1621,7 @@ async function main() {
   console.log(`  🌐 Vitrin: /ofis/${SLUG_VIP}\n`);
 
   await seedGaleri();
+  await seedPrestij();
 }
 
 /**
@@ -1839,6 +1841,205 @@ async function seedGaleri() {
   console.log(`  Araçlar: ${listings.length} · Lead: ${leads.length} · Kira: 1 (${paymentRows.length} ödeme)`);
   console.log(`  🔑 Giriş: sahibi@akdenizotomotiv.com / demo1234`);
   console.log(`  🌐 Vitrin: /ofis/${SLUG_GALERI}\n`);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PRESTİJ GAYRİMENKUL — AI Stüdyo vitrin ofisi
+// Her ilan bir video şablonunun referans çekimi için kuruldu; fotoğraflar
+// R2'de demo/studio/<set>/<n>.jpg olarak GERÇEKTEN durur (reference modu
+// Fal'a presignDownload(key) verir — sahte key üretimi kırar).
+// ═══════════════════════════════════════════════════════════════════
+
+async function seedPrestij() {
+  const passwordHash = await hash("demo1234", 12);
+
+  const unsplash = (id: string) =>
+    `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=1600&q=80`;
+
+  const tenant = await prisma.tenant.create({
+    data: {
+      name: "Prestij Gayrimenkul",
+      slug: SLUG_PRESTIJ,
+      city: "İstanbul",
+      district: "Sarıyer",
+      phone: "+90 212 000 00 00",
+      whatsapp: "+90 532 000 20 01",
+      plan: "premium",
+      aiImageCredits: 500,
+      aiVideoCredits: 100,
+      showcaseEnabled: true,
+      showcaseTagline:
+        "İstanbul'un prestij bölgelerinde seçkin portföy — her ilan sinematik tanıtım videosuyla yayınlanır.",
+      aboutTitle: "Her mülk, kendi filmini hak eder.",
+      aboutText:
+        "Zekeriyaköy'den Nişantaşı'na, portföyümüzdeki her mülkü profesyonel görsellerle ve yapay zeka destekli tanıtım videolarıyla pazarlıyoruz. Doğru alıcıya, doğru hikâyeyle ulaşırız.",
+      visionText: "Gayrimenkul pazarlamasında yeni standart: video önce gelir.",
+      aboutStats: [
+        { value: "18", label: "Yıl" },
+        { value: "%40", label: "Daha hızlı satış" },
+        { value: "500+", label: "Video tanıtım" },
+      ],
+    },
+  });
+  const t = tenant.id;
+
+  const owner = await prisma.user.create({
+    data: {
+      tenantId: t,
+      name: "Selim Prestij",
+      email: "sahibi@prestijgayrimenkul.com",
+      passwordHash,
+      role: "OWNER",
+      phone: "+90 532 000 20 01",
+    },
+  });
+
+  // Şablon eşlemesi → fotoğraf seti (R2 demo/studio/<set>/)
+  type PL = {
+    set: string; // R2 klasörü + şablon hedefi (yorumda)
+    photos: string[]; // unsplash foto id'leri — sırası R2 key sırasıyla aynı
+    title: string;
+    purpose: "SALE" | "RENT";
+    type: "APARTMENT" | "VILLA" | "LAND" | "HOUSE";
+    price: number;
+    district: string;
+    neighborhood: string;
+    rooms?: string;
+    gross?: number;
+    net?: number;
+    floor?: number;
+    age?: number;
+    lat: number;
+    lng: number;
+    description: string;
+  };
+  const P_LISTINGS: PL[] = [
+    {
+      // → luxury_showcase
+      set: "villa-zekeriyakoy",
+      photos: ["1613490493576-7fde63acd811", "1613977257363-707ba9348227", "1613977257592-4871e5fcd7c4", "1600596542815-ffad4c1539a9", "1580587771525-78b9dba3b914", "1582268611958-ebfd161ef9cf", "1512917774080-9991f1c4c750"],
+      title: "Zekeriyaköy'de Havuzlu Modern Villa",
+      purpose: "SALE", type: "VILLA", price: 85_000_000,
+      district: "Sarıyer", neighborhood: "Zekeriyaköy",
+      rooms: "6+2", gross: 520, net: 450, age: 2, lat: 41.2033, lng: 29.0211,
+      description: "Özel peyzajlı bahçe içinde, sonsuzluk havuzlu, akıllı ev donanımlı modern villa. Çift kat yüksekliğinde salon, şömine, kapalı otopark ve güvenlikli site avantajı.",
+    },
+    {
+      // → fpv_tour
+      set: "daire-maslak",
+      photos: ["1600607687939-ce8a6c25118c", "1600607687920-4e2a09cf159d", "1600607687644-c7171b42498f", "1600585152220-90363fe7e115", "1600566752355-35792bedcfea", "1600566753086-00f18fb6b3ea", "1595526114035-0d45ed16cfbf"],
+      title: "Maslak'ta Boğaz Manzaralı Modern 3+1",
+      purpose: "SALE", type: "APARTMENT", price: 21_500_000,
+      district: "Sarıyer", neighborhood: "Maslak",
+      rooms: "3+1", gross: 165, net: 140, floor: 14, age: 1, lat: 41.1113, lng: 29.0208,
+      description: "A+ kulede, tavandan tabana cam cepheli, İtalyan mutfaklı sıfır daire. Rezidans hizmetleri, vale ve fitness dahil.",
+    },
+    {
+      // → cinematic_fpv
+      set: "penthouse-nisantasi",
+      photos: ["1618221195710-dd6b41faaea6", "1600210492486-724fe5c67fb0", "1600210491892-03d54c0aaf87", "1617806118233-18e1de247200", "1616486338812-3dadae4b4ace", "1583847268964-b28dc8f51f92", "1554995207-c18c203602cb"],
+      title: "Nişantaşı'nda Teraslı Dubleks Penthouse",
+      purpose: "SALE", type: "APARTMENT", price: 52_000_000,
+      district: "Şişli", neighborhood: "Teşvikiye",
+      rooms: "4+1", gross: 240, net: 205, floor: 9, age: 5, lat: 41.0482, lng: 28.9936,
+      description: "Şehir manzaralı 80 m² çatı terası, özel asansör holü ve tasarım mobilyalarla teslim. Nişantaşı'nın kalbinde eşsiz bir yaşam.",
+    },
+    {
+      // → classic_interior
+      set: "aile-evi-gokturk",
+      photos: ["1560184897-ae75f418493e", "1560185007-cde436f6a4d0", "1560448204-e02f11c3d0e2", "1565182999561-18d7dc61c393", "1556912167-f556f1f39fdf", "1598928506311-c55ded91a20c", "1509644851169-2acc08aa25b5"],
+      title: "Göktürk'te Bahçeli Geniş Aile Evi",
+      purpose: "SALE", type: "HOUSE", price: 45_000_000,
+      district: "Eyüpsultan", neighborhood: "Göktürk",
+      rooms: "5+1", gross: 380, net: 320, age: 7, lat: 41.1571, lng: 28.8952,
+      description: "Site içinde müstakil bahçeli, ferah oda düzenli aile evi. Ebeveyn katı, geniş amerikan mutfak ve verandasıyla şehirden kopmadan sakin yaşam.",
+    },
+    {
+      // → golden_hour
+      set: "villa-beykoz",
+      photos: ["1600585154340-be6161a56a0c", "1600585154526-990dced4db0d", "1600047509807-ba8f99d2cdde", "1494526585095-c41746248156", "1568605114967-8130f3a36994"],
+      title: "Beykoz'da Mimari Tasarım Villa",
+      purpose: "SALE", type: "VILLA", price: 38_000_000,
+      district: "Beykoz", neighborhood: "Acarlar",
+      rooms: "4+1", gross: 290, net: 250, age: 3, lat: 41.1302, lng: 29.1021,
+      description: "Ödüllü mimari çizgileriyle koru manzaralı tasarım villa. Gün batımında siyah cephesi ve sıcak ahşap dokusuyla fotoğraf gibi bir ev.",
+    },
+    {
+      // → land_drone
+      set: "arsa-catalca",
+      photos: ["1500382017468-9049fed747ef", "1500534314209-a25ddb2bd429", "1472214103451-9374bd1c798e", "1470071459604-3b5ec3a7fe05", "1441974231531-c6227db76b6e"],
+      title: "Çatalca'da Yatırımlık İmarlı Arsa",
+      purpose: "SALE", type: "LAND", price: 12_000_000,
+      district: "Çatalca", neighborhood: "Kabakça",
+      gross: 2400, net: 2400, lat: 41.2431, lng: 28.4212,
+      description: "Yola cepheli, %20 imarlı, elektrik ve suyu sınırında yatırımlık arsa. Kanal İstanbul aksına 15 dk mesafede değer artış potansiyeli.",
+    },
+    {
+      // → fpv_reels (9:16)
+      set: "daire-cihangir",
+      photos: ["1615873968403-89e068629265", "1586023492125-27b2c045efd7", "1522708323590-d24dbb6b0267", "1502672260266-1c1ef2d93688", "1493809842364-78817add7ffb", "1567767292278-a4f21aa2d36e"],
+      title: "Cihangir'de Tasarım 2+1",
+      purpose: "SALE", type: "APARTMENT", price: 14_500_000,
+      district: "Beyoğlu", neighborhood: "Cihangir",
+      rooms: "2+1", gross: 110, net: 95, floor: 3, age: 30, lat: 41.0312, lng: 28.9821,
+      description: "Cihangir'in ruhunu taşıyan, renkli ve karakterli tasarım daire. Yüksek tavan, özgün detaylar, kafelere ve Boğaz'a yürüme mesafesi.",
+    },
+    {
+      // → social_promo (9:16)
+      set: "rezidans-kagithane",
+      photos: ["1515263487990-61b07816b324", "1505873242700-f289a29e1e0f", "1484154218962-a197022b5858", "1481277542470-605612bd2d61"],
+      title: "Kağıthane'de Rezidans 1+1",
+      purpose: "SALE", type: "APARTMENT", price: 8_900_000,
+      district: "Kağıthane", neighborhood: "Merkez",
+      rooms: "1+1", gross: 75, net: 58, floor: 12, age: 1, lat: 41.0853, lng: 28.9702,
+      description: "Loft konseptli, yüksek kira getirili yatırımlık rezidans dairesi. Metro bağlantısı kapıda, iş kulelerine 5 dakika.",
+    },
+  ];
+
+  let photoTotal = 0;
+  for (let i = 0; i < P_LISTINGS.length; i++) {
+    const x = P_LISTINGS[i];
+    await prisma.listing.create({
+      data: {
+        tenantId: t,
+        agentId: owner.id,
+        refCode: `PG-2026-${String(i + 1).padStart(4, "0")}`,
+        title: x.title,
+        purpose: x.purpose,
+        type: x.type,
+        status: "ACTIVE",
+        price: P(x.price),
+        city: "İstanbul",
+        district: x.district,
+        neighborhood: x.neighborhood,
+        lat: x.lat,
+        lng: x.lng,
+        rooms: x.rooms,
+        grossArea: x.gross,
+        netArea: x.net,
+        floor: x.floor,
+        buildingAge: x.age,
+        heating: x.type === "LAND" ? null : "Yerden Isıtma",
+        deedStatus: x.type === "LAND" ? "Arsa" : "Kat Mülkiyeti",
+        creditEligible: true,
+        description: x.description,
+        media: {
+          create: x.photos.map((id, order) => ({
+            url: unsplash(id),
+            key: `demo/studio/${x.set}/${order}.jpg`,
+            order,
+          })),
+        },
+      },
+    });
+    photoTotal += x.photos.length;
+  }
+
+  console.log("\n✔ Prestij Gayrimenkul (AI Stüdyo vitrini) oluşturuldu");
+  console.log(`  İlan: ${P_LISTINGS.length} (şablon başına bir referans ilanı) · Foto: ${photoTotal} (R2'de gerçek)`);
+  console.log(`  Kredi: 100 video / 500 foto · Plan: premium`);
+  console.log(`  🔑 Giriş: sahibi@prestijgayrimenkul.com / demo1234`);
+  console.log(`  🌐 Vitrin: /ofis/${SLUG_PRESTIJ}\n`);
 }
 
 main()

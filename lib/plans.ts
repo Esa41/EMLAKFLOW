@@ -36,11 +36,11 @@ export const PLANS = {
   premium: {
     key: "premium",
     name: "Premium",
-    monthlyTRY: 0, // satış / özel fiyat
-    yearlyTRY: 0,
+    monthlyTRY: 3000, // aylık; yıllıkta 2 ay hediye
+    yearlyTRY: 30000, // 10 video/ay dahil — paket paket alınsa ₺36.000
     listingLimit: null,
     userLimit: null,
-    tagline: "Kendi markanız, kendi alan adınız",
+    tagline: "Kendi markanız, alan adınız + aylık 10 video dahil",
   },
 } as const;
 
