@@ -13,6 +13,7 @@ import {
   Bell,
   KeyRound,
   Sparkles,
+  Share2,
   type LucideIcon,
 } from "lucide-react";
 import { getVertical } from "@/lib/verticals";
@@ -33,6 +34,7 @@ export function getNav(vertical?: string | null): NavItem[] {
     { href: "/musteriler", label: v.labels.pipeline, icon: Users },
     { href: "/kisiler", label: "Müşteriler", icon: Contact },
     { href: "/kiralar", label: v.labels.rentals, icon: KeyRound },
+    { href: "/sosyal", label: "Sosyal OS", icon: Share2 },
     { href: "/dashboard/studio", label: "AI Stüdyo", icon: Sparkles },
     { href: "/analitik", label: "Analitik", icon: BarChart3 },
     { href: "/merkez", label: "Bildirimler & Faaliyet", icon: Bell },

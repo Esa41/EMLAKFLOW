@@ -24,6 +24,9 @@ const TENANT_MODELS = new Set([
   "SocialPost",
   "TeamChatRead",
   "StudioJob",
+  "BrandKit",
+  "ContentAsset",
+  "CalendarItem",
 ]);
 
 /**

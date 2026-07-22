@@ -1,0 +1,410 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Emlakflow Social OS — ADDITIVE Prisma fragment
+// Merge into prisma/schema.prisma, then: npx prisma db push
+// Do not apply blindly — reconcile with existing SocialAccount / SocialPost.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum SocialPlatform {
+  INSTAGRAM
+  FACEBOOK
+  TIKTOK
+  YOUTUBE
+  // NEW
+  LINKEDIN
+  THREADS
+  X
+  PINTEREST
+  GOOGLE_BUSINESS
+  EMAIL
+  BLOG
+}
+
+enum ContentAssetStatus {
+  IDEA
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  FAILED
+  ARCHIVED
+}
+
+enum ContentFormat {
+  FEED_POST
+  CAROUSEL
+  STORY
+  REEL
+  TIKTOK
+  SHORT
+  LINKEDIN_POST
+  THREAD
+  TWEET
+  PIN
+  GBP_POST
+  EMAIL
+  BLOG
+  AD_COPY
+  LANDING_COPY
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+  CANCELLED
+}
+
+enum CalendarItemStatus {
+  DRAFT
+  QUEUED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
+
+enum AutomationTrigger {
+  LISTING_CREATED
+  LISTING_ACTIVATED
+  LISTING_PRICE_CHANGED
+  LISTING_SOLD
+  OPEN_HOUSE_SCHEDULED
+  CAMPAIGN_LAUNCHED
+  STUDIO_JOB_SUCCEEDED
+  HOLIDAY_APPROACHING
+  MANUAL
+}
+
+model BrandKit {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  logoUrl         String?
+  logoDarkUrl     String?
+  primaryColor    String   @default("#1e5b3e")
+  secondaryColor  String   @default("#0e1311")
+  accentColor     String?
+  fonts           Json? // { display, body }
+  voice           String? // prose brand voice
+  tonePresets     String[] @default([])
+  mission         String?
+  vision          String?
+  values          String[] @default([])
+  photographyStyle String?
+  logoUsageNotes  String?
+  forbiddenPhrases String[] @default([])
+  emojiPolicy     String? // sparse | moderate | none
+  hashtagPools    Json? // { always: [], luxury: [], rental: [] }
+  quietHoursStart Int? // 0-23 local
+  quietHoursEnd   Int?
+  timezone        String   @default("Europe/Istanbul")
+  strategyCache   Json? // Marketing Brain output
+  strategyCachedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ContentAsset {
+  id          String             @id @default(cuid())
+  tenantId    String
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  listingId   String?
+  listing     Listing?           @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  campaignId  String?
+  campaign    Campaign?          @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  planId      String?
+  plan        ContentPlan?       @relation(fields: [planId], references: [id], onDelete: SetNull)
+  format      ContentFormat
+  status      ContentAssetStatus @default(DRAFT)
+  title       String?
+  headline    String?
+  caption     String?
+  cta         String?
+  emojiStrategy String?
+  hashtags    String[]           @default([])
+  seoKeywords String[]           @default([])
+  imagePrompt Json?
+  videoPrompt String?
+  thumbnailIdea String?
+  carouselSlides Json?
+  storySequence  Json?
+  postingRec     Json?
+  sourceRefs     Json? // website/PDF citations
+  mediaUrls      String[]        @default([])
+  studioJobId    String?
+  tone           String?
+  language       String          @default("tr")
+  version        Int             @default(1)
+  createdById    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  variants  ContentVariant[]
+  approvals ApprovalRequest[]
+  calendar  CalendarItem[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, listingId])
+  @@index([tenantId, campaignId])
+}
+
+model ContentVariant {
+  id         String         @id @default(cuid())
+  assetId    String
+  asset      ContentAsset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  platform   SocialPlatform
+  caption    String?
+  mediaUrls  String[]       @default([])
+  metadata   Json? // aspect, slide count, etc.
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  calendarItems CalendarItem[]
+  posts         SocialPost[]
+
+  @@index([assetId, platform])
+}
+
+model ContentPlan {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  horizonDays Int // 30 | 60 | 90
+  startDate   DateTime
+  endDate     DateTime
+  brief       Json? // goals, season, audience
+  status      String   @default("active") // active | archived
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assets   ContentAsset[]
+  calendar CalendarItem[]
+
+  @@index([tenantId, startDate])
+}
+
+model CalendarItem {
+  id           String             @id @default(cuid())
+  tenantId     String
+  tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assetId      String?
+  asset        ContentAsset?      @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  variantId    String?
+  variant      ContentVariant?    @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  planId       String?
+  plan         ContentPlan?       @relation(fields: [planId], references: [id], onDelete: SetNull)
+  accountId    String?
+  account      SocialAccount?     @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  platform     SocialPlatform
+  status       CalendarItemStatus @default(DRAFT)
+  scheduledAt  DateTime
+  publishedAt  DateTime?
+  publishError String?
+  color        String?
+  sortOrder    Int                @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  post SocialPost?
+
+  @@index([tenantId, scheduledAt])
+  @@index([tenantId, status])
+}
+
+model Campaign {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  objective   String? // awareness | leads | launch | rental | luxury
+  startsAt    DateTime?
+  endsAt      DateTime?
+  budgetTRY   Decimal?  @db.Decimal(12, 2)
+  status      String    @default("draft")
+  brief       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  assets ContentAsset[]
+
+  @@index([tenantId, status])
+}
+
+model ApprovalRequest {
+  id          String         @id @default(cuid())
+  tenantId    String
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assetId     String
+  asset       ContentAsset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  status      ApprovalStatus @default(PENDING)
+  step        Int            @default(1)
+  // OWNER | BROKER | CLIENT (external)
+  requiredRole String
+  assigneeId  String?
+  clientEmail String?
+  clientToken String?        @unique
+  dueAt       DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  events ApprovalEvent[]
+
+  @@index([tenantId, status])
+}
+
+model ApprovalEvent {
+  id         String          @id @default(cuid())
+  requestId  String
+  request    ApprovalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  actorId    String?
+  actorLabel String?
+  action     String // submitted | approved | rejected | commented | revised
+  comment    String?
+  createdAt  DateTime        @default(now())
+
+  @@index([requestId, createdAt])
+}
+
+model AutomationRule {
+  id          String            @id @default(cuid())
+  tenantId    String
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  enabled     Boolean           @default(true)
+  trigger     AutomationTrigger
+  conditions  Json?
+  actions     Json // [{ type, params }]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  runs AutomationRun[]
+
+  @@index([tenantId, enabled])
+}
+
+model AutomationRun {
+  id         String         @id @default(cuid())
+  ruleId     String
+  rule       AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  tenantId   String
+  status     String // success | failed | skipped
+  input      Json?
+  output     Json?
+  error      String?
+  createdAt  DateTime       @default(now())
+
+  @@index([tenantId, createdAt])
+}
+
+model Competitor {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name       String
+  platform   SocialPlatform
+  handle     String
+  url        String?
+  notes      String?
+  lastSyncAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  posts CompetitorPost[]
+
+  @@unique([tenantId, platform, handle])
+}
+
+model CompetitorPost {
+  id           String     @id @default(cuid())
+  competitorId String
+  competitor   Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  externalUrl  String?
+  caption      String?
+  postedAt     DateTime?
+  likes        Int        @default(0)
+  comments     Int        @default(0)
+  analysis     Json? // tone, hashtags, visual style, recommendations
+  createdAt    DateTime   @default(now())
+
+  @@index([competitorId, postedAt])
+}
+
+model SocialAgentSession {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String
+  agentKey  String // content_writer | strategist | ...
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages SocialAgentMessage[]
+
+  @@index([tenantId, userId])
+}
+
+model SocialAgentMessage {
+  id        String              @id @default(cuid())
+  sessionId String
+  session   SocialAgentSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String // user | assistant | tool
+  content   String
+  meta      Json?
+  createdAt DateTime            @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
+model SocialReport {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  period    String // weekly | monthly | quarterly | yearly
+  startsAt  DateTime
+  endsAt    DateTime
+  payload   Json
+  pdfUrl    String?
+  shareToken String? @unique
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, period, startsAt])
+}
+
+// ── Patches to EXISTING models (apply manually) ─────────────────────────────
+//
+// model Tenant {
+//   brandKit        BrandKit?
+//   contentAssets   ContentAsset[]
+//   contentPlans    ContentPlan[]
+//   calendarItems   CalendarItem[]
+//   campaigns       Campaign[]
+//   approvalRequests ApprovalRequest[]
+//   automationRules AutomationRule[]
+//   competitors     Competitor[]
+//   socialAgentSessions SocialAgentSession[]
+//   socialReports   SocialReport[]
+// }
+//
+// model SocialAccount {
+//   calendarItems CalendarItem[]
+// }
+//
+// model SocialPost {
+//   status        String    @default("published") // draft|scheduled|published|failed
+//   scheduledAt   DateTime?
+//   variantId     String?
+//   variant       ContentVariant? @relation(...)
+//   calendarItemId String?  @unique
+//   calendarItem  CalendarItem? @relation(...)
+//   campaignId    String?
+//   utmCampaign   String?
+//   publishError  String?
+// }
+//
+// model Listing {
+//   contentAssets ContentAsset[]
+// }

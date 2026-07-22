@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const err = req.nextUrl.searchParams.get("error");
 
   if (err || !code || !stateRaw) {
-    return NextResponse.redirect(new URL("/icerik?error=oauth", req.nextUrl.origin));
+    return NextResponse.redirect(new URL("/sosyal/takip?error=oauth", req.nextUrl.origin));
   }
 
   let tenantId: string;
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     const state = JSON.parse(Buffer.from(stateRaw, "base64url").toString());
     tenantId = state.tenantId;
   } catch {
-    return NextResponse.redirect(new URL("/icerik?error=state", req.nextUrl.origin));
+    return NextResponse.redirect(new URL("/sosyal/takip?error=state", req.nextUrl.origin));
   }
 
   const redirectUri = `${req.nextUrl.origin}/api/social/callback`;
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     const ig = await findInstagramAccount(tokenRes.access_token);
     if (!ig) {
       return NextResponse.redirect(
-        new URL("/icerik?error=no_instagram", req.nextUrl.origin),
+        new URL("/sosyal/takip?error=no_instagram", req.nextUrl.origin),
       );
     }
 
@@ -100,8 +100,8 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.redirect(new URL("/icerik?connected=1", req.nextUrl.origin));
+    return NextResponse.redirect(new URL("/sosyal/takip?connected=1", req.nextUrl.origin));
   } catch {
-    return NextResponse.redirect(new URL("/icerik?error=token", req.nextUrl.origin));
+    return NextResponse.redirect(new URL("/sosyal/takip?error=token", req.nextUrl.origin));
   }
 }

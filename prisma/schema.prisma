@@ -212,6 +212,47 @@ enum SocialPlatform {
   FACEBOOK
   TIKTOK
   YOUTUBE
+  LINKEDIN
+  THREADS
+  X
+  PINTEREST
+  GOOGLE_BUSINESS
+}
+
+enum ContentAssetStatus {
+  IDEA
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  FAILED
+  ARCHIVED
+}
+
+enum ContentFormat {
+  FEED_POST
+  CAROUSEL
+  STORY
+  REEL
+  TIKTOK
+  SHORT
+  LINKEDIN_POST
+  THREAD
+  TWEET
+  PIN
+  GBP_POST
+  EMAIL
+  BLOG
+}
+
+enum CalendarItemStatus {
+  DRAFT
+  QUEUED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELLED
 }
 
 // ── Modeller ──
@@ -308,6 +349,9 @@ model Tenant {
   emailLogs      EmailLog[]
   studioJobs     StudioJob[]
   studioProjects StudioProject[]
+  brandKit       BrandKit?
+  contentAssets  ContentAsset[]
+  calendarItems  CalendarItem[]
 }
 
 model User {
@@ -504,6 +548,7 @@ model Listing {
   socialPosts  SocialPost[]
   studioJobs   StudioJob[]
   studioProjects StudioProject[]
+  contentAssets ContentAsset[]
 
   @@unique([tenantId, refCode])
   @@index([tenantId, status])
@@ -912,10 +957,12 @@ model SocialPost {
   listing     Listing?       @relation(fields: [listingId], references: [id], onDelete: SetNull)
   platform    SocialPlatform
   externalId  String?        // platformdaki medya id'si (API senkronu için)
-  url         String         // içerik linki
+  url         String         // içerik linki (taslak/zamanlanmış için placeholder olabilir)
   kind        String         @default("video") // video | reel | post | story
   caption     String?
   thumbnailUrl String?
+  status      String         @default("published") // draft | scheduled | published | failed
+  scheduledAt DateTime?
   publishedAt DateTime?
   lastSyncedAt DateTime?
   // Son bilinen metrikler (hızlı liste görünümü — tarihçe SocialPostMetric'te)
@@ -933,6 +980,7 @@ model SocialPost {
   @@unique([tenantId, platform, externalId])
   @@index([tenantId, listingId])
   @@index([tenantId, publishedAt])
+  @@index([tenantId, status, scheduledAt])
 }
 
 // Metrik zaman serisi — cron her senkronda anlık değerleri yazar.
@@ -1201,4 +1249,81 @@ model VideoScene {
 
   @@index([projectId, order])
   @@index([projectId, status])
+}
+
+// ── Sosyal OS (MVP) ──
+
+model BrandKit {
+  id               String   @id @default(cuid())
+  tenantId         String   @unique
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  voice            String?
+  tonePresets      String[] @default([])
+  mission          String?
+  vision           String?
+  values           String[] @default([])
+  photographyStyle String?
+  forbiddenPhrases String[] @default([])
+  emojiPolicy      String   @default("moderate") // sparse | moderate | none
+  hashtagPools     Json?
+  quietHoursStart  Int?
+  quietHoursEnd    Int?
+  timezone         String   @default("Europe/Istanbul")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model ContentAsset {
+  id              String             @id @default(cuid())
+  tenantId        String
+  tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  listingId       String?
+  listing         Listing?           @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  format          ContentFormat      @default(FEED_POST)
+  status          ContentAssetStatus @default(DRAFT)
+  title           String?
+  headline        String?
+  caption         String?
+  cta             String?
+  emojiStrategy   String?
+  hashtags        String[]           @default([])
+  seoKeywords     String[]           @default([])
+  imagePrompt     Json?
+  videoPrompt     String?
+  thumbnailIdea   String?
+  carouselSlides  Json?
+  storySequence   Json?
+  postingRec      Json?
+  mediaUrls       String[]           @default([])
+  tone            String?
+  language        String             @default("tr")
+  version         Int                @default(1)
+  createdById     String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  calendarItems CalendarItem[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, listingId])
+  @@index([tenantId, createdAt])
+}
+
+model CalendarItem {
+  id           String             @id @default(cuid())
+  tenantId     String
+  tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assetId      String?
+  asset        ContentAsset?      @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  platform     SocialPlatform     @default(INSTAGRAM)
+  status       CalendarItemStatus @default(DRAFT)
+  scheduledAt  DateTime
+  publishedAt  DateTime?
+  publishError String?
+  color        String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([tenantId, scheduledAt])
+  @@index([tenantId, status])
 }
