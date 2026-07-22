@@ -1,9 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Building2, Car } from "lucide-react";
+import { Building2, Car, Play } from "lucide-react";
 import { trMoney } from "@/lib/labels";
 import { rentPriceSuffix } from "@/lib/showcase-vertical";
-import { showcaseKunyePlate } from "@/lib/showcase-card";
 import { FavoriteButton } from "@/components/favorite-button";
 
 export type ShowcaseCardListing = {
@@ -22,6 +21,8 @@ export type ShowcaseCardListing = {
   mediaCount?: number;
   image: string | null;
   imageAlt: string;
+  /** İlanın tamamlanmış stüdyo tanıtım videosu var — kartta rozet gösterilir */
+  hasVideo?: boolean;
 };
 
 type Props = {
@@ -49,68 +50,74 @@ export function ShowcaseCard({
       ? `${trMoney.format(Math.round(l.price / area))}/m²`
       : "—";
 
+  const meta = [
+    l.rooms,
+    area ? `${area} m²` : null,
+    l.purpose === "SALE" && ppm !== "—" ? ppm : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <Link
       href={href}
       data-imp={l.id}
-      className={`group flex shrink-0 flex-col overflow-hidden rounded-xl border border-ink/15 bg-white transition-all hover:border-ink/40 hover:shadow-[0_8px_24px_-12px_rgba(23,32,28,0.18)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500 ${
-        compact ? "w-[300px] scroll-snap-align-start" : ""
+      className={`group flex shrink-0 flex-col rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500 ${
+        compact ? "w-[300px] [scroll-snap-align:start]" : ""
       }`}
     >
-      <div className="relative">
+      <div className={`relative overflow-hidden rounded-2xl bg-brand-50/60 ${compact ? "h-52" : "aspect-[4/3.3]"}`}>
+        {l.image ? (
+          <Image
+            src={l.image}
+            alt={l.imageAlt}
+            fill
+            loading="lazy"
+            sizes={compact ? "300px" : "(min-width: 1024px) 33vw, 50vw"}
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-brand-600/25">
+            <EmptyIcon size={compact ? 34 : 30} strokeWidth={1.4} />
+          </div>
+        )}
         {showFavorite && <FavoriteButton slug={slug} listingId={l.id} />}
-        <div className={`relative overflow-hidden bg-brand-50 ${compact ? "h-44" : "h-48"}`}>
-          {l.image ? (
-            <Image
-              src={l.image}
-              alt={l.imageAlt}
-              fill
-              loading="lazy"
-              sizes={compact ? "300px" : "(min-width: 1024px) 33vw, 50vw"}
-              className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-brand-600/25">
-              <EmptyIcon size={compact ? 34 : 30} strokeWidth={1.4} />
-            </div>
-          )}
+        <div className="pointer-events-none absolute left-3 top-3 flex gap-1.5">
           {showNewBadge && (
-            <span className="absolute left-3 top-3 rounded-[5px] bg-brand-700 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.08em] text-white">
+            <span className="rounded-full bg-white/95 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.08em] text-ink backdrop-blur">
               Yeni
             </span>
           )}
           {l.purpose === "RENT" && (
-            <span className="absolute right-3 top-3 rounded-md border border-ink bg-paper px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider">
+            <span className="rounded-full bg-white/95 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-[0.08em] text-ink backdrop-blur">
               Kiralık
             </span>
           )}
         </div>
-        <span className="kunye absolute -bottom-3.5 left-3 max-w-[85%] truncate shadow-sm">
-          {showcaseKunyePlate({ ...l, isAuto })}
-        </span>
+        {l.hasVideo && (
+          <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-ink/70 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
+            <Play size={10} className="fill-current" />
+            Video
+          </span>
+        )}
       </div>
-      <div className="flex flex-1 flex-col px-4 pb-4 pt-6">
-        <h3 className="line-clamp-1 text-[15px] font-bold">{l.title}</h3>
-        <p className="mt-0.5 text-xs text-ink/50">
+      <div className="flex flex-1 flex-col px-0.5 pt-3">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="line-clamp-1 text-[15px] font-semibold tracking-tight">{l.title}</h3>
+          <p className="shrink-0 font-display text-[16px] font-extrabold tracking-tight">
+            {trMoney.format(l.price)}
+            {rentPriceSuffix(isAuto, l.purpose) && (
+              <span className="text-[12px] font-medium text-ink/50">
+                {rentPriceSuffix(isAuto, l.purpose)}
+              </span>
+            )}
+          </p>
+        </div>
+        <p className="mt-0.5 line-clamp-1 text-[13.5px] text-ink/55">
           {l.district}
           {l.neighborhood ? ` · ${l.neighborhood}` : ""}
         </p>
-        <p className="mt-2 font-display text-[19px] font-extrabold tracking-tight">
-          {trMoney.format(l.price)}
-          {rentPriceSuffix(isAuto, l.purpose) && (
-            <span className="text-sm font-medium text-ink/50">
-              {rentPriceSuffix(isAuto, l.purpose)}
-            </span>
-          )}
-        </p>
-        <p className="text-[11px] text-ink/50">{ppm}</p>
-        <div className="olcu mt-3">
-          <span className="olcu-cizgi" />
-          <span>
-            {l.rooms ?? "—"} · net {l.netArea ?? l.grossArea ?? "—"} m²
-          </span>
-          <span className="olcu-cizgi" />
-        </div>
+        {meta && <p className="mt-1.5 font-mono text-[11px] text-ink/45">{meta}</p>}
       </div>
     </Link>
   );

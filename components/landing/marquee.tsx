@@ -1,16 +1,15 @@
 const ITEMS = [
+  "AI tanıtım videosu",
+  "8 hazır kurgu şablonu",
+  "Seslendirme + altyazı",
+  "FPV ev turu",
+  "Arsa drone videosu",
+  "Instagram Reels",
   "Harita vitrini",
   "Akıllı eşleştirme",
-  "Kanban satış hattı",
-  "Otomatik kazanç paylaşımı",
   "Portal entegrasyonu",
-  "Canlı vitrin sohbeti",
-  "AI ilan yazarı",
+  "Ücretsiz CRM",
   "Tek tık sözleşme",
-  "Akıllı ajanda",
-  "Ekip yönetimi",
-  "Lead yakalama",
-  "Kira yönetimi",
   "Canlı analitik",
 ];
 

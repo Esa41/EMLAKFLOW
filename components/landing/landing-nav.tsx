@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-/** Hero üstünde şeffaf, scroll'da buzlu cam olan nav. */
+/**
+ * Açık hero için nav — üstte şeffaf/ince, scroll'da buzlu cam.
+ * Metinler her durumda koyu (ink) — CRM-önce açık landing ile uyumlu.
+ */
 export function LandingNav() {
   const [solid, setSolid] = useState(false);
 
@@ -24,12 +27,15 @@ export function LandingNav() {
       }`}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5 sm:px-8">
-        <Link href="/" className="font-display text-xl font-extrabold tracking-tight text-ink">
+        <Link
+          href="/"
+          className="font-display text-xl font-extrabold tracking-tight text-ink"
+        >
           Emlak<span className="text-brand-600">Flow</span>
         </Link>
         <nav className="hidden items-center gap-8 text-sm font-medium text-ink/60 md:flex">
-          <a href="#yolculuk" className="transition-colors hover:text-ink">
-            Nasıl çalışır
+          <a href="#website" className="transition-colors hover:text-ink">
+            Web sitesi
           </a>
           <a href="#ozellikler" className="transition-colors hover:text-ink">
             Özellikler
@@ -37,12 +43,8 @@ export function LandingNav() {
           <a href="#fiyatlar" className="transition-colors hover:text-ink">
             Fiyatlar
           </a>
-          <Link
-            href="/ofis/atlas-gayrimenkul"
-            target="_blank"
-            className="transition-colors hover:text-ink"
-          >
-            Canlı demo
+          <Link href="/ofis/prestij-gayrimenkul" target="_blank" className="transition-colors hover:text-ink">
+            Örnek site
           </Link>
           <Link href="/blog" className="transition-colors hover:text-ink">
             Blog

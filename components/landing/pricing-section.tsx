@@ -60,24 +60,24 @@ const CARDS = [
     ],
   },
   {
-    key: "enterprise",
-    name: "Premium",
-    tagline: "Kendi markanız, kendi alan adınız",
+    key: "premium",
+    name: PLANS.premium.name,
+    tagline: PLANS.premium.tagline,
     cta: "Demo randevusu al",
     href: ENTERPRISE_CTA,
     highlight: false,
     enterprise: true,
-    priceLabel: "İletişime Geç",
-    priceSuffix: null as string | null,
-    yearlyNote: "Özel fiyatlandırma · white-label dahil",
+    priceLabel: `₺${tl.format(PLANS.premium.monthlyTRY)}`,
+    priceSuffix: "/ ay",
+    yearlyNote: `Yıllık ₺${tl.format(PLANS.premium.yearlyTRY)} — 2 ay hediye`,
     features: [
+      "Ayda 10 tanıtım videosu dahil — krediyle ₺36.000/yıl değer",
       "Pro’daki tüm özellikler dahil",
       `AI Stüdyo: ayda ${STUDIO_ALLOTMENT.premium.image} foto iyileştirme dahil`,
       "Rozetsiz vitrin + kendi logon ve marka rengin",
       "Kendi alan adınız (custom domain)",
       "Panel ve vitrinde EmlakFlow gizlenir",
-      "Ücretsiz kurulum hizmeti",
-      "Öncelikli destek",
+      "Ücretsiz kurulum + öncelikli destek",
       "Çoklu ofis / franchise yapıları",
     ],
   },
@@ -92,15 +92,55 @@ export function PricingSection() {
             Fiyatlandırma
           </p>
           <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
-            Ofisinize uygun paket. Markanıza özel çözüm.
+            Videoyu al, CRM&apos;i hediye götür.
           </h2>
           <p className="mt-4 text-[15px] leading-relaxed text-ink/60">
-            Danışman başına ücret yok. Premium’da kendi alan adınız ve
-            panelde EmlakFlow’suz white-label markalama.
+            Danışman başına ücret yok, kredi kartsız kayıt. Video kredisi
+            kullanılana dek durur — ay sonunda sıfırlanmaz.
           </p>
         </div>
 
-        <div className="mx-auto mt-12 grid max-w-5xl gap-6 lg:grid-cols-3">
+        {/* AI Stüdyo video kredisi — satış hiyerarşisinde önce video */}
+        <div className="mx-auto mt-12 max-w-3xl rounded-2xl border border-brand-500/25 bg-brand-50/50 p-7">
+          <div className="text-center">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-brand-600">
+              AI Stüdyo — Video Kredisi
+            </p>
+            <h3 className="mt-2 font-display text-xl font-extrabold tracking-tight">
+              Her kredi = bir ilan tanıtım videosu
+            </h3>
+            <p className="mt-2 text-[13px] text-ink/55">
+              Ücretsiz planda bile video üretin — seslendirme, müzik, altyazı
+              ve ofis logosu dahil.
+            </p>
+          </div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {CREDIT_TOPUP_PACKS.map((pack) => (
+              <div
+                key={pack.key}
+                className="relative rounded-xl border border-ink/12 bg-white p-5 text-center"
+              >
+                {"badge" in pack && pack.badge && (
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                    {pack.badge}
+                  </span>
+                )}
+                <p className="font-display text-2xl font-extrabold tracking-tight">
+                  {pack.videos}
+                  <span className="ml-1 text-sm font-medium text-ink/50">video</span>
+                </p>
+                <p className="mt-1 text-lg font-bold text-brand-600">
+                  ₺{tlFmt.format(pack.priceTRY)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-ink/45">
+                  video başı ₺{tlFmt.format(Math.round(pack.priceTRY / pack.videos))}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mx-auto mt-10 grid max-w-5xl gap-6 lg:grid-cols-3">
           {CARDS.map((card) => {
             const isEnterprise = "enterprise" in card && card.enterprise;
             return (
@@ -192,47 +232,6 @@ export function PricingSection() {
               </div>
             );
           })}
-        </div>
-
-        {/* AI Stüdyo ek video kredisi paketleri */}
-        <div className="mx-auto mt-14 max-w-3xl rounded-2xl border border-ink/12 bg-paper p-7">
-          <div className="text-center">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-brand-600">
-              AI Stüdyo — Ek Video Kredisi
-            </p>
-            <h3 className="mt-2 font-display text-xl font-extrabold tracking-tight">
-              Daha fazla tanıtım videosu mu gerek?
-            </h3>
-            <p className="mt-2 text-[13px] text-ink/55">
-              Ücretsiz planda bile video üretin — her kredi = bir ilan tanıtım
-              videosu. Kredi bakiyeniz kullanılana dek durur, ay sonunda
-              sıfırlanmaz.
-            </p>
-          </div>
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            {CREDIT_TOPUP_PACKS.map((pack) => (
-              <div
-                key={pack.key}
-                className="relative rounded-xl border border-ink/12 bg-white p-5 text-center"
-              >
-                {"badge" in pack && pack.badge && (
-                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                    {pack.badge}
-                  </span>
-                )}
-                <p className="font-display text-2xl font-extrabold tracking-tight">
-                  {pack.videos}
-                  <span className="ml-1 text-sm font-medium text-ink/50">video</span>
-                </p>
-                <p className="mt-1 text-lg font-bold text-brand-600">
-                  ₺{tlFmt.format(pack.priceTRY)}
-                </p>
-                <p className="mt-0.5 text-[11px] text-ink/45">
-                  video başı ₺{tlFmt.format(Math.round(pack.priceTRY / pack.videos))}
-                </p>
-              </div>
-            ))}
-          </div>
         </div>
 
         <p className="mt-8 text-center text-[12px] text-ink/45">

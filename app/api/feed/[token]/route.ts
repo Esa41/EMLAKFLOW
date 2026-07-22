@@ -1,5 +1,7 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildFeedXml, type FeedPortal } from "@/lib/feed";
+import { PORTALS, isPortalKey } from "@/lib/portals";
 
 type Ctx = { params: Promise<{ token: string }> };
 
@@ -46,8 +48,29 @@ export async function GET(req: Request, ctx: Ctx) {
     );
   }
 
+  // Belirli bir portal istendiyse: o portal tenant'ta kapalıysa 403;
+  // ve yalnızca o portal için seçilmiş (veya "tüm portallar" = boş) ilanları ver.
+  let platformWhere: Prisma.ListingWhereInput = {};
+  if (isPortalKey(portal)) {
+    const def = PORTALS.find((p) => p.key === portal)!;
+    if (!tenant[def.tenantFlag]) {
+      return new Response(
+        `Feed kapalı: ${def.label} Ayarlar > Portal Yayını bölümünden açılmamış.`,
+        { status: 403, headers: { "Content-Type": "text/plain; charset=utf-8" } },
+      );
+    }
+    platformWhere = {
+      OR: [{ platforms: { isEmpty: true } }, { platforms: { has: portal } }],
+    };
+  }
+
   const listings = await prisma.listing.findMany({
-    where: { tenantId: tenant.id, status: "ACTIVE", feedEnabled: true },
+    where: {
+      tenantId: tenant.id,
+      status: "ACTIVE",
+      feedEnabled: true,
+      ...platformWhere,
+    },
     orderBy: { updatedAt: "desc" },
     include: {
       media: { orderBy: { order: "asc" } },

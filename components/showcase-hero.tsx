@@ -17,65 +17,16 @@ type Props = {
   /** Yüzen künye rozetleri, ör. "128 AKTİF İLAN" */
   badges: string[];
   isAuto?: boolean;
+  /** Ofisin en iyi ilan fotoğrafı — hero arka planı (Apple×Airbnb v2). */
+  heroImage?: string | null;
+  /** Geriye dönük uyum — kullanılmıyor (video-hero iptal). */
+  video?: { url: string; poster: string | null } | null;
 };
 
 /**
- * Katman hızları — scroll * hız kadar kayar.
- * Pozitif: aşağı (arka plan geride kalır), negatif: yukarı (öne çıkar).
+ * Vitrin hero — Apple × Airbnb: tam ekran gerçek fotoğraf, hafif parallax,
+ * ortalanmış dev tipografi, camlı istatistik şeridi.
  */
-const GRID_SPEED = 0.18;
-const GHOST_SPEED = 0.3;
-const COPY_SPEED = 0.06;
-const SKY_BACK_SPEED = -0.08;
-const SKY_FRONT_SPEED = -0.18;
-const OLCU_SPEED = -0.26;
-const BADGE_SPEEDS = [-0.3, -0.38];
-const BADGE_POS = ["right-[30%] top-[18%]", "right-[6%] top-[74%]"];
-
-/** Mimari cephe çizimi — ince kontur, marka yeşili. */
-function SkylineArt({ muted = false }: { muted?: boolean }) {
-  const stroke = muted ? "rgba(30,91,62,0.10)" : "rgba(30,91,62,0.26)";
-  const win = (bx: number, by: number, cols: number, rows: number, w = 16, h = 13, gx = 26, gy = 24) => {
-    const out: React.ReactNode[] = [];
-    for (let c = 0; c < cols; c++)
-      for (let r = 0; r < rows; r++)
-        out.push(
-          <rect key={`${bx}-${c}-${r}`} x={bx + c * gx} y={by + r * gy} width={w} height={h} />,
-        );
-    return out;
-  };
-  return (
-    <svg
-      viewBox="0 0 520 430"
-      fill="none"
-      stroke={stroke}
-      strokeWidth="1.3"
-      className="h-full w-full"
-      aria-hidden
-    >
-      {/* zemin çizgisi + ölçü tikleri */}
-      <path d="M0 420h520" />
-      {[40, 120, 200, 280, 360, 440].map((x) => (
-        <path key={x} d={`M${x} 420v6`} />
-      ))}
-      {/* sol blok */}
-      <path d="M46 420V150h118v270" />
-      <path d="M46 150l12-22h94l12 22" />
-      {win(66, 172, 3, 9)}
-      {/* orta blok — en yüksek */}
-      <path d="M196 420V56h132v364" />
-      <path d="M262 56V30" />
-      <path d="M196 96h132M196 380h132" />
-      {win(214, 116, 4, 10, 17, 14, 25, 25)}
-      <path d="M244 420v-28h36v28" />
-      {/* sağ blok */}
-      <path d="M360 420V186h116v234" />
-      <path d="M360 216h116" />
-      {win(378, 236, 3, 7)}
-    </svg>
-  );
-}
-
 export function ShowcaseHero({
   displayName,
   district,
@@ -84,43 +35,23 @@ export function ShowcaseHero({
   tagline,
   stats,
   badges,
-  isAuto = false,
+  heroImage = null,
 }: Props) {
-  const gridRef = useRef<HTMLDivElement>(null);
-  const ghostRef = useRef<HTMLDivElement>(null);
-  const copyRef = useRef<HTMLDivElement>(null);
-  const skyBackRef = useRef<HTMLDivElement>(null);
-  const skyFrontRef = useRef<HTMLDivElement>(null);
-  const olcuRef = useRef<HTMLDivElement>(null);
-  const badgeRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const rootRef = useRef<HTMLDivElement>(null);
-
-  const ghostText = (district ?? displayName.split(" ")[0] ?? "").toUpperCase();
-  const olcuLabel = [district?.toUpperCase(), "GÜNCEL PORTFÖY"].filter(Boolean).join(" · ");
+  const imgRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const root = rootRef.current;
-    if (!root) return;
-
+    const img = imgRef.current;
+    if (!root || !img) return;
     let heroH = root.offsetHeight || 1;
     let raf = 0;
-
-    // Tek rAF döngüsü, yalnızca transform yazar — layout tetiklemez.
     const frame = () => {
       raf = 0;
       const y = window.scrollY;
-      if (y > heroH * 1.5) return; // hero çoktan görünümden çıktı
-      const set = (el: HTMLElement | null, f: number) => {
-        if (el) el.style.transform = `translate3d(0,${(y * f).toFixed(1)}px,0)`;
-      };
-      set(gridRef.current, GRID_SPEED);
-      set(ghostRef.current, GHOST_SPEED);
-      set(copyRef.current, COPY_SPEED);
-      set(skyBackRef.current, SKY_BACK_SPEED);
-      set(skyFrontRef.current, SKY_FRONT_SPEED);
-      set(olcuRef.current, OLCU_SPEED);
-      badgeRefs.current.forEach((el, i) => set(el, BADGE_SPEEDS[i] ?? -0.3));
+      if (y > heroH * 1.4) return;
+      img.style.transform = `translate3d(0, ${(y * 0.22).toFixed(1)}px, 0) scale(1.08)`;
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(frame);
@@ -129,7 +60,6 @@ export function ShowcaseHero({
       heroH = root.offsetHeight || 1;
       onScroll();
     };
-
     frame();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize);
@@ -140,133 +70,85 @@ export function ShowcaseHero({
     };
   }, []);
 
+  const activeBadge = badges[0] ?? "";
+
   return (
     <div
       ref={rootRef}
-      className="relative flex flex-col overflow-hidden border-b border-ink pb-0 md:min-h-[calc(100svh-64px)]"
+      className="relative flex min-h-[calc(100svh-64px)] flex-col overflow-hidden border-b border-ink/10"
     >
-      {/* Katman 0 — çizgili grid (en yavaş) */}
-      <div
-        ref={gridRef}
-        className="pointer-events-none absolute inset-x-0 -inset-y-[12%] will-change-transform"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(23,32,28,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(23,32,28,0.07) 1px, transparent 1px)",
-          backgroundSize: "34px 34px",
-          maskImage: "radial-gradient(130% 95% at 68% 8%, #000 42%, transparent 80%)",
-        }}
-      />
-
-      {/* Katman 0.5 — dev kontur yazı */}
-      {ghostText && (
-        <div
-          ref={ghostRef}
-          aria-hidden
-          className="pointer-events-none absolute -right-[2%] top-[5%] hidden select-none font-display text-[min(22vw,280px)] font-extrabold leading-[0.9] tracking-[-0.04em] text-transparent will-change-transform md:block"
-          style={{ WebkitTextStroke: "1px rgba(30,91,62,0.09)" }}
-        >
-          {ghostText}
-        </div>
-      )}
-
-      {/* Katman 1 — mimari kompozisyon (yalnız emlak; masaüstü) */}
-      {!isAuto && (
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] hidden w-[46%] md:block">
-          {/* arka siluet — daha soluk, daha yavaş */}
-          <div
-            ref={skyBackRef}
-            className="absolute inset-x-0 bottom-[8%] top-[22%] translate-x-[7%] will-change-transform"
-          >
-            <SkylineArt muted />
-          </div>
-          {/* ön çizim */}
-          <div
-            ref={skyFrontRef}
-            className="absolute inset-x-0 bottom-[12%] top-[14%] will-change-transform"
-          >
-            <SkylineArt />
-          </div>
-          {/* ölçü çizgisi */}
-          <div
-            ref={olcuRef}
-            className="olcu absolute left-[6%] right-[10%] top-[10%] will-change-transform"
-          >
-            <span className="olcu-cizgi" />
-            <span>{olcuLabel}</span>
-            <span className="olcu-cizgi" />
-          </div>
-        </div>
-      )}
-
-      {/* Katman 2 — künye rozetleri (en hızlı); .kunye display'i hidden'ı ezdiğinden sarmalayıcı gizler */}
-      <div className="pointer-events-none absolute inset-0 z-[2] hidden md:block" aria-hidden>
-        {badges.map((b, i) => (
-          <span
-            key={b}
-            ref={(el) => {
-              badgeRefs.current[i] = el;
-            }}
-            className={`absolute will-change-transform ${BADGE_POS[i]}`}
-          >
-            <span className="kunye">{b}</span>
-          </span>
-        ))}
+      {/* Katman 0 — gerçek fotoğraf + hafif parallax */}
+      <div ref={imgRef} className="absolute inset-0 will-change-transform" style={{ transform: "scale(1.08)" }} aria-hidden>
+        {heroImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={heroImage} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-[#2f6047] via-[#1c3f2f] to-[#0f2419]" />
+        )}
       </div>
+      {/* okunurluk örtüsü */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/25 to-black/75" aria-hidden />
+      <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_-10%,rgba(0,0,0,0.35),transparent_55%)]" aria-hidden />
 
-      {/* Katman 3 — metin */}
-      <div
-        ref={copyRef}
-        className="relative z-[3] px-4 pb-14 pt-10 will-change-transform sm:px-6 md:pb-0 md:pt-[10vh]"
-      >
-        <div className="mx-auto w-full max-w-[1080px]">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink/50">{eyebrow}</p>
-          <h1 className="mt-3.5 max-w-[15ch] font-display text-[clamp(38px,5.4vw,58px)] font-extrabold leading-[1.02] tracking-tight text-balance">
-            {headline}
-          </h1>
-          <p className="mt-4 max-w-[36ch] text-[17px] leading-snug text-ink/70">{tagline}</p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <a
-              href="#koleksiyon"
-              className="btn-selvi inline-flex items-center rounded-[9px] px-4 py-2.5 text-sm font-bold text-white"
-            >
-              Portföyü Gör
-            </a>
-            <a
-              href="#talep-form"
-              className="inline-flex items-center rounded-[9px] border border-ink/15 bg-white px-4 py-2.5 text-sm font-bold text-ink transition-colors hover:border-ink/40"
-            >
-              Talep Bırak
-            </a>
-          </div>
-          <div className="olcu mt-7 max-w-[320px]">
-            <span className="olcu-cizgi" />
-            <span>{displayName.toUpperCase()} · VİTRİN</span>
-            <span className="olcu-cizgi" />
-          </div>
+      {/* Katman 1 — ortalanmış içerik */}
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 py-24 text-center text-white sm:px-8">
+        <p className="hero-rise font-mono text-[11px] uppercase tracking-[0.22em] text-white/80" style={{ animationDelay: "40ms" }}>
+          {eyebrow}
+        </p>
+        <h1
+          className="hero-rise mt-5 max-w-[16ch] font-display text-[clamp(40px,7vw,86px)] font-extrabold leading-[0.98] tracking-[-0.03em] text-balance drop-shadow-[0_2px_30px_rgba(0,0,0,0.35)]"
+          style={{ animationDelay: "120ms" }}
+        >
+          {headline}
+        </h1>
+        <p
+          className="hero-rise mt-6 max-w-[46ch] text-[17px] leading-relaxed text-white/85 drop-shadow-[0_1px_16px_rgba(0,0,0,0.4)]"
+          style={{ animationDelay: "200ms" }}
+        >
+          {tagline}
+        </p>
+        <div className="hero-rise mt-8 flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: "280ms" }}>
+          <a
+            href="#koleksiyon"
+            className="inline-flex items-center rounded-full bg-white px-6 py-3 text-[15px] font-bold text-ink transition-transform hover:scale-[1.03]"
+          >
+            Portföyü Gör
+          </a>
+          <a
+            href="#talep-form"
+            className="inline-flex items-center rounded-full border border-white/40 px-6 py-3 text-[15px] font-bold text-white transition-colors hover:bg-white/10"
+          >
+            Talep Bırak
+          </a>
         </div>
+        {activeBadge && (
+          <p className="hero-rise mt-7 font-mono text-[11px] uppercase tracking-[0.16em] text-white/60" style={{ animationDelay: "360ms" }}>
+            {[displayName, district].filter(Boolean).join(" · ")} — {activeBadge}
+          </p>
+        )}
       </div>
 
       {/* Kaydırma ipucu */}
-      <div className="pointer-events-none absolute bottom-[96px] left-1/2 z-[3] hidden -translate-x-1/2 flex-col items-center gap-1 text-ink/45 md:flex">
+      <div className="pointer-events-none absolute bottom-[92px] left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-1 text-white/55 md:flex">
         <span className="font-mono text-[10px] uppercase tracking-[0.2em]">Kaydır</span>
         <ChevronDown size={18} className="animate-bounce" />
       </div>
 
-      {/* İstatistik şeridi */}
+      {/* İstatistik şeridi — camlı */}
       {stats.length > 0 && (
-        <div className="relative z-[3] mt-auto border-t border-ink/15 bg-paper/75 backdrop-blur-sm">
+        <div className="relative z-10 border-t border-white/15 bg-black/25 backdrop-blur-md">
           <div className="mx-auto grid max-w-[1080px] grid-cols-2 px-4 sm:px-6 md:grid-cols-4">
             {stats.map((s, i) => (
               <div
                 key={s.label}
-                className={`py-4 text-center ${
-                  i > 0 ? "border-l border-ink/10 max-md:[&:nth-child(3)]:border-l-0" : ""
+                className={`py-5 text-center text-white ${
+                  i > 0 ? "border-l border-white/12 max-md:[&:nth-child(3)]:border-l-0" : ""
                 }`}
               >
                 <p className="font-display text-[30px] font-extrabold tracking-tight">
                   <AnimatedCounter value={s.value} />
                 </p>
-                <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-ink/50">
+                <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-white/60">
                   {s.label}
                 </p>
               </div>

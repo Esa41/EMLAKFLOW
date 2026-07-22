@@ -1,6 +1,7 @@
 /** Listing create/update body → Prisma alan eşlemesi (emlak + araç). */
 
 import type { ListingPurpose, ListingType, ListingStatus, Prisma } from "@prisma/client";
+import { normalizePortals } from "@/lib/portals";
 
 export function listingDataFromBody(body: Record<string, unknown>) {
   const num = (v: unknown) => (v === "" || v == null ? null : Number(v));
@@ -40,6 +41,7 @@ export function listingDataFromBody(body: Record<string, unknown>) {
       parcelGeo: (body.parcelGeo ?? null) as Prisma.InputJsonValue,
     }),
     ...(body.feedEnabled !== undefined && { feedEnabled: !!body.feedEnabled }),
+    ...(body.platforms !== undefined && { platforms: normalizePortals(body.platforms) }),
     ...(body.featured !== undefined && { featured: !!body.featured }),
     // Araç
     ...(body.vehicleBrand !== undefined && { vehicleBrand: str(body.vehicleBrand) }),

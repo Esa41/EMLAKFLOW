@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ShowcaseCard, type ShowcaseCardListing } from "@/components/showcase-card";
-import { GhostTag, Reveal } from "@/components/showcase-fx";
+import { Reveal } from "@/components/showcase-fx";
 
 type Tab = "featured" | "new";
 
@@ -51,15 +51,17 @@ export function ShowcaseCollections({ slug, featured, newest, isAuto = false }: 
   const active = panels.find((p) => p.id === tab) ?? panels[0];
 
   return (
-    <section id="koleksiyon" className="relative scroll-mt-20">
-      <GhostTag text={active.shelf} speed={0.08} />
+    <section id="koleksiyon" className="relative scroll-mt-20 pt-14 sm:pt-20">
       <Reveal>
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="font-display text-[22px] font-extrabold tracking-tight">
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand-600">
+              Portföy
+            </p>
+            <h2 className="mt-3 font-display text-[clamp(26px,3.6vw,42px)] font-extrabold leading-[1.04] tracking-tight">
               {active.title}
             </h2>
-            <p className="mt-1 text-[12.5px] text-ink/50">{active.subtitle}</p>
+            <p className="mt-2 text-[15px] text-ink/55">{active.subtitle}</p>
           </div>
           {panels.length > 1 && (
             <div className="inline-flex rounded-full border border-ink/15 bg-white p-[3px] shadow-[0_1px_2px_rgba(23,32,28,0.04)]">
@@ -68,7 +70,7 @@ export function ShowcaseCollections({ slug, featured, newest, isAuto = false }: 
                   key={p.id}
                   type="button"
                   onClick={() => setTab(p.id)}
-                  className={`rounded-full px-3.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.06em] transition-all ${
+                  className={`rounded-full px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-[0.06em] transition-all ${
                     tab === p.id ? "bg-ink text-white shadow-sm" : "text-ink/50 hover:text-ink"
                   }`}
                 >

@@ -7,7 +7,6 @@ import { Building2, Map, X, SlidersHorizontal, Search } from "lucide-react";
 import { ShowcaseMap, type MapListing } from "@/components/showcase-map";
 import { SaveSearchButton } from "@/components/save-search-button";
 import { ShowcaseCard, type ShowcaseCardListing } from "@/components/showcase-card";
-import { GhostTag } from "@/components/showcase-fx";
 import { ROOM_OPTIONS, TYPE_TR } from "@/lib/labels";
 
 export type SplitListing = ShowcaseCardListing & {
@@ -163,17 +162,17 @@ export function ShowcaseWorkspace({
   );
 
   return (
-    <section id="portfoy" className="relative scroll-mt-20">
-      <GhostTag text="PORTFÖY" speed={0.07} />
-      <div className="mb-4 flex items-end justify-between gap-4">
-        <div>
-          <h2 className="font-display text-[22px] font-extrabold tracking-tight">
-            Tüm Portföy
-          </h2>
-          <p className="mt-1 text-[12.5px] text-ink/50">
-            Filtreleyin, haritada veya listede gezin.
-          </p>
-        </div>
+    <section id="portfoy" className="relative scroll-mt-20 pt-14 sm:pt-20">
+      <div className="mb-6">
+        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand-600">
+          Tüm portföy
+        </p>
+        <h2 className="mt-3 font-display text-[clamp(26px,3.6vw,42px)] font-extrabold leading-[1.04] tracking-tight">
+          Filtreleyin, keşfedin.
+        </h2>
+        <p className="mt-2 text-[15px] text-ink/55">
+          Haritada veya listede gezin, kriterlerinize göre süzün.
+        </p>
       </div>
 
       <div className="mb-4 space-y-4">

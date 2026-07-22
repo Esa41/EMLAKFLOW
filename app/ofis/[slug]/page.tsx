@@ -138,6 +138,7 @@ export default async function ShowcasePage({
       city: true,
       district: true,
       showcaseEnabled: true,
+      showcaseHeadline: true,
       showcaseTagline: true,
       aboutTitle: true,
       aboutText: true,
@@ -277,12 +278,19 @@ export default async function ShowcasePage({
 
   const splitListings: SplitListing[] = listings.map((l) => ({
     ...toCardListing(l),
+    hasVideo: false,
     lat: l.lat,
     lng: l.lng,
   }));
 
-  const featuredCards = featuredListings.map(toCardListing);
-  const newCards = newListings.map(toCardListing);
+  const featuredCards = featuredListings.map((l) => ({
+    ...toCardListing(l),
+    hasVideo: false,
+  }));
+  const newCards = newListings.map((l) => ({
+    ...toCardListing(l),
+    hasVideo: false,
+  }));
 
   const savedStats = Array.isArray(tenant.aboutStats)
     ? (tenant.aboutStats as Array<{ value: string; label: string }>).filter(
@@ -305,10 +313,10 @@ export default async function ShowcasePage({
     ? `${place}'da butik ${isAuto ? "otomotiv galerisi" : "gayrimenkul ofisi"}`
     : `${place} · güncel portföy`;
   const headline =
-    tenant.aboutTitle ??
+    tenant.showcaseHeadline?.trim() ||
     (isAuto
-      ? `${place} aradığınız araç, künyesiyle burada.`
-      : "Ev, arsa, iş yeri — aradığınız mülke giden kısa yol.");
+      ? `${place}, aradığınız araç künyesiyle burada.`
+      : "Aradığınız ev, arsa ya da iş yeri — güvenle burada.");
   const tagline =
     tenant.showcaseTagline ??
     (isAuto
@@ -361,6 +369,8 @@ export default async function ShowcasePage({
             `${neighborhoodCount.length || districts.length} ${isAuto ? "BÖLGE" : "MAHALLE"}`,
           ]}
           isAuto={isAuto}
+          heroImage={featuredCards[0]?.image ?? splitListings[0]?.image ?? null}
+          video={null}
         />
       </div>
 
@@ -380,18 +390,22 @@ export default async function ShowcasePage({
       />
 
       {recentlyClosed.length > 0 && (
-        <section>
-          <h2 className="bolum">Son Tamamlanan İşlemler</h2>
-          <p className="mt-1.5 text-xs text-ink/45">
-            Son 60 günde {recentlyClosed.length} işlem tamamlandı.
-          </p>
-          <div className="mt-4 grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-6">
+        <section className="py-16 sm:py-20">
+          <div className="mb-8">
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand-600">
+              Arşiv
+            </p>
+            <h2 className="mt-3 font-display text-[clamp(24px,3.2vw,38px)] font-extrabold tracking-tight">
+              Son tamamlanan işlemler
+            </h2>
+            <p className="mt-2 text-[14px] text-ink/50">
+              Son 60 günde {recentlyClosed.length} işlem tamamlandı.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {recentlyClosed.map((l) => (
-              <div
-                key={l.id}
-                className="overflow-hidden rounded-[10px] border border-ink/15 bg-white"
-              >
-                <div className="relative h-[84px] bg-brand-50">
+              <div key={l.id}>
+                <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-brand-50">
                   {l.media[0] ? (
                     <Image
                       src={l.media[0].cardUrl ?? l.media[0].url}
@@ -399,25 +413,21 @@ export default async function ShowcasePage({
                       fill
                       loading="lazy"
                       sizes="(min-width: 1024px) 16vw, 33vw"
-                      className="object-cover opacity-75"
+                      className="object-cover opacity-70"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center text-ink/15">
                       <Building2 size={20} />
                     </div>
                   )}
-                  <span
-                    className={`kunye kunye-satildi absolute -bottom-2.5 left-2 text-[9px]`}
-                  >
+                  <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-0.5 font-mono text-[8.5px] font-bold uppercase tracking-wide text-ink backdrop-blur">
                     {l.status === "SOLD" ? "Satıldı" : "Kiralandı"}
                   </span>
                 </div>
-                <div className="px-2.5 pb-2.5 pt-4">
-                  <p className="line-clamp-1 text-xs font-bold">{l.title}</p>
-                  <p className="mt-0.5 font-display text-[13px] font-extrabold tracking-tight text-ink/60 line-through decoration-ink/30">
-                    {trMoney.format(Number(l.price))}
-                  </p>
-                </div>
+                <p className="mt-2 line-clamp-1 text-[12px] font-semibold">{l.title}</p>
+                <p className="font-display text-[13px] font-extrabold tracking-tight text-ink/45 line-through decoration-ink/25">
+                  {trMoney.format(Number(l.price))}
+                </p>
               </div>
             ))}
           </div>
@@ -425,102 +435,101 @@ export default async function ShowcasePage({
       )}
 
       {hasAbout && (
-        <section>
-          <h2 className="bolum">Hakkımızda</h2>
-          <div className="mt-4 rounded-[10px] border border-ink bg-white p-6">
-            {tenant.officePhotoUrl && (
-              <div className="relative mb-5 h-40 overflow-hidden rounded-lg sm:h-56">
-                <Image
-                  src={tenant.officePhotoUrl}
-                  alt={`${tenant.name} ofis`}
-                  fill
-                  sizes="(min-width: 1024px) 960px, 100vw"
-                  className="object-cover"
-                />
-              </div>
-            )}
+        <section className="py-20 sm:py-28">
+          {tenant.officePhotoUrl && (
+            <div className="relative mx-auto mb-14 h-56 max-w-4xl overflow-hidden rounded-3xl sm:h-80">
+              <Image
+                src={tenant.officePhotoUrl}
+                alt={`${tenant.name} ofis`}
+                fill
+                sizes="(min-width: 1024px) 960px, 100vw"
+                className="object-cover"
+              />
+            </div>
+          )}
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand-600">
+              Hakkında
+            </p>
             {tenant.aboutTitle && (
-              <h3 className="font-display text-xl font-extrabold tracking-tight">
+              <h2 className="mt-4 font-display text-[clamp(28px,4vw,46px)] font-extrabold leading-[1.05] tracking-tight text-balance">
                 {tenant.aboutTitle}
-              </h3>
+              </h2>
             )}
             {tenant.aboutText && (
-              <p className="mt-2.5 text-sm leading-relaxed text-ink/70">
+              <p className="mx-auto mt-6 max-w-2xl text-[17px] leading-relaxed text-ink/60">
                 {tenant.aboutText}
               </p>
             )}
-            {tenant.visionText && (
-              <blockquote className="mt-5 border-l-[3px] border-brand-600 pl-4">
-                <p className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.16em] text-brand-600">
-                  Vizyonumuz
-                </p>
-                <p className="mt-1.5 font-display text-[16.5px] font-semibold leading-snug">
-                  &ldquo;{tenant.visionText}&rdquo;
-                </p>
-              </blockquote>
-            )}
-            {stats.length > 0 && (
-              <div className="mt-6 flex border-y border-ink/15">
-                {stats.slice(0, 3).map((st, i) => (
-                  <div
-                    key={st.label}
-                    className={`flex-1 py-3.5 text-center ${i > 0 ? "border-l border-ink/10" : ""}`}
-                  >
-                    <p className="font-display text-[21px] font-extrabold tracking-tight">
-                      <AnimatedCounter value={st.value} />
-                    </p>
-                    <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink/50">
-                      {st.label}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-            {team.length > 0 && (
-              <div className="mt-6 flex gap-5 overflow-x-auto pb-1">
-                {team.map((u) => (
-                  <div key={u.id} className="shrink-0 text-center">
-                    {u.photoUrl ? (
-                      <div className="relative mx-auto h-12 w-12 overflow-hidden rounded-xl">
-                        <Image
-                          src={u.photoUrl}
-                          alt={u.name}
-                          fill
-                          sizes="48px"
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 font-display font-extrabold text-white">
-                        {u.name
-                          .split(" ")
-                          .map((p) => p[0])
-                          .slice(0, 2)
-                          .join("")
-                          .toUpperCase()}
-                      </div>
-                    )}
-                    <p className="mt-1.5 text-xs font-bold">{u.name}</p>
-                    <p className="font-mono text-[8.5px] uppercase tracking-wider text-ink/50">
-                      {ROLE_TR[u.role]}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
+
+          {tenant.visionText && (
+            <div className="mx-auto mt-20 max-w-4xl text-center">
+              <blockquote className="font-display text-[clamp(26px,4.6vw,52px)] font-extrabold leading-[1.08] tracking-tight text-balance">
+                &ldquo;{tenant.visionText}&rdquo;
+              </blockquote>
+              <cite className="mt-7 block font-mono text-[11px] uppercase not-italic tracking-[0.18em] text-brand-600">
+                {displayName} · Vizyon
+              </cite>
+            </div>
+          )}
+
+          {stats.length > 0 && (
+            <div className="mx-auto mt-20 flex max-w-3xl flex-wrap items-start justify-center gap-x-16 gap-y-10">
+              {stats.slice(0, 3).map((st) => (
+                <div key={st.label} className="text-center">
+                  <p className="font-display text-[clamp(40px,5vw,64px)] font-extrabold tracking-tight">
+                    <AnimatedCounter value={st.value} />
+                  </p>
+                  <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-ink/50">
+                    {st.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {team.length > 0 && (
+            <div className="mx-auto mt-20 grid max-w-3xl grid-cols-2 gap-8 sm:grid-cols-3">
+              {team.map((u) => (
+                <div key={u.id} className="text-center">
+                  {u.photoUrl ? (
+                    <div className="relative mx-auto aspect-square w-full max-w-[168px] overflow-hidden rounded-2xl">
+                      <Image src={u.photoUrl} alt={u.name} fill sizes="168px" className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="mx-auto flex aspect-square w-full max-w-[168px] items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-brand-700 font-display text-3xl font-extrabold text-white">
+                      {u.name
+                        .split(" ")
+                        .map((p) => p[0])
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase()}
+                    </div>
+                  )}
+                  <p className="mt-4 font-display text-lg font-bold">{u.name}</p>
+                  <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-brand-600">
+                    {ROLE_TR[u.role]}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
-      <section id="talep-form" className="scroll-mt-20 rounded-xl border border-ink bg-white p-5 sm:p-7">
-        <h2 className="font-display text-[21px] font-extrabold tracking-tight">
-          Aradığınızı bulamadınız mı?
+      <section id="talep-form" className="scroll-mt-20 py-20 text-center sm:py-28">
+        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand-600">
+          İletişim
+        </p>
+        <h2 className="mt-4 font-display text-[clamp(28px,4vw,46px)] font-extrabold tracking-tight text-balance">
+          Aradığınızı söyleyin.
         </h2>
-        <p className="mt-1.5 max-w-lg text-sm text-ink/60">
+        <p className="mx-auto mt-5 max-w-lg text-[17px] leading-relaxed text-ink/60">
           Kriterlerinizi bırakın — uyan bir {isAuto ? "araç" : "mülk"} portföye
           girdiği an sizi arayalım.
         </p>
-        <div className="mt-5">
+        <div className="mx-auto mt-9 max-w-2xl text-left">
           <RequestForm
             slug={slug}
             districts={districts.map((d) => d.district)}

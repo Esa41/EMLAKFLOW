@@ -12,6 +12,7 @@ import { TeamChatTrigger } from "@/components/team-chat-trigger";
 import { TeamChatDrawer } from "@/components/team-chat-drawer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { CommandPalette } from "@/components/command-palette";
 import { parseAppTheme, THEME_COOKIE } from "@/lib/theme";
 
 // CRM auth arkasında — robots.txt disallow'a ek olarak sayfa seviyesinde noindex
@@ -106,11 +107,7 @@ export default async function AppLayout({
                   className="text-lg"
                 />
               </div>
-              <input
-                type="search"
-                placeholder="İlan, müşteri veya künye ara…"
-                className="dash-input hidden w-72 rounded-full sm:block"
-              />
+              <CommandPalette vertical={vertical} />
               <div className="ml-auto flex items-center gap-2">
                 <ThemeToggle />
                 <TeamChatTrigger />

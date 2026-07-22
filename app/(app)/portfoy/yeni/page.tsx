@@ -5,15 +5,27 @@ import { getSession } from "@/lib/auth";
 import { getListingUsage, FREE_LISTING_LIMIT } from "@/lib/plans";
 import { prisma } from "@/lib/prisma";
 import { getVertical } from "@/lib/verticals";
+import { enabledPortals } from "@/lib/portals";
 
 export default async function NewListingPage() {
   const session = (await getSession())!;
   const usage = await getListingUsage(session.tenantId);
   const tenant = await prisma.tenant.findUnique({
     where: { id: session.tenantId },
-    select: { vertical: true },
+    select: {
+      vertical: true,
+      portalSahibinden: true,
+      portalHepsiemlak: true,
+      portalEmlakjet: true,
+      portalArabam: true,
+      portalSahibindenAuto: true,
+    },
   });
   const v = getVertical(tenant?.vertical);
+  const portals = enabledPortals(tenant ?? {}, tenant?.vertical).map((p) => ({
+    key: p.key,
+    label: p.label,
+  }));
 
   if (!usage.canCreate) {
     return (
@@ -73,7 +85,7 @@ export default async function NewListingPage() {
           )}
         </p>
       </div>
-      <ListingForm vertical={tenant?.vertical} />
+      <ListingForm vertical={tenant?.vertical} availablePortals={portals} />
     </div>
   );
 }

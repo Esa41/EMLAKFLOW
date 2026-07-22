@@ -3,14 +3,15 @@ import { forTenant } from "./tenant";
 import { getSession } from "./auth";
 
 /**
- * Ücretsiz planda izin verilen maksimum ilan sayısı. Bunu aşan ofis Pro'ya
- * (₺25.000/yıl) geçmek zorunda. Model: CRM ücretsiz (edinme kancası) →
- * gelir AI video kredilerinden + 20+ ilanlı ofisin yıllık paketinden.
+ * Ücretsiz planda izin verilen maksimum ilan sayısı.
+ * Merdiven: Ücretsiz 5 ilan → Pro 20 ilan (tek kullanıcı) → Premium sınırsız
+ * ilan + sınırsız kullanıcı. Gelir: CRM kademeleri + AI video kredileri.
  */
-export const FREE_LISTING_LIMIT = 20;
+export const FREE_LISTING_LIMIT = 5;
 
 /**
- * Paket mimarisi: CRM ÜCRETSİZ (20 ilana kadar) → 20+ ilan mecburi Pro.
+ * Paket mimarisi: Ücretsiz 5 ilan / Pro 20 ilan + TEK kullanıcı /
+ * Premium sınırsız ilan + sınırsız kullanıcı + white-label.
  * Video her planda AYRI KREDİ (satın alınır, sıfırlanmaz). Foto aylık hediye.
  * Tenant.plan: trial | free | pro | premium
  */
@@ -21,26 +22,26 @@ export const PLANS = {
     monthlyTRY: 0,
     yearlyTRY: 0,
     listingLimit: FREE_LISTING_LIMIT,
-    userLimit: null,
+    userLimit: 1,
     tagline: "Emlak ofisinin ücretsiz işletim sistemi",
   },
   pro: {
     key: "pro",
     name: "Pro",
     monthlyTRY: 0, // yalnızca yıllık
-    yearlyTRY: 25000, // 20+ ilanlı ofis için mecburi yıllık paket
-    listingLimit: null, // sınırsız
-    userLimit: null,
-    tagline: "20+ ilanlı ofisler için — sınırsız portföy",
+    yearlyTRY: 25000,
+    listingLimit: 20,
+    userLimit: 1, // tek üye — ekip hesabı Premium'da
+    tagline: "Büyüyen portföy için — 20 ilana kadar",
   },
   premium: {
     key: "premium",
     name: "Premium",
     monthlyTRY: 3000, // aylık; yıllıkta 2 ay hediye
     yearlyTRY: 30000, // 10 video/ay dahil — paket paket alınsa ₺36.000
-    listingLimit: null,
-    userLimit: null,
-    tagline: "Kendi markanız, alan adınız + aylık 10 video dahil",
+    listingLimit: null, // sınırsız
+    userLimit: null, // sınırsız — tüm ekip
+    tagline: "Sınırsız ilan ve ekip + kendi markanız + aylık 10 video",
   },
 } as const;
 

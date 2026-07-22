@@ -54,6 +54,7 @@ export default async function SettingsPage() {
           vertical: tenant.vertical,
           customDomain: tenant.customDomain ?? "",
           showcaseEnabled: tenant.showcaseEnabled,
+          showcaseHeadline: tenant.showcaseHeadline ?? "",
           showcaseTagline: tenant.showcaseTagline ?? "",
           whatsapp: tenant.whatsapp ?? "",
           aboutTitle: tenant.aboutTitle ?? "",

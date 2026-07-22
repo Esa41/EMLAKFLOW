@@ -13,17 +13,27 @@ export type GalleryMedia = {
   kind: string;
 };
 
+/** Stüdyoda üretilmiş tanıtım videosu — galeride İLK kare olarak oynar. */
+export type StudioGalleryVideo = { url: string; poster: string | null };
+
+type Slide =
+  | { type: "photo"; media: GalleryMedia }
+  | { type: "video"; url: string; poster: string | null };
+
 /**
  * Vitrin galeri — tıklanabilir küçük görseller + tam ekran lightbox.
  * Sunucu bileşeni olan ilan detay sayfasından `media` (alt metni çözülmüş)
- * ve `title` prop'larıyla kullanılır.
+ * ve `title` prop'larıyla kullanılır. `studioVideo` verilirse galerinin ilk
+ * karesi tanıtım videosudur (doğrudan mp4 — YouTube/Matterport embed değil).
  */
 export function ListingGallery({
   media,
   title,
+  studioVideo = null,
 }: {
   media: GalleryMedia[];
   title: string;
+  studioVideo?: StudioGalleryVideo | null;
 }) {
   const [active, setActive] = useState(0);
   const [lightbox, setLightbox] = useState(false);
@@ -36,7 +46,11 @@ export function ListingGallery({
   const photos = media.filter(
     (m) => m.kind !== "video" && m.kind !== "tour360",
   );
-  const count = photos.length;
+  const slides: Slide[] = [
+    ...(studioVideo ? [{ type: "video" as const, url: studioVideo.url, poster: studioVideo.poster }] : []),
+    ...photos.map((m) => ({ type: "photo" as const, media: m })),
+  ];
+  const count = slides.length;
   const go = useCallback(
     (dir: number) => setActive((i) => (i + dir + count) % count),
     [count],
@@ -114,56 +128,61 @@ export function ListingGallery({
     );
   }
 
-  const current = photos[active];
+  const current = slides[active];
 
   return (
     <div>
-      {/* Ana görsel */}
+      {/* Ana kare — video ya da fotoğraf */}
       <div className="relative h-64 overflow-hidden rounded-[10px] border border-ink/15 bg-brand-50 sm:h-96">
-        <button
-          type="button"
-          onClick={() => setLightbox(true)}
-          className="group absolute inset-0 h-full w-full cursor-zoom-in"
-          aria-label="Fotoğrafı büyüt"
-        >
-          <Image
-            src={current.cardUrl ?? current.url}
-            alt={current.alt}
-            fill
-            priority
-            sizes="(min-width: 1024px) 683px, 100vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+        {current.type === "video" ? (
+          <video
+            key={current.url}
+            className="absolute inset-0 h-full w-full bg-ink object-contain"
+            src={current.url}
+            poster={current.poster ?? undefined}
+            controls
+            playsInline
+            preload="metadata"
           />
-          <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-ink/60 px-2.5 py-1 text-[11px] font-semibold text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
-            <Expand size={12} /> Büyüt
-          </span>
-          {current.kind === "video" && (
-            <span className="absolute inset-0 flex items-center justify-center">
-              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/85 text-ink shadow-lg">
-                <Play size={22} className="ml-0.5" fill="currentColor" />
-              </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setLightbox(true)}
+            className="group absolute inset-0 h-full w-full cursor-zoom-in"
+            aria-label="Fotoğrafı büyüt"
+          >
+            <Image
+              src={current.media.cardUrl ?? current.media.url}
+              alt={current.media.alt}
+              fill
+              priority
+              sizes="(min-width: 1024px) 683px, 100vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            />
+            <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-ink/60 px-2.5 py-1 text-[11px] font-semibold text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
+              <Expand size={12} /> Büyüt
             </span>
-          )}
-        </button>
+          </button>
+        )}
         <span className="kunye absolute -bottom-3 left-4 max-w-[85%] truncate shadow-sm">
-          {title}
+          {current.type === "video" ? `${title} · Tanıtım videosu` : title}
         </span>
-        {count > 1 && (
+        {count > 1 && current.type !== "video" && (
           <span className="absolute bottom-3 right-3 rounded-full bg-ink/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
             {active + 1} / {count}
           </span>
         )}
       </div>
 
-      {/* Küçük görseller */}
+      {/* Küçük kareler */}
       {count > 1 && (
         <div className="mt-5 grid grid-cols-5 gap-2 sm:grid-cols-8">
-          {photos.map((m, i) => (
+          {slides.map((s, i) => (
             <button
               type="button"
-              key={m.id}
+              key={s.type === "video" ? "__video" : s.media.id}
               onClick={() => setActive(i)}
-              aria-label={`${i + 1}. fotoğrafı göster`}
+              aria-label={s.type === "video" ? "Tanıtım videosunu oynat" : `${i + 1}. fotoğrafı göster`}
               aria-current={i === active}
               className={`relative aspect-[4/3] w-full overflow-hidden rounded-md border transition ${
                 i === active
@@ -171,18 +190,26 @@ export function ListingGallery({
                   : "border-ink/10 opacity-80 hover:opacity-100"
               }`}
             >
-              <Image
-                src={m.thumbUrl ?? m.url}
-                alt={m.alt}
-                fill
-                loading="lazy"
-                sizes="(min-width: 640px) 12vw, 20vw"
-                className="object-cover"
-              />
-              {m.kind === "video" && (
-                <span className="absolute inset-0 flex items-center justify-center bg-ink/20">
-                  <Play size={14} className="text-white" fill="currentColor" />
-                </span>
+              {s.type === "video" ? (
+                <>
+                  {s.poster ? (
+                    <Image src={s.poster} alt="Tanıtım videosu" fill loading="lazy" sizes="(min-width: 640px) 12vw, 20vw" className="object-cover" />
+                  ) : (
+                    <span className="absolute inset-0 bg-ink" />
+                  )}
+                  <span className="absolute inset-0 flex items-center justify-center bg-ink/35">
+                    <Play size={14} className="text-white" fill="currentColor" />
+                  </span>
+                </>
+              ) : (
+                <Image
+                  src={s.media.thumbUrl ?? s.media.url}
+                  alt={s.media.alt}
+                  fill
+                  loading="lazy"
+                  sizes="(min-width: 640px) 12vw, 20vw"
+                  className="object-cover"
+                />
               )}
             </button>
           ))}
@@ -214,14 +241,26 @@ export function ListingGallery({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            <Image
-              src={current.url}
-              alt={current.alt}
-              fill
-              sizes="100vw"
-              className="object-contain transition-transform duration-200"
-              style={{ transformOrigin: "center center" }}
-            />
+            {current.type === "video" ? (
+              <video
+                key={current.url}
+                className="h-full w-full object-contain"
+                src={current.url}
+                poster={current.poster ?? undefined}
+                controls
+                playsInline
+                autoPlay
+              />
+            ) : (
+              <Image
+                src={current.media.url}
+                alt={current.media.alt}
+                fill
+                sizes="100vw"
+                className="object-contain transition-transform duration-200"
+                style={{ transformOrigin: "center center" }}
+              />
+            )}
           </div>
 
           {count > 1 && (

@@ -800,6 +800,44 @@ body,
   transform: none;
 }
 
+/* Vitrin hero — Apple×Airbnb yükleme animasyonu (öğe başına gecikmeyle) */
+.hero-rise {
+  opacity: 0;
+  animation: hero-rise 0.85s cubic-bezier(0.16, 0.84, 0.28, 1) forwards;
+}
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-rise {
+    opacity: 1;
+    animation: none;
+  }
+}
+
+/* İnteraktif dashboard demosu — sekme değişince içerik animasyonlu girer */
+.landing-demo-view {
+  animation: landing-demo-in 0.42s cubic-bezier(0.16, 0.84, 0.28, 1);
+}
+@keyframes landing-demo-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-demo-view {
+    animation: none;
+  }
+}
+
 /* Haritaya düşen fiyat pinleri */
 .landing-pin-drop {
   opacity: 0;
@@ -834,6 +872,39 @@ body,
   pointer-events: auto;
 }
 
+/* Video-hero: koyu zeminde görünen ızgara (yeşil çizgiler ink üstünde kaybolur) */
+.landing-hero-grid-dark {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 35%, black 15%, transparent 78%);
+}
+
+/* Video yuvası placeholder'ı: fotoğraf üstünde yavaş Ken Burns süzülmesi.
+   Gerçek referans videolar üretilince <video> aynı yuvaya geçer. */
+.landing-kenburns {
+  animation: landing-kenburns 16s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.landing-kenburns-slow {
+  animation-duration: 22s;
+}
+@keyframes landing-kenburns {
+  from { transform: scale(1) translate(0, 0); }
+  to { transform: scale(1.12) translate(-2.5%, -1.5%); }
+}
+
+/* Reels ilerleme çubuğu — hero telefon mockup'ı */
+.landing-reel-progress {
+  animation: landing-reel-progress 8s linear infinite;
+  transform-origin: left;
+}
+@keyframes landing-reel-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
 .landing-marquee-wrap {
   overflow: hidden;
   mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
@@ -863,7 +934,9 @@ body,
   .landing-float-b,
   .landing-float-c,
   .landing-glow-orb-a,
-  .landing-glow-orb-b {
+  .landing-glow-orb-b,
+  .landing-kenburns,
+  .landing-reel-progress {
     animation: none !important;
   }
 }

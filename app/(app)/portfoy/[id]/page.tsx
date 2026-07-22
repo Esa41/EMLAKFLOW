@@ -11,6 +11,7 @@ import { ContractPanel } from "@/components/contract-panel";
 import { OwnerReport } from "@/components/owner-report";
 import { STATUS_TR, STATUS_BADGE } from "@/lib/labels";
 import { getVertical } from "@/lib/verticals";
+import { enabledPortals } from "@/lib/portals";
 import { Eye, Heart, Mail, Phone } from "lucide-react";
 
 const favDateFmt = new Intl.DateTimeFormat("tr-TR", {
@@ -37,7 +38,16 @@ export default async function ListingDetailPage({
     }),
     prisma.tenant.findUnique({
       where: { id: session.tenantId },
-      select: { slug: true, showcaseEnabled: true, vertical: true },
+      select: {
+        slug: true,
+        showcaseEnabled: true,
+        vertical: true,
+        portalSahibinden: true,
+        portalHepsiemlak: true,
+        portalEmlakjet: true,
+        portalArabam: true,
+        portalSahibindenAuto: true,
+      },
     }),
     db.contact.findMany({
       orderBy: { fullName: "asc" },
@@ -80,6 +90,10 @@ export default async function ListingDetailPage({
     matchContacts.find((c) => c.id === cid);
 
   const vConf = getVertical(tenant?.vertical);
+  const portals = enabledPortals(tenant ?? {}, tenant?.vertical).map((p) => ({
+    key: p.key,
+    label: p.label,
+  }));
 
   return (
     <div className="space-y-6">
@@ -240,6 +254,7 @@ export default async function ListingDetailPage({
       <ListingForm
         listingId={listing.id}
         vertical={tenant?.vertical}
+        availablePortals={portals}
         initialMedia={listing.media.map((m) => ({
           id: m.id,
           url: m.url,
@@ -276,6 +291,7 @@ export default async function ListingDetailPage({
           seoTitle: listing.seoTitle ?? "",
           seoDescription: listing.seoDescription ?? "",
           feedEnabled: listing.feedEnabled ?? true,
+          platforms: listing.platforms ?? [],
           vehicleBrand: listing.vehicleBrand ?? "",
           vehicleModel: listing.vehicleModel ?? "",
           vehicleYear: listing.vehicleYear?.toString() ?? "",

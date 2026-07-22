@@ -64,6 +64,7 @@ export interface ListingFormValues {
   seoTitle: string; // otomatik/elle SEO başlığı
   seoDescription: string; // otomatik/elle SEO açıklaması
   feedEnabled: boolean;
+  platforms: string[]; // yayınlanacak portallar (boş = tüm açık portallar)
   vehicleBrand: string;
   vehicleModel: string;
   vehicleYear: string;
@@ -112,6 +113,7 @@ const EMPTY: ListingFormValues = {
   seoTitle: "",
   seoDescription: "",
   feedEnabled: true,
+  platforms: [],
   vehicleBrand: "",
   vehicleModel: "",
   vehicleYear: "",
@@ -139,11 +141,14 @@ export function ListingForm({
   initial,
   initialMedia = [],
   vertical = "REAL_ESTATE",
+  availablePortals = [],
 }: {
   listingId?: string;
   initial?: Partial<ListingFormValues>;
   initialMedia?: MediaItem[];
   vertical?: string | null;
+  /** Ofisin açık portalları (Ayarlar > Portal Yayını). Boşsa bölüm gizlenir. */
+  availablePortals?: { key: string; label: string }[];
 }) {
   const vConf = getVertical(vertical);
   const isAuto = isAutoVertical(vertical);
@@ -178,6 +183,15 @@ export function ListingForm({
 
   function removeFeature(f: string) {
     setV((s) => ({ ...s, features: s.features.filter((x) => x !== f) }));
+  }
+
+  function togglePlatform(key: string) {
+    setV((s) => ({
+      ...s,
+      platforms: s.platforms.includes(key)
+        ? s.platforms.filter((x) => x !== key)
+        : [...s.platforms, key],
+    }));
   }
 
   async function generateSeo() {
@@ -503,10 +517,6 @@ export function ListingForm({
                 <input type="checkbox" checked={v.warrantyOk} onChange={(e) => set("warrantyOk", e.target.checked)} className="h-4 w-4 accent-brand-600" />
                 Garantili
               </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={v.feedEnabled} onChange={(e) => set("feedEnabled", e.target.checked)} className="h-4 w-4 accent-brand-600" />
-                Portal feed&apos;ine dahil et
-              </label>
             </div>
           </div>
         ) : (
@@ -707,6 +717,64 @@ export function ListingForm({
             onChange={(e) => set("description", e.target.value)}
           />
         </div>
+      </section>
+
+      {/* Portal Yayını — ilan hangi portallarda gösterilsin */}
+      <section className="rounded-2xl border border-ink/15 bg-white p-5">
+        <h2 className="bolum mb-1">Portal Yayını</h2>
+        <p className="mb-4 text-sm text-ink/55">
+          Bu ilanın hangi portallarda yayınlanacağını seç. XML feed her portala
+          yalnızca kendisi için seçilen ilanları verir.
+        </p>
+
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={v.feedEnabled}
+            onChange={(e) => set("feedEnabled", e.target.checked)}
+            className="h-4 w-4 accent-brand-600"
+          />
+          Portallarda yayınla
+        </label>
+
+        {v.feedEnabled &&
+          (availablePortals.length === 0 ? (
+            <p className="mt-3 text-sm text-ink/55">
+              Henüz açık portal yok.{" "}
+              <a href="/ayarlar" className="font-medium text-brand-600 underline">
+                Ayarlar &gt; Portal Yayını
+              </a>{" "}
+              bölümünden portal açın.
+            </p>
+          ) : (
+            <div className="mt-3 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {availablePortals.map((p) => {
+                  const on = v.platforms.includes(p.key);
+                  return (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => togglePlatform(p.key)}
+                      aria-pressed={on}
+                      className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                        on
+                          ? "border-brand-600 bg-brand-600 text-white"
+                          : "border-ink/20 bg-white text-ink/70 hover:border-ink/40"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-ink/50">
+                {v.platforms.length === 0
+                  ? "Hiçbiri seçili değil → tüm açık portallarda yayınlanır."
+                  : `Yalnızca seçilen ${v.platforms.length} portalda yayınlanır.`}
+              </p>
+            </div>
+          ))}
       </section>
 
       {/* Otomatik SEO — girilen ilana göre üretilir, elle düzenlenebilir */}

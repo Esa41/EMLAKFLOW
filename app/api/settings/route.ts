@@ -26,6 +26,7 @@ export async function GET() {
       feedToken: true,
       vertical: true,
       showcaseEnabled: true,
+      showcaseHeadline: true,
       showcaseTagline: true,
       whatsapp: true,
       aboutTitle: true,
@@ -114,6 +115,11 @@ export async function PATCH(req: Request) {
       }),
       ...(body.showcaseEnabled !== undefined && {
         showcaseEnabled: !!body.showcaseEnabled,
+      }),
+      ...(body.showcaseHeadline !== undefined && {
+        showcaseHeadline: body.showcaseHeadline
+          ? String(body.showcaseHeadline).slice(0, 90)
+          : null,
       }),
       ...(body.showcaseTagline !== undefined && {
         showcaseTagline: body.showcaseTagline

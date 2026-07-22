@@ -23,6 +23,7 @@ export interface TenantSettings {
   vertical: string;
   customDomain: string;
   showcaseEnabled: boolean;
+  showcaseHeadline: string;
   showcaseTagline: string;
   whatsapp: string;
   aboutTitle: string;
@@ -94,6 +95,7 @@ export function SettingsForm({
         portalArabam: v.portalArabam,
         portalSahibindenAuto: v.portalSahibindenAuto,
         showcaseEnabled: v.showcaseEnabled,
+        showcaseHeadline: v.showcaseHeadline,
         showcaseTagline: v.showcaseTagline,
         whatsapp: v.whatsapp,
         aboutTitle: v.aboutTitle,
@@ -330,6 +332,22 @@ export function SettingsForm({
         </label>
 
         <div className="mt-4">
+          <label className={labelCls}>Vitrin başlığı</label>
+          <input
+            className={inputCls}
+            value={v.showcaseHeadline}
+            disabled={!isOwner}
+            maxLength={90}
+            onChange={(e) => set("showcaseHeadline", e.target.value)}
+            placeholder="Örn. Çankaya'da doğru mülke giden en kısa yol."
+          />
+          <p className="mt-1 text-xs text-ink/45">
+            Vitrinin en üstündeki büyük başlık (hook). Boş bırakılırsa güçlü
+            bir varsayılan kullanılır.
+          </p>
+        </div>
+
+        <div className="mt-4">
           <label className={labelCls}>Tanıtım cümlesi</label>
           <input
             className={inputCls}
@@ -340,8 +358,7 @@ export function SettingsForm({
             placeholder="Örn. 15 yıldır Çankaya'da güvenle alım-satım."
           />
           <p className="mt-1 text-xs text-ink/45">
-            Vitrinin en üstünde, başlığın altında görünür. Boş bırakılırsa
-            standart metin kullanılır.
+            Başlığın altında görünür. Boş bırakılırsa standart metin kullanılır.
           </p>
         </div>
 
