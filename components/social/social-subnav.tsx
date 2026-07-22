@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const LINKS: { href: string; label: string; exact?: boolean }[] = [
   { href: "/sosyal", label: "Özet", exact: true },
   { href: "/sosyal/planlayici", label: "Planlayıcı" },
+  { href: "/sosyal/medya", label: "Medya" },
   { href: "/sosyal/takvim", label: "Takvim" },
   { href: "/sosyal/marka", label: "Marka" },
   { href: "/sosyal/takip", label: "Takip" },

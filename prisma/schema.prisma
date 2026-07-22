@@ -1128,6 +1128,8 @@ model StudioJob {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
+  contentAssets ContentAsset[]
+
   @@index([tenantId, listingId])
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
@@ -1179,6 +1181,7 @@ model StudioProject {
   scenes        VideoScene[]
   jobs          StudioJob[]
   voiceSegments VoiceSegment[]
+  contentAssets ContentAsset[]
 
   @@index([tenantId, listingId])
   @@index([tenantId, status])
@@ -1299,6 +1302,10 @@ model ContentAsset {
   language        String             @default("tr")
   version         Int                @default(1)
   createdById     String?
+  studioJobId     String?
+  studioJob       StudioJob?         @relation(fields: [studioJobId], references: [id], onDelete: SetNull)
+  studioProjectId String?
+  studioProject   StudioProject?     @relation(fields: [studioProjectId], references: [id], onDelete: SetNull)
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
@@ -1307,6 +1314,8 @@ model ContentAsset {
   @@index([tenantId, status])
   @@index([tenantId, listingId])
   @@index([tenantId, createdAt])
+  @@index([studioJobId])
+  @@index([studioProjectId])
 }
 
 model CalendarItem {

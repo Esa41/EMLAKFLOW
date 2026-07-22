@@ -62,6 +62,10 @@ export async function generateSocialAsset(input: {
   listingId: string;
   format: string;
   tone: string;
+  /** Stüdyo videosu / seçili medya — yoksa ilan fotoğrafları */
+  mediaUrls?: string[];
+  studioProjectId?: string | null;
+  studioJobId?: string | null;
 }) {
   const session = await getSession();
   if (!session) throw new Error("Oturum gerekli");
@@ -106,6 +110,11 @@ export async function generateSocialAsset(input: {
     forbidden: brand?.forbiddenPhrases ?? [],
   });
 
+  const mediaUrls =
+    input.mediaUrls && input.mediaUrls.length > 0
+      ? input.mediaUrls
+      : listing.media.map((m) => m.url);
+
   const asset = await db.contentAsset.create({
     data: {
       tenantId: session.tenantId,
@@ -125,16 +134,66 @@ export async function generateSocialAsset(input: {
       carouselSlides: generated.carouselSlides,
       storySequence: generated.storySequence,
       postingRec: generated.postingRecommendation,
-      mediaUrls: listing.media.map((m) => m.url),
+      mediaUrls,
       tone: input.tone,
       createdById: session.userId,
+      studioProjectId: input.studioProjectId ?? null,
+      studioJobId: input.studioJobId ?? null,
     },
   });
 
   revalidatePath("/sosyal");
   revalidatePath("/sosyal/planlayici");
   revalidatePath("/sosyal/takvim");
+  revalidatePath("/sosyal/medya");
   return { ok: true as const, assetId: asset.id };
+}
+
+/** Stüdyo videosunu Sosyal OS’a aktar — REEL caption üretir, medyayı bağlar. */
+export async function sendStudioToSocial(input: {
+  studioProjectId?: string;
+  studioJobId?: string;
+  tone?: string;
+}) {
+  const session = await getSession();
+  if (!session) throw new Error("Oturum gerekli");
+  const db = forTenant(session.tenantId);
+
+  let listingId: string;
+  let videoUrl: string;
+  let studioProjectId: string | null = null;
+  let studioJobId: string | null = null;
+
+  if (input.studioProjectId) {
+    const project = await db.studioProject.findFirst({
+      where: { id: input.studioProjectId },
+      select: { id: true, listingId: true, finalVideoUrl: true },
+    });
+    if (!project?.finalVideoUrl) throw new Error("Video henüz hazır değil");
+    listingId = project.listingId;
+    videoUrl = project.finalVideoUrl;
+    studioProjectId = project.id;
+  } else if (input.studioJobId) {
+    const job = await db.studioJob.findFirst({
+      where: { id: input.studioJobId, status: "COMPLETED" },
+      select: { id: true, listingId: true, outputUrl: true },
+    });
+    if (!job?.outputUrl) throw new Error("Video bulunamadı");
+    listingId = job.listingId;
+    videoUrl = job.outputUrl;
+    studioJobId = job.id;
+  } else {
+    throw new Error("Proje veya iş gerekli");
+  }
+
+  return generateSocialAsset({
+    listingId,
+    format: "REEL",
+    tone: input.tone ?? "premium",
+    mediaUrls: [videoUrl],
+    studioProjectId,
+    studioJobId,
+  });
 }
 
 export async function scheduleAsset(input: {

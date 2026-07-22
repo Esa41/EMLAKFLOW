@@ -55,23 +55,11 @@ ${forbidden}
 - Hashtag: marka + konum + niyet (satılık/kiralık); spam yok`;
 }
 
-export const TONE_OPTIONS = [
-  { value: "luxury", label: "Lüks" },
-  { value: "corporate", label: "Kurumsal" },
-  { value: "friendly", label: "Samimi" },
-  { value: "professional", label: "Profesyonel" },
-  { value: "minimal", label: "Minimal" },
-  { value: "emotional", label: "Duygusal" },
-  { value: "urgent", label: "Acil" },
-  { value: "premium", label: "Premium" },
-  { value: "high_converting", label: "Yüksek dönüşüm" },
-] as const;
-
-export const FORMAT_OPTIONS = [
-  { value: "FEED_POST", label: "Instagram / Facebook gönderi" },
-  { value: "CAROUSEL", label: "Karusel" },
-  { value: "STORY", label: "Story dizisi" },
-  { value: "REEL", label: "Reel / Shorts" },
-  { value: "LINKEDIN_POST", label: "LinkedIn" },
-  { value: "GBP_POST", label: "Google İşletme" },
-] as const;
+export {
+  FORMAT_OPTIONS,
+  TONE_OPTIONS,
+  FORMAT_GUIDE,
+  TONE_GUIDE,
+  CONTENT_PACKS,
+  recommendedPacks,
+} from "./catalog";

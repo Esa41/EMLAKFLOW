@@ -2,13 +2,19 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { forTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
-import { Sparkles, CalendarRange, Palette, Instagram } from "lucide-react";
+import {
+  Sparkles,
+  CalendarRange,
+  Palette,
+  Instagram,
+  Clapperboard,
+} from "lucide-react";
 
 export default async function SosyalHubPage() {
   const session = (await getSession())!;
   const db = forTenant(session.tenantId);
 
-  const [assetCount, queued, published, accounts, brand, recent] =
+  const [assetCount, queued, published, accounts, brand, recent, studioReady] =
     await Promise.all([
       db.contentAsset.count(),
       db.calendarItem.count({ where: { status: "QUEUED" } }),
@@ -25,6 +31,7 @@ export default async function SosyalHubPage() {
           listing: { select: { refCode: true, title: true } },
         },
       }),
+      db.studioProject.count({ where: { finalVideoUrl: { not: null } } }),
     ]);
 
   const cards = [
@@ -34,6 +41,13 @@ export default async function SosyalHubPage() {
       title: "AI Planlayıcı",
       desc: "İlandan gönderi, karusel, reel üret",
       meta: `${assetCount} taslak`,
+    },
+    {
+      href: "/sosyal/medya",
+      icon: Clapperboard,
+      title: "Medya",
+      desc: "Stüdyo videoları → Sosyal’e gönder",
+      meta: `${studioReady} hazır video`,
     },
     {
       href: "/sosyal/takvim",
@@ -60,7 +74,7 @@ export default async function SosyalHubPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {cards.map(({ href, icon: Icon, title, desc, meta }) => (
           <Link
             key={href}

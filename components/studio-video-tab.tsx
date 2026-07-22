@@ -18,7 +18,9 @@ import {
   ShieldCheck,
   Wand2,
   ListOrdered,
+  Share2,
 } from "lucide-react";
+import { sendStudioToSocial } from "@/app/actions/social-os";
 import {
   createStudioProject,
   getStudioProject,
@@ -823,19 +825,45 @@ export function StudioVideoTab({
           {/* Nihai video */}
           {project.finalVideoUrl && (
             <div className="space-y-3 border-t border-[var(--app-border)] pt-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h4 className="flex items-center gap-1.5 text-sm font-bold text-emerald-700">
                   <Check size={15} />
                   Tanıtım videonuz hazır
                 </h4>
-                <a
-                  href={project.finalVideoUrl}
-                  download
-                  className="dash-btn-secondary text-xs"
-                >
-                  <Download size={13} />
-                  İndir
-                </a>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => {
+                      startTransition(async () => {
+                        try {
+                          const res = await sendStudioToSocial({
+                            studioProjectId: project.id,
+                          });
+                          window.location.href = `/sosyal/planlayici?focus=${res.assetId}`;
+                        } catch (e) {
+                          alert(
+                            e instanceof Error
+                              ? e.message
+                              : "Sosyal’e gönderilemedi",
+                          );
+                        }
+                      });
+                    }}
+                    className="dash-btn-primary inline-flex items-center gap-1.5 text-xs"
+                  >
+                    <Share2 size={13} />
+                    Sosyal’e gönder
+                  </button>
+                  <a
+                    href={project.finalVideoUrl}
+                    download
+                    className="dash-btn-secondary text-xs"
+                  >
+                    <Download size={13} />
+                    İndir
+                  </a>
+                </div>
               </div>
               <video
                 src={project.finalVideoUrl}
@@ -844,6 +872,10 @@ export function StudioVideoTab({
                   project.aspectRatio === "9:16" ? "mx-auto max-h-[480px] max-w-[270px]" : ""
                 }`}
               />
+              <p className="text-[11px] text-ink/40">
+                Sosyal OS Planlayıcı’da caption + hashtag üretilir; takvime
+                ekleyebilirsiniz.
+              </p>
             </div>
           )}
 
