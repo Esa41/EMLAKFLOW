@@ -20,7 +20,9 @@ import {
   Landmark,
   CalendarDays,
 } from "lucide-react";
-import { OnboardingTour } from "@/components/onboarding-tour";
+import { SetupChecklist } from "@/components/setup-checklist";
+import { showcaseUrl } from "@/lib/url";
+import { getVertical } from "@/lib/verticals";
 
 function compactMoney(n: number) {
   if (n >= 1_000_000)
@@ -62,7 +64,17 @@ export default async function DashboardPage() {
 
   const tenantBrand = await prisma.tenant.findUnique({
     where: { id: session.tenantId },
-    select: { plan: true, brandName: true, name: true },
+    select: {
+      plan: true,
+      brandName: true,
+      name: true,
+      slug: true,
+      vertical: true,
+      showcaseEnabled: true,
+      showcaseHeadline: true,
+      aboutText: true,
+      customDomain: true,
+    },
   });
   const whiteLabelName =
     tenantBrand?.plan === "premium"
@@ -239,9 +251,31 @@ export default async function DashboardPage() {
     },
   ] as const;
 
+  // ── Aktivasyon (yeni ofis kurulumu) ──
+  const vConf = getVertical(tenantBrand?.vertical);
+  const setupComplete =
+    activeListings > 0 && !!tenantBrand?.showcaseHeadline?.trim();
+  const shareUrl = tenantBrand?.slug
+    ? showcaseUrl(tenantBrand.slug, tenantBrand.vertical, tenantBrand.customDomain || null)
+    : "";
+  const suggestedHeadline =
+    vConf.key === "AUTO_DEALER"
+      ? "Aradığınız araç, künyesiyle burada."
+      : "Aradığınız mülke, güvenle giden yol.";
+  const suggestedAbout = `${tenantBrand?.name ?? "Ofisimiz"} olarak ilanları yerinde inceler; fiyatı, metrekaresini ve ${vConf.key === "AUTO_DEALER" ? "ekspertizini" : "tapu durumunu"} olduğu gibi paylaşırız. Aradığınızı bulamazsanız, uygun ${vConf.key === "AUTO_DEALER" ? "araç" : "mülk"} girdiği an sizi ararız.`;
+
   return (
     <div className="dash-shell mx-auto max-w-[1200px]">
-      <OnboardingTour whiteLabelName={whiteLabelName} />
+      {!setupComplete && tenantBrand && (
+        <SetupChecklist
+          hasListing={activeListings > 0}
+          hasIdentity={!!tenantBrand.showcaseHeadline?.trim()}
+          shareUrl={shareUrl}
+          showcaseEnabled={tenantBrand.showcaseEnabled}
+          suggestedHeadline={suggestedHeadline}
+          suggestedAbout={suggestedAbout}
+        />
+      )}
 
       {/* ── Karşılama ── */}
       <div className="dash-in">
