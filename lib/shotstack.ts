@@ -12,6 +12,7 @@
 //   SHOTSTACK_WEBHOOK_SECRET webhook token'ı (yoksa callback gönderilmez)
 
 import type { ResolvedOverlay, OverlayStyleKey, TransitionKey } from "@/lib/studio-templates";
+import { AVATAR_PIP, AI_DISCLOSURE_TEXT } from "@/lib/studio-avatar";
 
 const SHOTSTACK_BASE = "https://api.shotstack.io";
 
@@ -222,6 +223,12 @@ export function buildTimelineFromProject(input: {
   captions?: CaptionChunk[];
   /** null = kapanış kartı/filigran yok */
   branding?: TimelineBranding | null;
+  /**
+   * Vitrin Sunucusu PiP klibi — sahnelerin üzerine köşe penceresi olarak
+   * biner; kendi sesi (dudak senkronlu konuşma) videoya gömülüdür.
+   * Verildiğinde AI şeffaflık ibaresi OTOMATİK basılır (kapatılamaz).
+   */
+  avatar?: { videoUrl: string; durationSec: number } | null;
   callbackUrl?: string;
 }): ShotstackEdit {
   const portrait = input.aspectRatio === "9:16";
@@ -400,17 +407,52 @@ export function buildTimelineFromProject(input: {
     });
   }
 
+  // [P] Vitrin Sunucusu — köşe penceresi (PiP) + zorunlu AI ibaresi.
+  // Sunucu sesi klibin içinde gömülü (volume 1); bu yüzden avatar'lı
+  // kurgularda çağıran voiceKeyframes GÖNDERMEMELİDİR (çift ses olur).
+  const avatarClips: ShotstackClip[] = [];
+  if (input.avatar) {
+    avatarClips.push({
+      asset: { type: "video", src: input.avatar.videoUrl, volume: 1 },
+      start: 0,
+      length: Math.min(input.avatar.durationSec, scenesSec),
+      scale: AVATAR_PIP.scale,
+      position: AVATAR_PIP.position,
+      offset: { x: AVATAR_PIP.offsetX, y: AVATAR_PIP.offsetY },
+      transition: { in: "fade", out: "fade" },
+    });
+    // AI şeffaflık ibaresi — sunucu göründüğü sürece üst-ortada, silik ama
+    // okunur. Overlay slotu DEĞİLDİR: kullanıcı kapatamaz (etik + Meta kuralı).
+    avatarClips.push({
+      asset: {
+        type: "html",
+        html: `<div class="ai">${escapeHtml(AI_DISCLOSURE_TEXT)}</div>`,
+        css: `.ai { font-family: "Montserrat"; font-size: 24px; color: rgba(255,255,255,0.9); background: rgba(0,0,0,0.45); padding: 6px 14px; border-radius: 999px; display: inline-block; }`,
+        width: 560,
+        height: 48,
+      },
+      start: 0.3,
+      length: Math.max(scenesSec - 0.3, 1),
+      position: "top",
+      offset: { y: -0.025 },
+    });
+  }
+
   // Track sırası: Shotstack ilk track'i EN ÜSTTE render eder
   const tracks: { clips: ShotstackClip[] }[] = [];
   if (captionClips.length) tracks.push({ clips: captionClips });
   if (brandingClips.length) tracks.push({ clips: brandingClips });
   if (overlayClips.length) tracks.push({ clips: overlayClips });
+  if (avatarClips.length) tracks.push({ clips: avatarClips });
   tracks.push({ clips: videoClips });
   if (voiceClips.length) tracks.push({ clips: voiceClips });
   if (musicClips.length) tracks.push({ clips: musicClips });
 
   const usesHtml =
-    overlayClips.length > 0 || captionClips.length > 0 || brandingClips.length > 0;
+    overlayClips.length > 0 ||
+    captionClips.length > 0 ||
+    brandingClips.length > 0 ||
+    avatarClips.length > 0;
 
   return {
     timeline: {

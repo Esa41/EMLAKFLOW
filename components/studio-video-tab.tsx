@@ -59,6 +59,7 @@ import {
   type TransitionKey,
 } from "@/lib/studio-templates";
 import { TemplatePicker } from "@/components/studio/template-picker";
+import { AvatarPanel } from "@/components/studio/avatar-panel";
 import { OverlayEditor } from "@/components/studio/overlay-editor";
 import { MusicPicker } from "@/components/studio/music-picker";
 import type { StudioJobItem } from "@/app/actions/studio";
@@ -148,10 +149,12 @@ export function StudioVideoTab({
     getStudioMusicOptions().then(setMusicOptions);
   }, []);
 
-  // Render/birleştirme sürerken durumu Fal ile mutabakatlı sorgula
+  // Render/birleştirme/sunucu klibi sürerken durumu Fal ile mutabakatlı sorgula
   const needsPoll =
     !!project &&
-    (project.merging || project.scenes.some((s) => s.status === "PROCESSING"));
+    (project.merging ||
+      project.avatarStatus === "PROCESSING" ||
+      project.scenes.some((s) => s.status === "PROCESSING"));
 
   useEffect(() => {
     if (!needsPoll || !project) return;
@@ -367,6 +370,9 @@ export function StudioVideoTab({
   const allApproved =
     !!project && allScenesDone && project.scenes.every((s) => s.approved);
   const anyFailed = !!project && project.scenes.some((s) => s.status === "FAILED");
+  // Vitrin Sunucusu: segment seslendirme yerine avatar paneli + merge kapısı
+  const isPresenter = !!project && project.templateKey === "presenter_reels";
+  const avatarReady = !!project && project.avatarStatus === "COMPLETED";
   const segments = project?.voiceSegments ?? [];
   const segmentsReady =
     segments.length > 0 && segments.every((v) => v.status === "COMPLETED");
@@ -550,6 +556,15 @@ export function StudioVideoTab({
           {/* ── Akıllı Senaryo Editörü ── */}
           {allScenesDone && !project.finalVideoUrl && !project.merging && (
             <div className="space-y-4 border-t border-[var(--app-border)] pt-4">
+              {isPresenter ? (
+                <AvatarPanel
+                  project={project}
+                  unlimited={unlimited}
+                  videoCredits={videoCredits}
+                  onProject={(u) => setProject((p) => (p ? u(p) : p))}
+                />
+              ) : (
+              <>
               <h4 className="flex items-center gap-1.5 text-sm font-bold">
                 <Mic size={14} className="text-brand-600" />
                 Akıllı Senaryo Editörü
@@ -713,6 +728,8 @@ export function StudioVideoTab({
                   ))}
                 </div>
               )}
+              </>
+              )}
 
               {/* Ekran yazıları — şablonun bilgi kartları */}
               {(project.overlayData?.length ?? 0) > 0 && (
@@ -747,19 +764,23 @@ export function StudioVideoTab({
                 <div className="flex flex-wrap items-center gap-4">
                   <label
                     className={`flex cursor-pointer items-center gap-2 text-xs font-semibold ${
-                      segments.length === 0 ? "opacity-40" : "text-ink/60"
+                      (isPresenter ? !avatarReady : segments.length === 0)
+                        ? "opacity-40"
+                        : "text-ink/60"
                     }`}
                     title={
-                      segments.length === 0
-                        ? "Altyazı için önce cümle cümle seslendirme yapın"
-                        : "Konuşma metni videonun altında kısa gruplar halinde akar"
+                      isPresenter
+                        ? "Sunucu senaryosu videonun altında kısa gruplar halinde akar"
+                        : segments.length === 0
+                          ? "Altyazı için önce cümle cümle seslendirme yapın"
+                          : "Konuşma metni videonun altında kısa gruplar halinde akar"
                     }
                   >
                     <input
                       type="checkbox"
-                      checked={captionsOn && segments.length > 0}
+                      checked={captionsOn && (isPresenter ? avatarReady : segments.length > 0)}
                       onChange={(e) => setCaptionsOn(e.target.checked)}
-                      disabled={segments.length === 0}
+                      disabled={isPresenter ? !avatarReady : segments.length === 0}
                       className="h-3.5 w-3.5 accent-[var(--brand-fill,#4f46e5)]"
                     />
                     Altyazı
@@ -784,7 +805,8 @@ export function StudioVideoTab({
                     pending ||
                     voiceBusy ||
                     !allApproved ||
-                    (segments.length > 0 && !segmentsReady)
+                    (isPresenter && !avatarReady) ||
+                    (!isPresenter && segments.length > 0 && !segmentsReady)
                   }
                   className="dash-btn-primary"
                 >
@@ -796,7 +818,9 @@ export function StudioVideoTab({
                   ) : (
                     <>
                       <Clapperboard size={14} />
-                      {segments.length ? "Videoyu Birleştir" : "Sessiz Birleştir"}
+                      {isPresenter || segments.length
+                        ? "Videoyu Birleştir"
+                        : "Sessiz Birleştir"}
                     </>
                   )}
                 </button>
@@ -805,7 +829,12 @@ export function StudioVideoTab({
                     Birleştirme için tüm sahneleri izleyip onaylayın.
                   </span>
                 )}
-                {allApproved && segments.length === 0 && (
+                {allApproved && isPresenter && !avatarReady && (
+                  <span className="text-xs text-ink/45">
+                    Birleştirme için önce sunucu klibini üretin.
+                  </span>
+                )}
+                {allApproved && !isPresenter && segments.length === 0 && (
                   <span className="text-xs text-ink/45">
                     Seslendirme eklemek için önce "Cümle Cümle Seslendir" kullanın.
                   </span>

@@ -18,6 +18,7 @@ import {
   getVideoResult,
   getMergeResult,
   videoCostUsd,
+  avatarCostUsd,
   FFMPEG_COMPOSE_MODEL,
 } from "@/lib/ai-provider-registry";
 import { getShotstackRender } from "@/lib/shotstack";
@@ -108,6 +109,9 @@ export async function reconcileProject(projectId: string): Promise<void> {
     select: {
       id: true,
       tenantId: true,
+      avatarStatus: true,
+      avatarJobId: true,
+      avatarDurationMs: true,
       scenes: {
         where: { status: "PROCESSING" },
         select: {
@@ -157,6 +161,70 @@ export async function reconcileProject(projectId: string): Promise<void> {
         project.tenantId,
         err instanceof Error ? err.message : "Render başarısız.",
       );
+    }
+  }
+
+  // ── Vitrin Sunucusu klibi (AVATAR_GENERATE) ──
+  // Sahnelerle aynı Fal kuyruğu ve claim deseni: tamamlanınca R2'ye kopyala,
+  // başarısızsa krediyi iade et. Claim alanı project.avatarStatus'tur.
+  if (project.avatarStatus === "PROCESSING" && project.avatarJobId) {
+    const avatarJob = await prisma.studioJob.findUnique({
+      where: { id: project.avatarJobId },
+      select: { id: true, externalRequestId: true, externalModel: true, creditCost: true },
+    });
+    if (avatarJob?.externalRequestId) {
+      try {
+        const { status } = await getVideoStatus(avatarJob.externalRequestId, {
+          provider: "FAL_KLING",
+          ...(avatarJob.externalModel ? { model: avatarJob.externalModel } : {}),
+        });
+        if (status === "COMPLETED") {
+          const { videoUrl } = await getVideoResult(avatarJob.externalRequestId, {
+            provider: "FAL_KLING",
+            ...(avatarJob.externalModel ? { model: avatarJob.externalModel } : {}),
+          });
+          const key = `studio/${project.tenantId}/avatar/${project.id}.mp4`;
+          const outputUrl = await copyUrlToR2(videoUrl, key, "video/mp4");
+
+          const claimed = await prisma.studioProject.updateMany({
+            where: { id: project.id, avatarStatus: "PROCESSING" },
+            data: {
+              avatarStatus: "COMPLETED",
+              avatarVideoUrl: outputUrl,
+              avatarVideoKey: key,
+            },
+          });
+          if (claimed.count > 0) {
+            await prisma.studioJob.update({
+              where: { id: avatarJob.id },
+              data: {
+                status: "COMPLETED",
+                outputUrl,
+                outputKey: key,
+                costUsd: avatarCostUsd((project.avatarDurationMs ?? 0) / 1000),
+              },
+            });
+          }
+        }
+      } catch (err) {
+        const msg = (err instanceof Error ? err.message : "Sunucu klibi başarısız.").slice(0, 500);
+        const claimed = await prisma.studioProject.updateMany({
+          where: { id: project.id, avatarStatus: "PROCESSING" },
+          data: { avatarStatus: "FAILED" },
+        });
+        if (claimed.count > 0) {
+          await prisma.$transaction(async (tx) => {
+            await tx.tenant.update({
+              where: { id: project.tenantId },
+              data: { aiVideoCredits: { increment: avatarJob.creditCost } },
+            });
+            await tx.studioJob.update({
+              where: { id: avatarJob.id },
+              data: { status: "FAILED", errorMessage: msg },
+            });
+          });
+        }
+      }
     }
   }
 

@@ -33,6 +33,7 @@ import {
   type TransitionKey,
 } from "@/lib/studio-templates";
 import { MUSIC_TRACKS, isMusicKey, type MusicKey } from "@/lib/studio-music";
+import { buildPresenterScript, DEFAULT_AVATAR_PERSONA } from "@/lib/studio-avatar";
 import {
   submitShotstackRender,
   buildTimelineFromProject,
@@ -130,6 +131,11 @@ export type StudioProjectView = {
   merging: boolean; // aktif VIDEO_MERGE işi sürüyor mu
   scenes: StudioSceneView[];
   voiceSegments: ProjectVoiceSegmentView[];
+  // ── Vitrin Sunucusu (presenter_reels) ──
+  avatarPersonaKey: string | null;
+  avatarStatus: string | null; // null | PROCESSING | COMPLETED | FAILED
+  avatarScript: string | null;
+  avatarVideoUrl: string | null;
 };
 
 type ProjectResult =
@@ -176,6 +182,10 @@ async function toProjectView(projectId: string): Promise<StudioProjectView | nul
     finalVideoUrl: p.finalVideoUrl,
     errorMessage: p.errorMessage,
     merging: p.jobs.length > 0,
+    avatarPersonaKey: p.avatarPersonaKey,
+    avatarStatus: p.avatarStatus,
+    avatarScript: p.avatarScript,
+    avatarVideoUrl: p.avatarVideoUrl,
     scenes: p.scenes.map((s) => ({
       id: s.id,
       order: s.order,
@@ -393,22 +403,23 @@ export async function createStudioProject(input: {
   }
   const mediaById = new Map(listing.media.map((m) => [m.id, m]));
 
-  const voiceText = buildVoiceoverText(
-    {
-      title: listing.title,
-      city: listing.city,
-      district: listing.district,
-      neighborhood: listing.neighborhood,
-      rooms: listing.rooms,
-      grossArea: listing.grossArea,
-      price: formatPrice(listing.price, listing.currency),
-      purpose: listing.purpose,
-      features: listing.features,
-    },
-    mediaIds.length,
-    [],
-    template.voiceTone,
-  );
+  const voiceListing = {
+    title: listing.title,
+    city: listing.city,
+    district: listing.district,
+    neighborhood: listing.neighborhood,
+    rooms: listing.rooms,
+    grossArea: listing.grossArea,
+    price: formatPrice(listing.price, listing.currency),
+    purpose: listing.purpose,
+    features: listing.features,
+  };
+  // Vitrin Sunucusu: birinci ağızdan sunucu senaryosu (≤30 sn) — diğer
+  // şablonlarda ton bazlı klasik tanıtım metni.
+  const voiceText =
+    template.key === "presenter_reels"
+      ? buildPresenterScript(voiceListing)
+      : buildVoiceoverText(voiceListing, mediaIds.length, [], template.voiceTone);
 
   // Krediyi düş — sahne bazında başarısızlıkta tek tek iade edilir
   // (test modunda cost=0 → düşülmez)
@@ -433,6 +444,10 @@ export async function createStudioProject(input: {
       aspectRatio: template.aspectRatio,
       voiceText,
       voiceProvider: "ELEVENLABS",
+      // Vitrin Sunucusu: varsayılan persona baştan seçili gelir
+      ...(template.key === "presenter_reels"
+        ? { avatarPersonaKey: DEFAULT_AVATAR_PERSONA }
+        : {}),
     },
   });
 
@@ -973,11 +988,30 @@ export async function mergeProject(input: {
     };
   }
 
+  // ── Vitrin Sunucusu kapısı ──
+  // presenter_reels'te sunucu klibi videonun omurgasıdır: hazır olmadan
+  // birleştirme yapılmaz. Sunucu sesi klipte gömülü olduğundan avatar'lı
+  // kurguda segment seslendirmesi KULLANILMAZ (çift ses engeli).
+  if (project.templateKey === "presenter_reels") {
+    if (project.avatarStatus === "PROCESSING") {
+      return { ok: false, error: "Sunucu klibi üretiliyor — bitince birleştirin." };
+    }
+    if (project.avatarStatus !== "COMPLETED" || !project.avatarVideoUrl) {
+      return { ok: false, error: "Önce sunucu klibini üretin (persona seçip \"Sunucuyu Konuştur\")." };
+    }
+  }
+  const avatarActive =
+    project.avatarStatus === "COMPLETED" &&
+    !!project.avatarVideoUrl &&
+    !!project.avatarDurationMs;
+
   try {
     // Ses: öncelik segment bazlı seslendirmede (Senaryo Editörü çıktısı)
     let audioKeyframes: { url: string; timestamp: number; duration: number }[] | null = null;
 
-    if (project.voiceSegments.length > 0) {
+    if (avatarActive) {
+      // Sunucu sesi PiP klibinde gömülü — ayrı seslendirme eklenmez
+    } else if (project.voiceSegments.length > 0) {
       const notReady = project.voiceSegments.filter(
         (v) => v.status !== "COMPLETED" || !v.audioUrl || !v.durationMs,
       );
@@ -1041,18 +1075,28 @@ export async function mergeProject(input: {
 
     const overlays = (project.overlayData as ResolvedOverlay[] | null) ?? [];
 
-    // Altyazılar: segment bazlı seslendirme varsa kelime zamanlamalarından
-    // kısa gruplar üretilir (varsayılan açık; tek parça fallback'te yok)
-    const captions =
-      (input.captions ?? true) && project.voiceSegments.length > 0
-        ? buildCaptionChunks(
-            project.voiceSegments.map((v) => ({
-              text: v.text,
-              durationMs: v.durationMs ?? 0,
-              wordTimings: (v.wordTimings as WordTiming[] | null) ?? null,
-            })),
-          )
-        : [];
+    // Altyazılar: avatar'lı kurguda sunucu senaryosunun kelime
+    // zamanlamalarından; değilse segment bazlı seslendirmeden.
+    const captions = !(input.captions ?? true)
+      ? []
+      : avatarActive
+        ? buildCaptionChunks([
+            {
+              text: project.avatarScript ?? "",
+              durationMs: project.avatarDurationMs!,
+              wordTimings:
+                (project.avatarWordTimings as WordTiming[] | null) ?? null,
+            },
+          ])
+        : project.voiceSegments.length > 0
+          ? buildCaptionChunks(
+              project.voiceSegments.map((v) => ({
+                text: v.text,
+                durationMs: v.durationMs ?? 0,
+                wordTimings: (v.wordTimings as WordTiming[] | null) ?? null,
+              })),
+            )
+          : [];
 
     // Kapanış kartı + filigran — ofis kimliği
     let branding: TimelineBranding | null = null;
@@ -1085,12 +1129,19 @@ export async function mergeProject(input: {
       overlays,
       captions,
       branding,
+      avatar: avatarActive
+        ? {
+            videoUrl: project.avatarVideoUrl!,
+            durationSec: project.avatarDurationMs! / 1000,
+          }
+        : null,
       callbackUrl,
     });
     const { renderId } = await submitShotstackRender(edit);
 
     // Gerçek maliyet: Shotstack render (toplam süre) + seslendirme karakteri.
     // Shotstack tamamlansa da olmasa da faturalanır → submit anında yazılır.
+    // (Avatar sesi klip üretiminde ödendi — burada tekrar sayılmaz.)
     const totalSec = scenes.reduce((sum, s) => sum + s.durationSec, 0);
     const voiceChars = (audioKeyframes ? project.voiceText?.length : 0) ?? 0;
 

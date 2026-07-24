@@ -25,12 +25,17 @@ export type AvatarPersona = {
   key: AvatarPersonaKey;
   label: string;
   desc: string;
-  /** false → UI'da "Yakında" (avatar modeli bağlanınca açılır). */
+  /** false → UI'da "Yakında" (portre + ses hazır olunca açılır). */
   available: boolean;
   /** Tutarlı karakter portresi — Fal görüntü modeline gider. */
   portraitPrompt: string;
   /** Persona sesi için .env değişkeni — boşsa ELEVENLABS_VOICE_ID kullanılır. */
   voiceEnvVar: string;
+  /**
+   * Portrenin R2'deki SABİT anahtarı — bir kez üretilir
+   * (scripts/generate-avatar-portraits.ts), tüm kliplere kimlik kaynağıdır.
+   */
+  portraitR2Key: string;
 };
 
 export const AVATAR_PERSONAS: AvatarPersona[] = [
@@ -46,6 +51,7 @@ export const AVATAR_PERSONAS: AvatarPersona[] = [
       "neutral background, photorealistic portrait, front-facing medium shot, " +
       "looking directly at the camera, natural skin texture, 4K",
     voiceEnvVar: "ELEVENLABS_VOICE_ELIF",
+    portraitR2Key: "studio/avatars/elif.png",
   },
   {
     key: "deniz",
@@ -59,6 +65,7 @@ export const AVATAR_PERSONAS: AvatarPersona[] = [
       "photorealistic portrait, front-facing medium shot, looking directly " +
       "at the camera, natural skin texture, 4K",
     voiceEnvVar: "ELEVENLABS_VOICE_DENIZ",
+    portraitR2Key: "studio/avatars/deniz.png",
   },
   {
     key: "kerem",
@@ -72,6 +79,7 @@ export const AVATAR_PERSONAS: AvatarPersona[] = [
       "clean soft neutral background, photorealistic portrait, front-facing " +
       "medium shot, looking directly at the camera, natural skin texture, 4K",
     voiceEnvVar: "ELEVENLABS_VOICE_KEREM",
+    portraitR2Key: "studio/avatars/kerem.png",
   },
 ];
 

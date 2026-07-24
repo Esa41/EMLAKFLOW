@@ -150,6 +150,7 @@ enum StudioJobType {
   VIDEO_GENERATE   // sahne bazlı video üretimi (Fal.ai / Kling)
   VOICE_GENERATE   // seslendirme üretimi (ElevenLabs)
   VIDEO_MERGE      // sahneleri + sesi tek videoda birleştirme
+  AVATAR_GENERATE  // Vitrin Sunucusu konuşan klip (Fal.ai / Kling AI Avatar)
 }
 
 // AI Stüdyo işlem durumu
@@ -1186,6 +1187,20 @@ model StudioProject {
 
   // Negative constraints — bu kelimeler tanıtım metninde asla geçemez
   negativeTerms String[] @default([])
+
+  // ── Vitrin Sunucusu (AI avatar sunucu — lib/studio-avatar.ts) ──
+  // presenter_reels şablonunda: persona seçilir, tek parça senaryo sesi
+  // üretilir, Fal avatar modeli konuşan klip döndürür; kurguda PiP biner.
+  avatarPersonaKey  String?          // elif | deniz | kerem (null = sunucusuz)
+  avatarStatus      StudioJobStatus? // null = klip istenmedi
+  avatarScript      String?          // seslendirilen sunucu metni
+  avatarAudioUrl    String?          // tek parça ses (R2) — Fal'a girdi
+  avatarAudioKey    String?
+  avatarDurationMs  Int?             // ses süresi ≈ klip süresi (PiP length)
+  avatarWordTimings Json?            // altyazı zamanlaması (tek segment)
+  avatarVideoUrl    String?          // konuşan sunucu klibi (R2)
+  avatarVideoKey    String?
+  avatarJobId       String?          // aktif AVATAR_GENERATE StudioJob id
 
   // Nihai birleştirilmiş video (VIDEO_MERGE çıktısı)
   finalVideoUrl String?
