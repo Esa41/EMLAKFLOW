@@ -216,9 +216,11 @@ const FEATURES = [
   },
 ];
 
-/* Fiyatlar — TASLAK (fiyat çalışmasında netleşecek). Model: 3 katman + kredi (Stüdyo'da). */
-const PRO_MONTHLY = 599;
-const PRO_YEARLY = 5990;
+/* Fiyatlar (Esa kararı, 24 Tem 2026): Pro tek görünen fiyat (₺4.500/ay);
+ * Premium ve Kurumsal "teklif al" (public fiyat yok — B2B görüşme). Bu blok
+ * pazarlama yüzeyi; iç plan ekonomisi lib/plans-config.ts'te ayrı yönetilir. */
+const PRO_MONTHLY = 4500;
+const PRO_YEARLY = 45000;
 const tl = new Intl.NumberFormat("tr-TR");
 
 export function LandingContent({
@@ -407,7 +409,7 @@ export function LandingContent({
             </div>
           </ScrollReveal>
 
-          <div className="mt-12 grid gap-5 lg:grid-cols-3">
+          <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
             {/* Ücretsiz */}
             <ScrollReveal>
               <div className="flex h-full flex-col rounded-3xl border border-ink/10 bg-paper p-7">
@@ -467,20 +469,20 @@ export function LandingContent({
               </div>
             </ScrollReveal>
 
-            {/* Premium */}
+            {/* Premium — teklif al */}
             <ScrollReveal delay={160}>
               <div className="flex h-full flex-col rounded-3xl border border-ink/10 bg-paper p-7">
                 <div className="font-display text-lg font-bold">Premium</div>
                 <div className="mt-1 min-h-[40px] text-sm text-ink/55">Ekipli ofisler ve markanız için</div>
-                <div className="mt-3 font-display text-4xl font-extrabold tracking-tight">Ofisinize özel</div>
+                <div className="mt-3 font-display text-3xl font-extrabold tracking-tight">Teklif al</div>
                 <div className="mt-1 text-sm text-ink/50">size uygun teklif</div>
                 <ul className="mt-6 space-y-2.5">
                   {[
                     "Pro'daki her şey dahil",
                     "Sınırsız ekip / çoklu kullanıcı",
                     "Rozetsiz vitrin (kendi markanız)",
-                    "Şube / franchise yönetimi",
-                    "Aylık tanıtım videosu paketi",
+                    "Aylık AI tanıtım videosu paketi dahil",
+                    "AI Vitrin Sunucusu",
                   ].map((f) => (
                     <li key={f} className="flex gap-2 text-sm leading-snug">
                       <Check size={16} className="mt-0.5 shrink-0 text-brand-600" />
@@ -490,6 +492,40 @@ export function LandingContent({
                 </ul>
                 <div className="mt-7">
                   <CtaButton href="mailto:hello@emlakflow.app?subject=Premium%20paket" variant="secondary">
+                    İletişime geç
+                  </CtaButton>
+                </div>
+              </div>
+            </ScrollReveal>
+
+            {/* Kurumsal — teklif al */}
+            <ScrollReveal delay={240}>
+              <div className="flex h-full flex-col rounded-3xl border border-ink/15 bg-gradient-to-b from-ink/[0.04] to-paper p-7">
+                <div className="flex items-center gap-2">
+                  <div className="font-display text-lg font-bold">Kurumsal</div>
+                  <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                    50+ ilan
+                  </span>
+                </div>
+                <div className="mt-1 min-h-[40px] text-sm text-ink/55">Çok şubeli ofisler ve franchise için</div>
+                <div className="mt-3 font-display text-3xl font-extrabold tracking-tight">Teklif al</div>
+                <div className="mt-1 text-sm text-ink/50">hacme özel fiyat</div>
+                <ul className="mt-6 space-y-2.5">
+                  {[
+                    "Premium'daki her şey dahil",
+                    "Yüksek hacimli aylık video paketi",
+                    "Şube / franchise yönetimi",
+                    "Özel kurulum + öncelikli destek",
+                    "Kuruma özel eğitim ve hesap yöneticisi",
+                  ].map((f) => (
+                    <li key={f} className="flex gap-2 text-sm leading-snug">
+                      <Check size={16} className="mt-0.5 shrink-0 text-ink" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-7">
+                  <CtaButton href="mailto:hello@emlakflow.app?subject=Kurumsal%20paket" variant="secondary">
                     İletişime geç
                   </CtaButton>
                 </div>
