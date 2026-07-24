@@ -743,7 +743,8 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
         label: "Konum",
         source: "location",
         placement: "first",
-        startSec: 0.8,
+        // Tam ekran hook açılışı (AVATAR_INTRO_SEC=3.5) bittikten sonra girer
+        startSec: 4.5,
         lengthSec: 3.5,
         styleKey: "cardTopLeft",
       },

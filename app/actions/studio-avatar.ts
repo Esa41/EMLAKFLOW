@@ -116,6 +116,7 @@ export async function generateAvatarClip(input: {
       avatarScript: true,
       voiceText: true,
       negativeTerms: true,
+      scenes: { select: { durationSec: true } },
     },
   });
   if (!project) return { ok: false, error: "Proje bulunamadı." };
@@ -185,6 +186,16 @@ export async function generateAvatarClip(input: {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Seslendirme başarısız.";
     return { ok: false, error: message.slice(0, 300) };
+  }
+
+  // Konuşma, sahnelerin toplam süresine sığmalı — sığmazsa kullanıcıya
+  // net yönlendirme (kredi henüz düşülmedi, güvenli çıkış)
+  const scenesSec = project.scenes.reduce((s, x) => s + x.durationSec, 0);
+  if (scenesSec > 0 && durationMs / 1000 > scenesSec + 1) {
+    return {
+      ok: false,
+      error: `Konuşma ${Math.round(durationMs / 1000)} sn sürüyor ama video ${scenesSec} sn — metni kısaltın veya sahne/süre ekleyin.`,
+    };
   }
 
   // 2) Krediyi düş — Fal submit başarısız olursa aynen iade edilir

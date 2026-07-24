@@ -35,7 +35,11 @@ import {
   type TransitionKey,
 } from "@/lib/studio-templates";
 import { MUSIC_TRACKS, isMusicKey, type MusicKey } from "@/lib/studio-music";
-import { buildPresenterScript, DEFAULT_AVATAR_PERSONA } from "@/lib/studio-avatar";
+import {
+  buildPresenterScript,
+  DEFAULT_AVATAR_PERSONA,
+  stingerR2Key,
+} from "@/lib/studio-avatar";
 import {
   submitShotstackRender,
   buildTimelineFromProject,
@@ -1086,14 +1090,18 @@ export async function mergeProject(input: {
     const captions = !(input.captions ?? true)
       ? []
       : avatarActive
-        ? buildCaptionChunks([
-            {
-              text: project.avatarScript ?? "",
-              durationMs: project.avatarDurationMs!,
-              wordTimings:
-                (project.avatarWordTimings as WordTiming[] | null) ?? null,
-            },
-          ])
+        ? buildCaptionChunks(
+            [
+              {
+                text: project.avatarScript ?? "",
+                durationMs: project.avatarDurationMs!,
+                wordTimings:
+                  (project.avatarWordTimings as WordTiming[] | null) ?? null,
+              },
+            ],
+            // hook tipografisi: 1-2 kelimelik dev gruplar
+            { maxWords: 2, maxChars: 16 },
+          )
         : project.voiceSegments.length > 0
           ? buildCaptionChunks(
               project.voiceSegments.map((v) => ({
@@ -1104,20 +1112,29 @@ export async function mergeProject(input: {
             )
           : [];
 
-    // Kapanış kartı + filigran — ofis kimliği
+    // Ofis kimliği — kapanış kartı/filigran + hook tipografi rengi
+    const tenantBrand = await prisma.tenant.findUnique({
+      where: { id: session.tenantId },
+      select: { name: true, phone: true, logoUrl: true, brandColor: true },
+    });
     let branding: TimelineBranding | null = null;
-    if (input.outro ?? true) {
-      const tenant = await prisma.tenant.findUnique({
-        where: { id: session.tenantId },
-        select: { name: true, phone: true, logoUrl: true },
-      });
-      if (tenant) {
-        branding = {
-          name: tenant.name,
-          phone: tenant.phone,
-          logoUrl: tenant.logoUrl,
-        };
-      }
+    if ((input.outro ?? true) && tenantBrand) {
+      branding = {
+        name: tenantBrand.name,
+        phone: tenantBrand.phone,
+        logoUrl: tenantBrand.logoUrl,
+      };
+    }
+
+    // Persona stinger'ı (siluet pozu) — bir kez üretilmiş marka sahnesi;
+    // R2'de yoksa render bozulmasın diye atlanır (müzikle aynı soft-fail).
+    let stinger: { videoUrl: string; durationSec: number } | null = null;
+    if (avatarActive && project.avatarPersonaKey) {
+      const stingerUrl = publicUrl(
+        stingerR2Key(project.avatarPersonaKey, "pose"),
+      );
+      const head = await fetch(stingerUrl, { method: "HEAD" }).catch(() => null);
+      if (head?.ok) stinger = { videoUrl: stingerUrl, durationSec: 5 };
     }
 
     // Webhook: secret tanımlıysa Shotstack bitişte bize haber verir
@@ -1141,6 +1158,9 @@ export async function mergeProject(input: {
             durationSec: project.avatarDurationMs! / 1000,
           }
         : null,
+      captionStyle: avatarActive ? "hook" : "band",
+      hookColor: tenantBrand?.brandColor ?? undefined,
+      stinger,
       callbackUrl,
     });
     const { renderId } = await submitShotstackRender(edit);

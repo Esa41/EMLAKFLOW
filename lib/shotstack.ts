@@ -12,7 +12,12 @@
 //   SHOTSTACK_WEBHOOK_SECRET webhook token'ı (yoksa callback gönderilmez)
 
 import type { ResolvedOverlay, OverlayStyleKey, TransitionKey } from "@/lib/studio-templates";
-import { AVATAR_PIP, AI_DISCLOSURE_TEXT } from "@/lib/studio-avatar";
+import {
+  AVATAR_PIP,
+  AVATAR_INTRO_SEC,
+  AI_DISCLOSURE_TEXT,
+  HOOK_DEFAULT_COLOR,
+} from "@/lib/studio-avatar";
 
 const SHOTSTACK_BASE = "https://api.shotstack.io";
 
@@ -50,7 +55,7 @@ async function shotstackFetch<T>(path: string, init?: RequestInit): Promise<T> {
 // ── Edit JSON tipleri (kullandığımız alt küme) ──
 
 type ShotstackAsset =
-  | { type: "video"; src: string; volume?: number }
+  | { type: "video"; src: string; volume?: number; trim?: number }
   | { type: "audio"; src: string; volume?: number; effect?: "fadeIn" | "fadeOut" | "fadeInFadeOut" }
   | { type: "html"; html: string; css: string; width: number; height: number }
   | { type: "image"; src: string };
@@ -224,16 +229,31 @@ export function buildTimelineFromProject(input: {
   /** null = kapanış kartı/filigran yok */
   branding?: TimelineBranding | null;
   /**
-   * Vitrin Sunucusu PiP klibi — sahnelerin üzerine köşe penceresi olarak
-   * biner; kendi sesi (dudak senkronlu konuşma) videoya gömülüdür.
-   * Verildiğinde AI şeffaflık ibaresi OTOMATİK basılır (kapatılamaz).
+   * Vitrin Sunucusu klibi: ilk AVATAR_INTRO_SEC saniye TAM EKRAN hook,
+   * sonra köşe penceresine (PiP) küçülür; sesi (dudak senkronlu konuşma)
+   * videoya gömülüdür. Verildiğinde AI şeffaflık ibaresi OTOMATİK basılır.
    */
   avatar?: { videoUrl: string; durationSec: number } | null;
+  /**
+   * Altyazı stili: "band" küçük alt bant (varsayılan); "hook" referans
+   * kreatiflerdeki dev, ortalanmış kelime-kelime tipografi (avatar kurguları).
+   */
+  captionStyle?: "band" | "hook";
+  /** Hook tipografisinin rengi — ofis marka rengi (yoksa HOOK_DEFAULT_COLOR). */
+  hookColor?: string;
+  /**
+   * Persona stinger'ı (siluet pozu) — sahnelerden sonra, kapanış kartından
+   * önce oynayan tek seferlik sinematik marka sahnesi.
+   */
+  stinger?: { videoUrl: string; durationSec: number } | null;
   callbackUrl?: string;
 }): ShotstackEdit {
   const portrait = input.aspectRatio === "9:16";
   const scenesSec = input.scenes.reduce((sum, s) => sum + s.durationSec, 0);
-  const totalSec = scenesSec + (input.branding ? OUTRO_SEC : 0);
+  // body = sahneler + (varsa) stinger; kapanış kartı body'den sonra gelir
+  const stingerSec = input.stinger?.durationSec ?? 0;
+  const bodySec = scenesSec + stingerSec;
+  const totalSec = bodySec + (input.branding ? OUTRO_SEC : 0);
 
   // Sahne başlangıç zamanları (bitişik dizilim)
   const sceneStarts: number[] = [];
@@ -254,6 +274,18 @@ export function buildTimelineFromProject(input: {
       ? { transition: { in: s.transitionIn } }
       : {}),
   }));
+
+  // Stinger: sahnelerin ardından oynayan sinematik marka sahnesi (sessiz —
+  // i2v çıktısının rastgele ortam sesi kurguya girmesin)
+  if (input.stinger) {
+    videoClips.push({
+      asset: { type: "video", src: input.stinger.videoUrl, volume: 0 },
+      start: scenesSec,
+      length: stingerSec,
+      fit: "crop",
+      transition: { in: "fade" },
+    });
+  }
 
   // [0] Ekran yazıları — hedef sahnenin timeline offset'i + slot startSec
   const overlayClips: ShotstackClip[] = [];
@@ -342,25 +374,49 @@ export function buildTimelineFromProject(input: {
       ]
     : [];
 
-  // [A] Altyazılar — alt bantta kısa kelime grupları (kelime zamanlamalı)
+  // [A] Altyazılar — iki stil:
+  //   band : alt bantta küçük kelime grupları (klasik)
+  //   hook : dev, ortalanmış, marka renkli kelime-kelime tipografi
+  //          (referans AI sunucu kreatiflerinin görsel dili)
+  const hookStyle = input.captionStyle === "hook";
+  const hookColor = input.hookColor?.trim() || HOOK_DEFAULT_COLOR;
   const captionClips: ShotstackClip[] = (input.captions ?? [])
     .filter((c) => c.text.trim() && c.endMs > c.startMs)
-    .map((c) => ({
-      asset: {
-        type: "html" as const,
-        html: `<div class="cap">${escapeHtml(c.text)}</div>`,
-        css: portrait
-          ? `.cap { font-family: "Montserrat"; font-size: 52px; font-weight: 800; color: #ffffff; text-align: center; text-shadow: 0 3px 14px rgba(0,0,0,0.9); }`
-          : `.cap { font-family: "Montserrat"; font-size: 42px; font-weight: 800; color: #ffffff; text-align: center; text-shadow: 0 3px 14px rgba(0,0,0,0.9); }`,
-        width: portrait ? 960 : 1500,
-        height: portrait ? 150 : 110,
-      },
-      start: c.startMs / 1000,
-      length: (c.endMs - c.startMs) / 1000,
-      position: "bottom" as const,
-      // 9:16'da platform arayüzü (beğen/paylaş) alta biner — biraz yukarıda
-      offset: { y: portrait ? 0.14 : 0.05 },
-    }));
+    .map((c) =>
+      hookStyle
+        ? {
+            asset: {
+              type: "html" as const,
+              html: `<div class="hook">${escapeHtml(c.text.toLocaleUpperCase("tr-TR"))}</div>`,
+              css:
+                `.hook { font-family: "Montserrat"; font-size: ${portrait ? 88 : 80}px; ` +
+                `font-weight: 800; color: ${hookColor}; text-align: center; ` +
+                `letter-spacing: 2px; line-height: 1.08; ` +
+                `text-shadow: 0 4px 28px rgba(0,0,0,0.55); }`,
+              width: portrait ? 1000 : 1500,
+              height: 300,
+            },
+            start: c.startMs / 1000,
+            length: (c.endMs - c.startMs) / 1000,
+            position: "center" as const,
+          }
+        : {
+            asset: {
+              type: "html" as const,
+              html: `<div class="cap">${escapeHtml(c.text)}</div>`,
+              css: portrait
+                ? `.cap { font-family: "Montserrat"; font-size: 52px; font-weight: 800; color: #ffffff; text-align: center; text-shadow: 0 3px 14px rgba(0,0,0,0.9); }`
+                : `.cap { font-family: "Montserrat"; font-size: 42px; font-weight: 800; color: #ffffff; text-align: center; text-shadow: 0 3px 14px rgba(0,0,0,0.9); }`,
+              width: portrait ? 960 : 1500,
+              height: portrait ? 150 : 110,
+            },
+            start: c.startMs / 1000,
+            length: (c.endMs - c.startMs) / 1000,
+            position: "bottom" as const,
+            // 9:16'da platform arayüzü (beğen/paylaş) alta biner — biraz yukarıda
+            offset: { y: portrait ? 0.14 : 0.05 },
+          },
+    );
 
   // [B] Ofis kimliği — köşe filigranı + kapanış kartı
   const brandingClips: ShotstackClip[] = [];
@@ -371,7 +427,7 @@ export function buildTimelineFromProject(input: {
       brandingClips.push({
         asset: { type: "image", src: b.logoUrl },
         start: 0,
-        length: scenesSec,
+        length: bodySec,
         fit: "none",
         scale: 0.08,
         opacity: 0.55,
@@ -381,7 +437,7 @@ export function buildTimelineFromProject(input: {
       // Kapanış kartı: siyah zemin üzerinde logo
       brandingClips.push({
         asset: { type: "image", src: b.logoUrl },
-        start: scenesSec,
+        start: bodySec,
         length: OUTRO_SEC,
         fit: "none",
         scale: 0.22,
@@ -399,7 +455,7 @@ export function buildTimelineFromProject(input: {
         width: portrait ? 960 : 1400,
         height: 180,
       },
-      start: scenesSec + 0.3,
+      start: bodySec + 0.3,
       length: OUTRO_SEC - 0.3,
       position: "center",
       offset: { y: b.logoUrl ? -0.1 : 0 },
@@ -412,15 +468,33 @@ export function buildTimelineFromProject(input: {
   // kurgularda çağıran voiceKeyframes GÖNDERMEMELİDİR (çift ses olur).
   const avatarClips: ShotstackClip[] = [];
   if (input.avatar) {
+    const avatarLen = Math.min(input.avatar.durationSec, scenesSec);
+    const introSec = Math.min(AVATAR_INTRO_SEC, avatarLen);
+    // Açılış: sunucu TAM EKRAN hook konuşması
     avatarClips.push({
       asset: { type: "video", src: input.avatar.videoUrl, volume: 1 },
       start: 0,
-      length: Math.min(input.avatar.durationSec, scenesSec),
-      scale: AVATAR_PIP.scale,
-      position: AVATAR_PIP.position,
-      offset: { x: AVATAR_PIP.offsetX, y: AVATAR_PIP.offsetY },
-      transition: { in: "fade", out: "fade" },
+      length: introSec,
+      fit: "cover",
+      transition: { in: "fade" },
     });
+    // Devam: köşe penceresi (trim ile kaldığı yerden — ses kesintisiz akar)
+    if (avatarLen > introSec) {
+      avatarClips.push({
+        asset: {
+          type: "video",
+          src: input.avatar.videoUrl,
+          volume: 1,
+          trim: introSec,
+        },
+        start: introSec,
+        length: avatarLen - introSec,
+        scale: AVATAR_PIP.scale,
+        position: AVATAR_PIP.position,
+        offset: { x: AVATAR_PIP.offsetX, y: AVATAR_PIP.offsetY },
+        transition: { out: "fade" },
+      });
+    }
     // AI şeffaflık ibaresi — sunucu göründüğü sürece üst-ortada, silik ama
     // okunur. Overlay slotu DEĞİLDİR: kullanıcı kapatamaz (etik + Meta kuralı).
     avatarClips.push({
@@ -432,7 +506,7 @@ export function buildTimelineFromProject(input: {
         height: 48,
       },
       start: 0.3,
-      length: Math.max(scenesSec - 0.3, 1),
+      length: Math.max(bodySec - 0.3, 1),
       position: "top",
       offset: { y: -0.025 },
     });
@@ -483,7 +557,11 @@ export function buildCaptionChunks(
     durationMs: number;
     wordTimings: { word: string; startMs: number; endMs: number }[] | null;
   }[],
+  // hook tipografisi daha az kelime ister: {maxWords: 2, maxChars: 16}
+  opts?: { maxWords?: number; maxChars?: number },
 ): CaptionChunk[] {
+  const maxWords = opts?.maxWords ?? CAPTION_MAX_WORDS;
+  const maxChars = opts?.maxChars ?? CAPTION_MAX_CHARS;
   const chunks: CaptionChunk[] = [];
   let cursor = 0; // segmentin timeline offset'i (ms)
 
@@ -508,7 +586,7 @@ export function buildCaptionChunks(
     };
     for (const w of words) {
       const candidate = [...group, w].map((x) => x.word).join(" ");
-      if (group.length >= CAPTION_MAX_WORDS || candidate.length > CAPTION_MAX_CHARS) {
+      if (group.length >= maxWords || candidate.length > maxChars) {
         flush();
       }
       group.push(w);
