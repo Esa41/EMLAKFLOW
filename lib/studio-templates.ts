@@ -72,6 +72,64 @@ export type GenerationMode = "reference" | "per_scene";
 /** reference modunda üretilen tek videonun süresi (Seedance: 4-15 sn). */
 export const REFERENCE_DURATION_SEC = 10;
 
+// ── Arka plan atmosferi (Vitrin Sunucusu) ──
+// Sunucu anlatırken arkadaki ilan sahnelerinin ışık/ton karakteri. Sahne
+// prompt'una stil eki olarak girer — mekân sabit kalır, yalnızca ışık tonlanır
+// (Esa isteği, 24 Tem 2026). Referans RichKey kreatifi "evening" tonundadır.
+
+export type AtmosphereKey = "natural" | "golden_hour" | "evening" | "shadow_play";
+
+export type AtmosphereDef = {
+  key: AtmosphereKey;
+  label: string;
+  desc: string;
+  /** Sahne prompt'una eklenen ışık/ton çapası — "" = varsayılan (dokunma). */
+  style: string;
+};
+
+export const ATMOSPHERES: AtmosphereDef[] = [
+  {
+    key: "natural",
+    label: "Doğal Gündüz",
+    desc: "Aydınlık, doğal ışık — nötr ve temiz.",
+    style: "",
+  },
+  {
+    key: "golden_hour",
+    label: "Altın Saat",
+    desc: "Sıcak gün batımı tonu, yumuşak ışık.",
+    style:
+      "bathed in warm golden hour light, soft sunset tones streaming in, " +
+      "gentle lens flare, long soft shadows",
+  },
+  {
+    key: "evening",
+    label: "Sinematik Akşam",
+    desc: "Loş, sıcak lamba ışığı — dramatik ve prestijli.",
+    style:
+      "warm cinematic evening ambiance, soft lamp light, moody low-key " +
+      "lighting, elegant dramatic atmosphere, warm color grade",
+  },
+  {
+    key: "shadow_play",
+    label: "Gölge Oyunu",
+    desc: "Pencereden süzülen ışık ve yumuşak gölgeler.",
+    style:
+      "warm sunlight streaming through the windows casting soft gentle " +
+      "shadows across the surfaces, subtle dust particles floating in the light",
+  },
+];
+
+export const DEFAULT_ATMOSPHERE: AtmosphereKey = "natural";
+
+export function getAtmosphere(key: string | null | undefined): AtmosphereDef {
+  return ATMOSPHERES.find((a) => a.key === key) ?? ATMOSPHERES[0];
+}
+
+export function isAtmosphereKey(key: string): key is AtmosphereKey {
+  return ATMOSPHERES.some((a) => a.key === key);
+}
+
 // ── Kredi bedelleri — birim: 1 tam video = 100 kredi (plans-config) ──
 // Satış: 100 kredi = ₺450. Gerçek maliyetler (kur ₺50): Kling 5 sn ≈ ₺14,
 // Seedance 10 sn ≈ ₺120 → marjlar korunur.
@@ -1006,6 +1064,8 @@ export function buildTemplateScenePrompt(
   template: TemplateDef,
   sceneIndex: number,
   roomKey?: string | null,
+  /** Arka plan atmosferi (Vitrin Sunucusu) — ışık/ton eki; boş = varsayılan. */
+  atmosphereKey?: string | null,
 ): string {
   const room = roomKey ? ROOMS[roomKey as RoomKey] : undefined;
   const slot = slotFor(template, sceneIndex);
@@ -1021,7 +1081,9 @@ export function buildTemplateScenePrompt(
   const templateFirst = fpvTemplate || template.key === "presenter_reels";
   const motion = templateFirst ? templateMotion : (room?.motion ?? templateMotion);
   const context = room ? `${room.en}, ` : "";
-  return `${context}${motion}, ${template.style}`;
+  const atmosphere = atmosphereKey ? getAtmosphere(atmosphereKey).style : "";
+  const atmoSuffix = atmosphere ? `, ${atmosphere}` : "";
+  return `${context}${motion}, ${template.style}${atmoSuffix}`;
 }
 
 /**

@@ -1173,6 +1173,9 @@ model StudioProject {
 
   // ── Şablon sistemi (lib/studio-templates.ts) ──
   templateKey String? // fpv_tour | classic_interior | land_drone | social_promo (null = legacy)
+  // Vitrin Sunucusu arka plan atmosferi: natural | golden_hour | evening | shadow_play
+  // Sahne prompt'una ışık/ton eki olarak girer; regenerate'te de korunur.
+  atmosphereKey String?
   musicKey    String? // lib/studio-music.ts anahtarı; null = şablon varsayılanı, "none" = müziksiz
   overlayData Json?   // ResolvedOverlay[] — ilan verisinden çözülür, kullanıcı düzenler
 

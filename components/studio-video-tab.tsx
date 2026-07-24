@@ -57,6 +57,8 @@ import {
   REFERENCE_CREDIT_COST,
   SCENE_CREDIT_COST,
   SCENE_CREDIT_COST_10S,
+  ATMOSPHERES,
+  DEFAULT_ATMOSPHERE,
   type TemplateKey,
   type TransitionKey,
 } from "@/lib/studio-templates";
@@ -111,6 +113,7 @@ export function StudioVideoTab({
   templatePreviews,
 }: Props) {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey | null>(null);
+  const [atmosphereKey, setAtmosphereKey] = useState<string>(DEFAULT_ATMOSPHERE);
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [roomAssignments, setRoomAssignments] = useState<Record<string, string>>({});
   const [sceneDurations, setSceneDurations] = useState<Record<string, number>>({});
@@ -211,6 +214,7 @@ export function StudioVideoTab({
           roomKey: roomAssignments[id] ?? null,
           durationSec: sceneDurations[id] === 10 ? 10 : 5,
         })),
+        ...(selectedTemplate === "presenter_reels" ? { atmosphereKey } : {}),
       });
 
       if (result.ok) {
@@ -221,6 +225,7 @@ export function StudioVideoTab({
           onCreditsChange(result.remainingCredits);
         }
         setSelectedTemplate(null);
+        setAtmosphereKey(DEFAULT_ATMOSPHERE);
         setSelectedPhotos([]);
         setRoomAssignments({});
         setSceneDurations({});
@@ -1104,6 +1109,39 @@ export function StudioVideoTab({
                             </button>
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Arka plan atmosferi — yalnızca Vitrin Sunucusu'nda: sunucu
+                  anlatırken arkadaki tur sahnelerinin ışık/ton karakteri */}
+              {selectedTemplate === "presenter_reels" && (
+                <div className="mt-5">
+                  <p className="mb-2 text-sm font-bold">Arka plan atmosferi</p>
+                  <p className="mb-3 text-xs text-ink/50">
+                    Sunucu anlatırken arkadaki ev turu sahnelerinin ışık tonu.
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {ATMOSPHERES.map((a) => {
+                      const active = atmosphereKey === a.key;
+                      return (
+                        <button
+                          key={a.key}
+                          type="button"
+                          onClick={() => setAtmosphereKey(a.key)}
+                          className={`rounded-xl border-2 p-3 text-left transition-all ${
+                            active
+                              ? "border-emerald-500 shadow-sm"
+                              : "border-[var(--app-border)] hover:border-ink/20"
+                          }`}
+                        >
+                          <p className="text-sm font-bold">{a.label}</p>
+                          <p className="mt-0.5 text-[11px] leading-snug text-ink/50">
+                            {a.desc}
+                          </p>
+                        </button>
                       );
                     })}
                   </div>

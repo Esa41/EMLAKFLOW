@@ -28,6 +28,8 @@ import {
   SCENE_CREDIT_COST,
   SCENE_CREDIT_COST_10S,
   isTemplateKey,
+  isAtmosphereKey,
+  DEFAULT_ATMOSPHERE,
   TEMPLATES,
   TRANSITION_LABELS,
   type ResolvedOverlay,
@@ -311,6 +313,8 @@ export async function createStudioProject(input: {
   selectedMedia: { id: string; roomKey?: string | null; durationSec?: number }[];
   /** Şablon varsayılanını ezmek için; "none" = müziksiz */
   musicKey?: string;
+  /** Vitrin Sunucusu arka plan atmosferi (natural | golden_hour | evening | shadow_play) */
+  atmosphereKey?: string;
 }): Promise<ProjectResult> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Oturum bulunamadı." };
@@ -335,6 +339,14 @@ export async function createStudioProject(input: {
   if (input.musicKey && !isMusicKey(input.musicKey)) {
     return { ok: false, error: "Geçersiz müzik seçimi." };
   }
+  // Atmosfer yalnızca Vitrin Sunucusu'nda anlamlı; verilirse doğrula
+  if (input.atmosphereKey && !isAtmosphereKey(input.atmosphereKey)) {
+    return { ok: false, error: "Geçersiz atmosfer seçimi." };
+  }
+  const atmosphereKey =
+    template.key === "presenter_reels"
+      ? (input.atmosphereKey ?? DEFAULT_ATMOSPHERE)
+      : null;
 
   const selected = input.selectedMedia.slice(0, MAX_SCENES);
   const mediaIds = selected.map((s) => s.id);
@@ -442,6 +454,7 @@ export async function createStudioProject(input: {
       templateKey: template.key,
       conceptKey: template.legacyConceptKey, // geri uyum: regenerate + geçmiş
       musicKey: input.musicKey ?? null,
+      atmosphereKey,
       overlayData: resolveOverlayData(template, listing),
       aspectRatio: template.aspectRatio,
       voiceText,
@@ -543,7 +556,7 @@ export async function createStudioProject(input: {
   for (let i = 0; i < selected.length; i++) {
     const media = mediaById.get(selected[i].id)!;
     const roomKey = selected[i].roomKey ?? null;
-    const prompt = buildTemplateScenePrompt(template, i, roomKey);
+    const prompt = buildTemplateScenePrompt(template, i, roomKey, atmosphereKey);
     const durationSec = sceneDurations[i];
 
     const job = await prisma.studioJob.create({
