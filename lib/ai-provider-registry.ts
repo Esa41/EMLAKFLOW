@@ -51,6 +51,9 @@ export const COST_RATES_USD = {
   clarityPerMegapixel: 0.03, // Clarity upscaler (çıktı MP başına)
   shotstackPerMin: 0.4, // Shotstack pay-as-you-go
   elevenPer1kChars: 0.3, // ElevenLabs (aşım fiyatı)
+  // Vitrin Sunucusu konuşan klip — LİSTE FİYATI DOĞRULANMADI, model
+  // seçimi netleşince (Kling AI Avatar / OmniHuman) gerçek fiyat yazılacak.
+  avatarPerSec: 0.1,
 } as const;
 
 const round4 = (n: number) => Math.round(n * 1e4) / 1e4;
@@ -69,6 +72,11 @@ export function videoCostUsd(model: string, durationSec: number): number {
 /** Foto iyileştirme maliyeti — çıktı megapiksel başına. */
 export function enhanceCostUsd(outputMegapixels: number): number {
   return round4(COST_RATES_USD.clarityPerMegapixel * Math.max(outputMegapixels, 1));
+}
+
+/** Vitrin Sunucusu konuşan klip maliyeti — süreden. */
+export function avatarCostUsd(durationSec: number): number {
+  return round4(COST_RATES_USD.avatarPerSec * durationSec);
 }
 
 /** Shotstack birleştirme + (varsa) seslendirme maliyeti — toplam süre + karakter. */
@@ -318,6 +326,61 @@ export async function generateVideo(
  */
 function falAppId(model: string): string {
   return model.split("/").slice(0, 2).join("/");
+}
+
+// ── 1b) Vitrin Sunucusu — konuşan avatar klibi ──
+// Persona portresi + seslendirme dosyası → dudak senkronlu sunucu videosu.
+// FAL_KEY aynı; model FAL_AVATAR_MODEL ile ezilir (enhance deseni — yeni
+// Prisma AiProvider enum değeri GEREKTİRMEZ). Varsayılan model adayı Kling
+// AI Avatar'dır; kalite/fiyat kıyası yapılınca env ile kesinleşecek.
+
+export const FAL_AVATAR_DEFAULT_MODEL = "fal-ai/kling-video/v1/pro/ai-avatar";
+
+export type GenerateAvatarVideoInput = {
+  /** Persona portresi (R2 public URL) — kimlik kaynağı */
+  personaImageUrl: string;
+  /** Seslendirme dosyası (R2 public URL) — dudak senkronu bu sese yapılır */
+  audioUrl: string;
+  /** İş bitince Fal.ai'nin çağıracağı webhook */
+  webhookUrl?: string;
+};
+
+/**
+ * Konuşan sunucu klibini Fal.ai kuyruğuna gönderir. Senkron BEKLEMEZ —
+ * requestId ilgili iş kaydına yazılır, sonuç worker/webhook ile alınır
+ * (generateVideo ile aynı kuyruk akışı).
+ */
+export async function generateAvatarVideo(
+  clipId: string,
+  input: GenerateAvatarVideoInput,
+): Promise<FalSubmitResult> {
+  const apiKey = resolveApiKey({ provider: "FAL_KLING" }); // aynı FAL_KEY
+  const model =
+    process.env.FAL_AVATAR_MODEL?.trim() || FAL_AVATAR_DEFAULT_MODEL;
+
+  const webhookSuffix = input.webhookUrl
+    ? `?fal_webhook=${encodeURIComponent(input.webhookUrl)}`
+    : "";
+
+  const data = await falFetch<{ request_id?: string }>(
+    `${FAL_QUEUE_BASE}/${model}${webhookSuffix}`,
+    apiKey,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        image_url: input.personaImageUrl,
+        audio_url: input.audioUrl,
+      }),
+    },
+  );
+
+  if (!data.request_id) {
+    throw new Error(
+      `Fal.ai kuyruk yanıtında request_id yok (avatar klip: ${clipId}).`,
+    );
+  }
+
+  return { requestId: data.request_id, model };
 }
 
 // ── 2a) Referans-tabanlı video (ByteDance Seedance 2.0) ──

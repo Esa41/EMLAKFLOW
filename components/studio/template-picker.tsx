@@ -5,6 +5,7 @@ import {
   Flame,
   Gem,
   Home,
+  Mic,
   Plane,
   Play,
   Rocket,
@@ -77,6 +78,12 @@ const TEMPLATE_STYLES: Record<
     borderActive: "border-violet-500",
     iconColor: "text-violet-600",
   },
+  presenter_reels: {
+    icon: Mic,
+    gradient: "from-emerald-500/10 to-teal-500/10",
+    borderActive: "border-emerald-500",
+    iconColor: "text-emerald-600",
+  },
 };
 
 type Props = {
@@ -98,24 +105,31 @@ export function TemplatePicker({ listingType, selected, onSelect, previews }: Pr
         const isSelected = selected === t.key;
         const previewUrl = previews[t.key];
         const portrait = t.aspectRatio === "9:16";
+        // Kilitli şablon ("Yakında"): kart görünür ama seçilemez
+        const locked = t.available === false;
         return (
           // Kart içinde <video controls> olduğu için <button> değil <div>:
           // video kontrolleri iç içe interaktif eleman sorununu önler.
           <div
             key={t.key}
             role="button"
-            tabIndex={0}
-            onClick={() => onSelect(t.key)}
+            tabIndex={locked ? -1 : 0}
+            aria-disabled={locked}
+            onClick={() => {
+              if (!locked) onSelect(t.key);
+            }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
+              if (!locked && (e.key === "Enter" || e.key === " ")) {
                 e.preventDefault();
                 onSelect(t.key);
               }
             }}
-            className={`studio-concept-card group relative cursor-pointer overflow-hidden rounded-2xl border-2 p-5 text-left transition-all ${
-              isSelected
-                ? `${s.borderActive} shadow-lg`
-                : "border-[var(--app-border)] hover:border-ink/20 hover:shadow-md"
+            className={`studio-concept-card group relative overflow-hidden rounded-2xl border-2 p-5 text-left transition-all ${
+              locked
+                ? "cursor-default border-[var(--app-border)] opacity-70"
+                : isSelected
+                  ? `${s.borderActive} cursor-pointer shadow-lg`
+                  : "cursor-pointer border-[var(--app-border)] hover:border-ink/20 hover:shadow-md"
             }`}
           >
             <div

@@ -316,6 +316,10 @@ export async function createStudioProject(input: {
     return { ok: false, error: "Geçersiz şablon." };
   }
   const template = TEMPLATES[input.templateKey];
+  // UI kilidi yetmez: doğrudan action çağrısına karşı server tarafı kapı
+  if (template.available === false) {
+    return { ok: false, error: "Bu şablon çok yakında — hazırlıkları sürüyor." };
+  }
   if (input.musicKey && !isMusicKey(input.musicKey)) {
     return { ok: false, error: "Geçersiz müzik seçimi." };
   }

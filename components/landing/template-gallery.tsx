@@ -22,10 +22,13 @@ const PREVIEWS: Record<TemplateKey, { cover: string; videoUrl?: string }> = {
   classic_interior: { cover: U("1560448204-e02f11c3d0e2") },
   land_drone: { cover: U("1500382017468-9049fed747ef") },
   social_promo: { cover: U("1505873242700-f289a29e1e0f") },
+  // available:false — galeride gösterilmez; aktifleşince gerçek kapak gelecek
+  presenter_reels: { cover: U("1505873242700-f289a29e1e0f") },
 };
 
 export function TemplateGallery() {
-  const templates = Object.values(TEMPLATES);
+  // "Yakında" şablonları satış rafına girmez — söz verilen şey teslim edilebilir olmalı
+  const templates = Object.values(TEMPLATES).filter((t) => t.available !== false);
   return (
     <section id="sablonlar" className="scroll-mt-20 py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-5 sm:px-8">

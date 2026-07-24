@@ -28,7 +28,8 @@ export type TemplateKey =
   | "golden_hour"
   | "classic_interior"
   | "land_drone"
-  | "social_promo";
+  | "social_promo"
+  | "presenter_reels";
 
 /** Shotstack clip transition adları ile bire bir (Fast = whip/blur hissi). */
 export type TransitionKey =
@@ -133,6 +134,8 @@ export type TemplateDef = {
   subtitle: string;
   description: string;
   badge?: string;
+  /** false → seçici/galeride "Yakında", seçilemez (foto-preset omurga deseni). */
+  available?: boolean;
   aspectRatio: "16:9" | "9:16";
   /** Videonun nasıl üretileceği — bkz. GenerationMode */
   generationMode: GenerationMode;
@@ -207,6 +210,14 @@ const GOLDEN_HOUR_MOTIONS = [
   "slow cinematic crane shot rising over the exterior at golden hour, warm sunset light, long shadows, gentle lens flare",
   "smooth aerial orbit around the property in warm sunset glow, floating dust particles in the light",
   "slow drone push-in towards the entrance at golden hour, warm rim light, atmospheric haze",
+];
+
+// Vitrin Sunucusu: sahneler PiP sunucunun ARKA PLANIDIR — hareketler bilinçli
+// sakin ki izleyicinin gözü sunucuda kalsın (avatar klip lib/studio-avatar.ts).
+const PRESENTER_MOTIONS = [
+  "very slow gentle push-in, calm steady motion",
+  "subtle slow drift with natural parallax, steady framing",
+  "gentle slow pan, smooth and unhurried",
 ];
 
 export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
@@ -703,6 +714,57 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     negative:
       "orbiting camera, spinning, fast cuts, added props, staging changes",
   },
+
+  presenter_reels: {
+    key: "presenter_reels",
+    legacyConceptKey: "social",
+    label: "Vitrin Sunucusu",
+    subtitle: "AI sunucu ilanınızı anlatır",
+    description:
+      "Seçtiğiniz AI sunucu ilanınızı kamera karşısında tanıtır: fotoğraflarınız akarken sunucu köşe penceresinde konuşur. Reels/TikTok için birebir — yapay zekâ ibaresi videoya otomatik eklenir.",
+    badge: "Yakında",
+    available: false,
+    aspectRatio: "9:16",
+    generationMode: "per_scene",
+    targetListingTypes: "any",
+    usesRooms: false,
+    sceneRecipe: {
+      slots: [],
+      fallback: { motions: PRESENTER_MOTIONS, durationSec: 5 },
+    },
+    transitions: { default: "fade" },
+    overlaySlots: [
+      {
+        key: "location",
+        label: "Konum",
+        source: "location",
+        placement: "first",
+        startSec: 0.8,
+        lengthSec: 3.5,
+        styleKey: "cardTopLeft",
+      },
+      {
+        key: "price",
+        label: "Fiyat",
+        source: "price",
+        placement: "last",
+        startSec: 0.5,
+        lengthSec: 4,
+        styleKey: "bigCenter",
+      },
+    ],
+    musicDefault: "calm_piano",
+    // Sunucu konuşması NET duyulmalı — müzik diğer şablonlardan da kısık
+    musicVolume: 0.08,
+    voiceTone: "energetic",
+    style:
+      "vertical real estate showcase serving as background behind a presenter " +
+      "overlay, calm smooth motion, photorealistic, scene content identical " +
+      "to the source photo, camera movement only",
+    negative:
+      "orbiting camera, spinning, fast movement, added props, staging changes, " +
+      "people appearing in the background scenes",
+  },
 };
 
 export const TEMPLATE_LIST: TemplateDef[] = [
@@ -714,6 +776,7 @@ export const TEMPLATE_LIST: TemplateDef[] = [
   TEMPLATES.classic_interior,
   TEMPLATES.land_drone,
   TEMPLATES.social_promo,
+  TEMPLATES.presenter_reels,
 ];
 
 const LEGACY_CONCEPT_TO_TEMPLATE: Record<VideoConceptKey, TemplateKey> = {
