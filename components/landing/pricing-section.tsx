@@ -33,7 +33,7 @@ const CARDS = [
       "Harita vitrini + talep formu",
       "Ajanda, görev, kira takibi",
       `AI Stüdyo: ayda ${STUDIO_ALLOTMENT.free.image} ücretsiz foto iyileştirme`,
-      "AI tanıtım videosu — kredi ile (₺400'den başlayan)",
+      `AI tanıtım videosu — kredi ile (₺${tl.format(CREDIT_TOPUP_PACKS[0].priceTRY)}'den başlayan)`,
     ],
   },
   {
@@ -71,7 +71,7 @@ const CARDS = [
     priceSuffix: "/ ay",
     yearlyNote: `Yıllık ₺${tl.format(PLANS.premium.yearlyTRY)} — 2 ay hediye`,
     features: [
-      "Ayda 10 tanıtım videosu dahil — krediyle ₺36.000/yıl değer",
+      `Ayda ${STUDIO_ALLOTMENT.premium.video} AI tanıtım videosu dahil — krediyle ₺${tl.format(STUDIO_ALLOTMENT.premium.video * 12 * CREDIT_TOPUP_PACKS[0].priceTRY)}/yıl değer`,
       "Pro’daki tüm özellikler dahil",
       `AI Stüdyo: ayda ${STUDIO_ALLOTMENT.premium.image} foto iyileştirme dahil`,
       "Rozetsiz vitrin + kendi logon ve marka rengin",
@@ -232,6 +232,43 @@ export function PricingSection() {
               </div>
             );
           })}
+        </div>
+
+        {/* Kurumsal — 50+ ilanlı ofisler için hacim katmanı */}
+        <div className="mx-auto mt-8 flex max-w-5xl flex-col items-center justify-between gap-5 rounded-2xl border border-ink/15 bg-gradient-to-r from-ink/[0.04] to-paper p-7 sm:flex-row">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-display text-xl font-extrabold tracking-tight">
+                {PLANS.kurumsal.name}
+              </h3>
+              <span className="rounded-full bg-ink px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                50+ ilan
+              </span>
+            </div>
+            <p className="mt-1 text-[13px] text-ink/60">
+              Ayda {STUDIO_ALLOTMENT.kurumsal.video} AI tanıtım videosu (video
+              başı ₺{tl.format(Math.round(PLANS.kurumsal.monthlyTRY / STUDIO_ALLOTMENT.kurumsal.video))}) +
+              tüm Premium hakları: sınırsız ilan ve ekip, white-label, öncelikli
+              destek.
+            </p>
+          </div>
+          <div className="shrink-0 text-center sm:text-right">
+            <p className="font-display text-3xl font-extrabold tracking-tight">
+              ₺{tl.format(PLANS.kurumsal.monthlyTRY)}
+              <span className="ml-1 text-sm font-medium text-ink/50">/ ay</span>
+            </p>
+            <p className="mt-0.5 text-[12px] text-ink/45">
+              Yıllık ₺{tl.format(PLANS.kurumsal.yearlyTRY)} — 2 ay hediye
+            </p>
+            <Link
+              href={ENTERPRISE_CTA}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-block rounded-xl bg-ink px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-ink/90"
+            >
+              Kurumsal görüşme planla
+            </Link>
+          </div>
         </div>
 
         <p className="mt-8 text-center text-[12px] text-ink/45">

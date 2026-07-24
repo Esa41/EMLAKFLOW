@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isPremium } from "@/lib/plans-config";
 import Image from "next/image";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -77,7 +78,7 @@ export default async function DashboardPage() {
     },
   });
   const whiteLabelName =
-    tenantBrand?.plan === "premium"
+    tenantBrand && isPremium(tenantBrand.plan)
       ? tenantBrand.brandName?.trim() || tenantBrand.name
       : null;
 

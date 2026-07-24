@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { currentUserIsSuperAdmin } from "@/lib/plans";
+import { currentUserIsSuperAdmin, isPremium } from "@/lib/plans";
 import { getSession } from "@/lib/auth";
 import {
   addVercelDomain,
@@ -10,7 +10,7 @@ import {
 } from "@/lib/vercel-domains";
 import { normalizeCustomDomain } from "@/lib/platform-host";
 
-const ALLOWED_PLANS = ["free", "trial", "starter", "pro", "premium"];
+const ALLOWED_PLANS = ["free", "trial", "starter", "pro", "premium", "kurumsal"];
 
 const HEX_COLOR = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
 
@@ -89,6 +89,18 @@ export async function GET(
           createdAt: true,
         },
       },
+      creditLogs: {
+        orderBy: { createdAt: "desc" },
+        take: 15,
+        select: {
+          id: true,
+          kind: true,
+          delta: true,
+          reason: true,
+          changedBy: true,
+          createdAt: true,
+        },
+      },
     },
   });
 
@@ -147,6 +159,8 @@ export async function PATCH(
       proStartedAt: true,
       customDomain: true,
       brandName: true,
+      aiImageCredits: true,
+      aiVideoCredits: true,
     },
   });
   if (!existing) {
@@ -176,9 +190,9 @@ export async function PATCH(
       updateData.proStartedAt = null;
       updateData.proExpiresAt = null;
     }
-    // Premium: domain olmasa da panel/vitrinde ofis adı görünsün
+    // Premium/Kurumsal: domain olmasa da panel/vitrinde ofis adı görünsün
     if (
-      plan === "premium" &&
+      isPremium(plan) &&
       !existing.brandName?.trim() &&
       !("brandName" in body && String(body.brandName ?? "").trim())
     ) {
@@ -247,18 +261,39 @@ export async function PATCH(
     updateData.adminNotes = adminNotes || null;
   }
 
-  // AI Stüdyo kredi yönetimi (admin üzerinden doğrudan değer atama)
+  // AI Stüdyo kredi yönetimi (admin üzerinden doğrudan değer atama).
+  // Bakiye farkı CreditLog'a işlenir — para eden kredinin denetim izi.
+  const creditLogEntries: { kind: string; delta: number }[] = [];
   if ("aiImageCredits" in body && typeof body.aiImageCredits === "number") {
     updateData.aiImageCredits = Math.max(0, body.aiImageCredits);
+    const delta = updateData.aiImageCredits - existing.aiImageCredits;
+    if (delta !== 0) creditLogEntries.push({ kind: "image", delta });
   }
   if ("aiVideoCredits" in body && typeof body.aiVideoCredits === "number") {
     updateData.aiVideoCredits = Math.max(0, body.aiVideoCredits);
+    const delta = updateData.aiVideoCredits - existing.aiVideoCredits;
+    if (delta !== 0) creditLogEntries.push({ kind: "video", delta });
+  }
+  if (creditLogEntries.length) {
+    const reasonNote =
+      typeof body.creditReason === "string" && body.creditReason.trim()
+        ? body.creditReason.trim().slice(0, 200)
+        : "Admin: manuel kredi güncelleme";
+    await prisma.creditLog.createMany({
+      data: creditLogEntries.map((e) => ({
+        tenantId: id,
+        kind: e.kind,
+        delta: e.delta,
+        reason: reasonNote,
+        changedBy: session?.name ?? "Admin",
+      })),
+    });
   }
 
   let nextDomain: string | null | undefined;
   if (hasWhiteLabel) {
     const effectivePlan = updateData.plan ?? existing.plan;
-    if (effectivePlan !== "premium") {
+    if (!isPremium(effectivePlan)) {
       return NextResponse.json(
         {
           error:

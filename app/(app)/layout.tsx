@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { isPremium } from "@/lib/plans-config";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getSession } from "@/lib/auth";
@@ -26,7 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
     select: { plan: true, brandName: true, name: true },
   });
   const officeName =
-    tenant?.plan === "premium"
+    tenant && isPremium(tenant.plan)
       ? tenant.brandName?.trim() || tenant.name
       : null;
 
@@ -70,7 +71,7 @@ export default async function AppLayout({
   const vertical = tenant?.vertical ?? session.vertical ?? "REAL_ESTATE";
   // Premium: domain şart değil — ofis adı otomatik marka
   const whiteLabelName =
-    tenant?.plan === "premium"
+    tenant && isPremium(tenant.plan)
       ? tenant.brandName?.trim() || tenant.name
       : null;
 

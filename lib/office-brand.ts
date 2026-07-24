@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { isPremium } from "./plans-config";
 import { showcaseUrl } from "./url";
 import type { MailBrand } from "./marketing-mailer";
 
@@ -33,7 +34,7 @@ export async function officeBrand(tenantId: string): Promise<{
     brand: {
       name: t.brandName?.trim() || t.name,
       replyTo: t.users[0]?.email,
-      hidePlatform: t.plan === "premium",
+      hidePlatform: isPremium(t.plan),
     },
     slug: t.slug,
     showcase: showcaseUrl(t.slug, t.vertical, t.customDomain),

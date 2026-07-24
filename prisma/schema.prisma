@@ -339,6 +339,7 @@ model Tenant {
   dailyStats   ListingDailyStat[]
   insights     Insight[]
   planChanges  PlanChangeLog[]
+  creditLogs   CreditLog[]
   siteUsers    SiteUser[]
   rentals      RentalAgreement[]
   rentPayments RentPayment[]
@@ -1044,6 +1045,22 @@ model MarketingOutboundEmail {
 }
 
 // Plan değişiklik geçmişi (Admin panelinde görüntülenir)
+// AI Stüdyo kredi hareket defteri — bakiyeyi değiştiren HER olay buraya
+// yazılır (admin yükleme, aylık plan hakkı, ileride online ödeme webhook'u).
+// Üretim düşümleri StudioJob.creditCost'ta zaten izli — burada tekrarlanmaz.
+model CreditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  kind      String   // image | video
+  delta     Int      // +yükleme / -düşüm
+  reason    String   // "Aylık plan hakkı (premium)" | "Admin: manuel" | "Satın alma: v5"
+  changedBy String?  // admin adı veya "sistem"
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
+
 model PlanChangeLog {
   id          String   @id @default(cuid())
   tenantId    String

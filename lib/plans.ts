@@ -1,116 +1,13 @@
 import { prisma } from "./prisma";
 import { forTenant } from "./tenant";
 import { getSession } from "./auth";
+import { FREE_LISTING_LIMIT, isPro, isSuperAdmin } from "./plans-config";
 
-/**
- * Ücretsiz planda izin verilen maksimum ilan sayısı.
- * Merdiven: Ücretsiz 5 ilan → Pro 20 ilan (tek kullanıcı) → Premium sınırsız
- * ilan + sınırsız kullanıcı. Gelir: CRM kademeleri + AI video kredileri.
- */
-export const FREE_LISTING_LIMIT = 5;
-
-/**
- * Paket mimarisi: Ücretsiz 5 ilan / Pro 20 ilan + TEK kullanıcı /
- * Premium sınırsız ilan + sınırsız kullanıcı + white-label.
- * Video her planda AYRI KREDİ (satın alınır, sıfırlanmaz). Foto aylık hediye.
- * Tenant.plan: trial | free | pro | premium
- */
-export const PLANS = {
-  free: {
-    key: "free",
-    name: "Ücretsiz",
-    monthlyTRY: 0,
-    yearlyTRY: 0,
-    listingLimit: FREE_LISTING_LIMIT,
-    userLimit: 1,
-    tagline: "Emlak ofisinin ücretsiz işletim sistemi",
-  },
-  pro: {
-    key: "pro",
-    name: "Pro",
-    monthlyTRY: 0, // yalnızca yıllık
-    yearlyTRY: 25000,
-    listingLimit: 20,
-    userLimit: 1, // tek üye — ekip hesabı Premium'da
-    tagline: "Büyüyen portföy için — 20 ilana kadar",
-  },
-  premium: {
-    key: "premium",
-    name: "Premium",
-    monthlyTRY: 3000, // aylık; yıllıkta 2 ay hediye
-    yearlyTRY: 30000, // 10 video/ay dahil — paket paket alınsa ₺36.000
-    listingLimit: null, // sınırsız
-    userLimit: null, // sınırsız — tüm ekip
-    tagline: "Sınırsız ilan ve ekip + kendi markanız + aylık 10 video",
-  },
-} as const;
-
-export type PlanKey = keyof typeof PLANS;
-
-/**
- * AI Stüdyo aylık ÜCRETSİZ FOTO hakkı (plan bazlı reset).
- * VIDEO buraya girmez — video satın alınan kredidir (sıfırlanmaz, bkz.
- * CREDIT_TOPUP_PACKS). Foto ucuz (~₺5/adet) → aylık hediye, edinme kancası.
- * Tek kaynak — app/actions/studio.ts PLAN_CREDITS buradan türer.
- */
-export const STUDIO_ALLOTMENT = {
-  free: { image: 10, video: 0 }, // ücretsiz aylık 10 foto (video: satın alınır)
-  pro: { image: 100, video: 0 },
-  premium: { image: 500, video: 0 },
-} as const;
-
-/**
- * Video kredisi paketleri. Video her planda satın alınır — kredi bakiyesi
- * ay sonunda SIFIRLANMAZ, kullanılana dek kalır. Gerçek maliyet ~₺125/video
- * (10sn/720p); fiyatlar 2.4-3.2x marjlı. Kur değişince güncellenmeli.
- * Şimdilik manuel havale → süper-admin bakiyeyi yükler.
- */
-export const CREDIT_TOPUP_PACKS = [
-  { key: "v1", videos: 1, priceTRY: 400 },
-  { key: "v5", videos: 5, priceTRY: 2000, badge: "Popüler" },
-  { key: "v10", videos: 10, priceTRY: 3000, badge: "En avantajlı" },
-] as const;
-
-/** Tenant.plan (serbest string) → paket anahtarı. */
-export function planKeyFromTenant(plan: string | null | undefined): PlanKey {
-  if (plan === "premium") return "premium";
-  if (plan === "pro") return "pro";
-  return "free";
-}
-
-/** Sınırsız ilan / Pro özellikleri (Premium dahil). */
-export function isPro(plan: string | null | undefined): boolean {
-  return plan === "pro" || plan === "premium";
-}
-
-/** White-label + panelde EmlakFlow gizleme hakkı. */
-export function isPremium(plan: string | null | undefined): boolean {
-  return plan === "premium";
-}
-
-/**
- * AI Stüdyo TEST MODU — kredi kapıları kapalı, üretim sınırsız.
- * Test bitince env'den kaldırılır; kredi muhasebesi kaldığı yerden işler.
- * Not: kötüye kullanım tavanları (eşzamanlı/günlük iş sayısı) BU BAYRAKTAN
- * ETKİLENMEZ — kaçak döngü Fal bakiyesini yakmasın diye açık kalır.
- * Env çağrı anında okunur (Vercel'de değişince build gerekmesin).
- */
-export function isStudioUnlimited(): boolean {
-  return process.env.STUDIO_UNLIMITED === "true";
-}
-
-/**
- * Super-admin (site yöneticisi) e-posta kontrolü.
- * SUPER_ADMIN_EMAILS env'i virgülle ayrılmış e-posta listesi tutar.
- */
-export function isSuperAdmin(email: string | null | undefined): boolean {
-  if (!email) return false;
-  const allow = (process.env.SUPER_ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  return allow.includes(email.toLowerCase().trim());
-}
+// Plan/fiyat SABİTLERİ lib/plans-config.ts'e taşındı (istemci-güvenli tek
+// kaynak — admin modalı gibi "use client" dosyalar oradan import eder).
+// Buradaki re-export mevcut import yollarını korur; bu dosyada yalnızca
+// server bağımlılığı (prisma/session) olan yardımcılar kalır.
+export * from "./plans-config";
 
 /**
  * Giriş yapan kullanıcının süper-admin olup olmadığını güvenilir şekilde

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { isPremium } from "@/lib/plans-config";
 import Image from "next/image";
 import { Phone } from "lucide-react";
 import { prisma } from "@/lib/prisma";
@@ -48,7 +49,7 @@ export default async function ShowcaseLayout({
   const displayName = tenant.brandName?.trim() || tenant.name;
   // Premium: her zaman rozetsiz. Pro/Free: alan adı veya marka adı varsa da gizle.
   const whiteLabel =
-    tenant.plan === "premium" ||
+    isPremium(tenant.plan) ||
     Boolean(tenant.customDomain || tenant.brandName);
 
   return (

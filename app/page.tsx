@@ -51,7 +51,7 @@ const softwareJsonLd = {
   offers: {
     "@type": "AggregateOffer",
     lowPrice: "0",
-    highPrice: String(PLANS.premium.yearlyTRY),
+    highPrice: String(PLANS.kurumsal.yearlyTRY),
     priceCurrency: "TRY",
     offerCount: Object.keys(PLANS).length,
     description: `CRM ${FREE_LISTING_LIMIT} ilana kadar ücretsiz; AI tanıtım videosu ₺${CREDIT_TOPUP_PACKS[0].priceTRY}'den başlayan krediyle. Premium'da ayda 10 video dahil.`,

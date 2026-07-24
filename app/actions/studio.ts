@@ -4,47 +4,63 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { forTenant } from "@/lib/tenant";
-import { isPro, isPremium, isStudioUnlimited, STUDIO_ALLOTMENT } from "@/lib/plans";
+import {
+  isPro,
+  isStudioUnlimited,
+  STUDIO_ALLOTMENT,
+  planKeyFromTenant,
+} from "@/lib/plans";
 import { enhanceImage, enhanceCostUsd } from "@/lib/ai-provider-registry";
 import { getPhotoPreset, DEFAULT_PHOTO_PRESET } from "@/lib/studio-photo-presets";
 import { putObject, publicUrl, deleteObject } from "@/lib/r2";
 import { processListingImage, variantKeys } from "@/lib/images";
 
-// ── Plan bazlı aylık kredi limitleri — tek kaynak: lib/plans.ts ──
-const PLAN_CREDITS = {
-  pro: STUDIO_ALLOTMENT.pro,
-  premium: STUDIO_ALLOTMENT.premium,
-  free: STUDIO_ALLOTMENT.free,
-} as const;
-
-/** Aylık kredi reset kontrolü — gerekirse kredileri sıfırlar ve yeni hakları yazar. */
+/**
+ * Aylık kredi yenileme kontrolü (lazy — stüdyoya ilk erişimde çalışır).
+ * Foto: plan değerine RESET edilir (hediye, birikmez).
+ * Video: plan hakkı bakiyeye EKLENİR (Premium 10, Kurumsal 50) — satın
+ * alınan krediler asla silinmez, plan hakkı üstüne biner. Ekleme CreditLog'a
+ * işlenir; limitler tek kaynaktan (lib/plans-config.ts STUDIO_ALLOTMENT).
+ */
 async function ensureMonthlyReset(tenantId: string) {
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
-    select: { plan: true, aiCreditsResetAt: true, aiImageCredits: true, aiVideoCredits: true },
+    select: { plan: true, aiCreditsResetAt: true },
   });
   if (!tenant) return;
 
   const now = new Date();
   const resetAt = tenant.aiCreditsResetAt;
-  const resetMonth = resetAt.getMonth();
-  const resetYear = resetAt.getFullYear();
 
-  // Ay değişmişse SADECE foto hakkını yenile. Video kredisi SATIN ALINAN
-  // bakiyedir → asla sıfırlanmaz (yoksa kullanıcının parayla aldığı krediler
-  // her ay silinir). Video yalnızca satın alma / admin yükleme ile artar.
-  if (now.getMonth() !== resetMonth || now.getFullYear() !== resetYear) {
-    const planKey = isPremium(tenant.plan) ? "premium" : isPro(tenant.plan) ? "pro" : "free";
-    const limits = PLAN_CREDITS[planKey];
+  if (
+    now.getMonth() !== resetAt.getMonth() ||
+    now.getFullYear() !== resetAt.getFullYear()
+  ) {
+    const planKey = planKeyFromTenant(tenant.plan);
+    const limits = STUDIO_ALLOTMENT[planKey];
 
     await prisma.tenant.update({
       where: { id: tenantId },
       data: {
         aiImageCredits: limits.image,
+        ...(limits.video > 0
+          ? { aiVideoCredits: { increment: limits.video } }
+          : {}),
         aiCreditsResetAt: now,
-        // aiVideoCredits KASITLI olarak dokunulmaz — satın alınan bakiye
       },
     });
+
+    if (limits.video > 0) {
+      await prisma.creditLog.create({
+        data: {
+          tenantId,
+          kind: "video",
+          delta: limits.video,
+          reason: `Aylık plan hakkı (${planKey})`,
+          changedBy: "sistem",
+        },
+      });
+    }
   }
 }
 

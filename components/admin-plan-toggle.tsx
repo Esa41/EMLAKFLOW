@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-/** Admin: tenant planını değiştirir — free / pro / premium. */
+/** Admin: tenant planını değiştirir — free / pro / premium / kurumsal. */
 export function AdminPlanToggle({
   tenantId,
   plan,
@@ -17,7 +17,13 @@ export function AdminPlanToggle({
   const [error, setError] = useState<string | null>(null);
 
   const current =
-    plan === "premium" ? "premium" : plan === "pro" ? "pro" : "free";
+    plan === "kurumsal"
+      ? "kurumsal"
+      : plan === "premium"
+        ? "premium"
+        : plan === "pro"
+          ? "pro"
+          : "free";
 
   async function change(nextPlan: string) {
     if (nextPlan === current) return;
@@ -54,6 +60,11 @@ export function AdminPlanToggle({
               "premium",
               "Premium",
               "bg-gradient-to-r from-amber-500 to-amber-700 text-white",
+            ],
+            [
+              "kurumsal",
+              "Kurumsal",
+              "bg-gradient-to-r from-ink to-ink/80 text-white",
             ],
           ] as const
         ).map(([key, label, activeCls]) => (

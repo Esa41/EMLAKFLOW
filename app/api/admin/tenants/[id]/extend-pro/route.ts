@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isPro } from "@/lib/plans-config";
 import { prisma } from "@/lib/prisma";
 import { currentUserIsSuperAdmin } from "@/lib/plans";
 import { getSession } from "@/lib/auth";
@@ -41,7 +42,7 @@ export async function POST(
   const expiresAt = new Date(baseDate);
   expiresAt.setDate(expiresAt.getDate() + days);
 
-  const wasPaid = tenant.plan === "pro" || tenant.plan === "premium";
+  const wasPaid = isPro(tenant.plan);
   const nextPlan = wasPaid ? tenant.plan : "pro";
 
   const updated = await prisma.tenant.update({
@@ -55,7 +56,8 @@ export async function POST(
   });
 
   const abs = Math.abs(days);
-  const planLabel = nextPlan === "premium" ? "Premium" : "Pro";
+  const planLabel =
+    nextPlan === "kurumsal" ? "Kurumsal" : nextPlan === "premium" ? "Premium" : "Pro";
   const reasonText =
     days < 0
       ? `${abs} gün ${planLabel} süresi düşüldü (düzeltme)`

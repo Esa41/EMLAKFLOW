@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  STUDIO_ALLOTMENT,
+  planKeyFromTenant,
+  isPremium,
+  isPro,
+} from "@/lib/plans-config";
+import {
   X,
   Calendar,
   Clock,
@@ -55,6 +61,14 @@ interface TenantDetail {
     changedBy: string | null;
     reason: string | null;
     expiresAt: string | null;
+    createdAt: string;
+  }>;
+  creditLogs: Array<{
+    id: string;
+    kind: string;
+    delta: number;
+    reason: string;
+    changedBy: string | null;
     createdAt: string;
   }>;
   aiImageCredits: number;
@@ -319,8 +333,10 @@ export function AdminTenantDetailModal({
     );
   }
 
-  const isProPlan = tenant.plan === "pro" || tenant.plan === "premium";
-  const isPremiumPlan = tenant.plan === "premium";
+  const isProPlan = isPro(tenant.plan);
+  // Premium VE Kurumsal: white-label hakları (lib/plans-config isPremium)
+  const isPremiumPlan = isPremium(tenant.plan);
+  const planAllotment = STUDIO_ALLOTMENT[planKeyFromTenant(tenant.plan)];
   const owner = tenant.users[0];
   const now = new Date();
   const proExpired =
@@ -935,23 +951,29 @@ export function AdminTenantDetailModal({
                     onClick={async () => {
                       setSavingCredits(true);
                       try {
+                        // Foto plan değerine çekilir; video bakiyeye EKLENİR
+                        // (satın alınan krediler korunur — aylık otomatikle aynı kural)
                         const res = await fetch(`/api/admin/tenants/${tenantId}`, {
                           method: "PATCH",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({
-                            aiImageCredits: isPremiumPlan ? 1000 : 300,
-                            aiVideoCredits: isPremiumPlan ? 30 : 10,
+                            aiImageCredits: planAllotment.image,
+                            aiVideoCredits:
+                              tenant.aiVideoCredits + planAllotment.video,
+                            creditReason: "Admin: aylık plan paketi yüklendi",
                           }),
                         });
                         if (!res.ok) throw new Error("Hata");
                         await reloadTenant();
                         router.refresh();
-                        setActionMsg("Krediler plan varsayılanına sıfırlandı.");
+                        setActionMsg(
+                          `Aylık paket yüklendi: ${planAllotment.image} foto + ${planAllotment.video} video.`,
+                        );
                       } catch { alert("Hata"); } finally { setSavingCredits(false); }
                     }}
                     className="rounded-lg border border-ink/20 bg-white px-3 py-2 text-xs font-bold text-ink/60 hover:bg-ink/[0.03] disabled:opacity-40"
                   >
-                    Plan varsayılanı
+                    Aylık paketi yükle
                   </button>
                   <button
                     type="button"
@@ -962,7 +984,11 @@ export function AdminTenantDetailModal({
                         const res = await fetch(`/api/admin/tenants/${tenantId}`, {
                           method: "PATCH",
                           headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ aiImageCredits: 0, aiVideoCredits: 0 }),
+                          body: JSON.stringify({
+                            aiImageCredits: 0,
+                            aiVideoCredits: 0,
+                            creditReason: "Admin: bakiye sıfırlandı",
+                          }),
                         });
                         if (!res.ok) throw new Error("Hata");
                         await reloadTenant();
@@ -976,7 +1002,9 @@ export function AdminTenantDetailModal({
                   </button>
                 </div>
                 <p className="text-[11px] text-ink/45">
-                  Pro: 300 fotoğraf + 10 video/ay · Premium: 1000 fotoğraf + 30 video/ay
+                  Aylık otomatik video: Premium 10 · Kurumsal 50 (bakiyeye
+                  eklenir, sıfırlanmaz) · Foto her ay yenilenir: Pro 100 /
+                  Premium 500 / Kurumsal 1000.
                 </p>
               </div>
             </div>
@@ -1020,6 +1048,39 @@ export function AdminTenantDetailModal({
                       <div className="mt-1 text-ink/40">
                         {new Date(change.createdAt).toLocaleDateString("tr-TR")} ·{" "}
                         {change.changedBy || "Sistem"}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Kredi Geçmişi — bakiyeyi değiştiren her olay (CreditLog) */}
+            <div className="space-y-3 rounded-xl border border-ink/10 bg-white p-4">
+              <h3 className="text-sm font-bold text-ink/70">Kredi Geçmişi</h3>
+              <div className="space-y-2">
+                {(tenant.creditLogs ?? []).length === 0 ? (
+                  <p className="text-xs text-ink/40">Henüz hareket yok</p>
+                ) : (
+                  tenant.creditLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="flex items-start justify-between gap-2 border-l-2 border-violet-200 pl-3 text-xs"
+                    >
+                      <div>
+                        <span
+                          className={`font-bold ${
+                            log.delta >= 0 ? "text-emerald-700" : "text-rose-700"
+                          }`}
+                        >
+                          {log.delta >= 0 ? "+" : ""}
+                          {log.delta} {log.kind === "video" ? "video" : "foto"}
+                        </span>
+                        <div className="text-ink/60">{log.reason}</div>
+                      </div>
+                      <div className="shrink-0 text-right text-ink/40">
+                        {new Date(log.createdAt).toLocaleDateString("tr-TR")}
+                        <div>{log.changedBy || "Sistem"}</div>
                       </div>
                     </div>
                   ))

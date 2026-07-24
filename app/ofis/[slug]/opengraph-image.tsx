@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { isPremium } from "@/lib/plans-config";
 import { prisma } from "@/lib/prisma";
 import { isAutoVertical } from "@/lib/verticals";
 
@@ -40,7 +41,7 @@ export default async function OgImage({
   const count = tenant?._count.listings ?? 0;
   const isAuto = isAutoVertical(tenant?.vertical ?? null);
   const portfoyLabel = isAuto ? "Araç Portföyü" : "Satılık & Kiralık Portföy";
-  const hidePlatform = tenant?.plan === "premium";
+  const hidePlatform = isPremium(tenant?.plan);
 
   return new ImageResponse(
     (

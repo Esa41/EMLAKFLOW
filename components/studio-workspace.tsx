@@ -57,11 +57,13 @@ export function StudioWorkspace({ listings, credits, history, templatePreviews }
               AI Stüdyo
             </h1>
             <p className="text-xs text-ink/45">
-              {credits.plan === "premium"
-                ? "Premium"
-                : credits.plan === "pro"
-                  ? "Pro"
-                  : "Başlangıç"}{" "}
+              {credits.plan === "kurumsal"
+                ? "Kurumsal"
+                : credits.plan === "premium"
+                  ? "Premium"
+                  : credits.plan === "pro"
+                    ? "Pro"
+                    : "Başlangıç"}{" "}
               Plan
             </p>
           </div>
