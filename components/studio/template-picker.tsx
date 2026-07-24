@@ -2,15 +2,18 @@
 
 import {
   Clapperboard,
+  Clock,
   Flame,
   Gem,
   Home,
+  Lightbulb,
   Mic,
   Plane,
   Play,
   Rocket,
   Smartphone,
   Sparkles,
+  Sun,
   Sunset,
 } from "lucide-react";
 import {
@@ -83,6 +86,18 @@ const TEMPLATE_STYLES: Record<
     gradient: "from-emerald-500/10 to-teal-500/10",
     borderActive: "border-emerald-500",
     iconColor: "text-emerald-600",
+  },
+  timelapse: {
+    icon: Clock,
+    gradient: "from-indigo-500/10 to-sky-500/10",
+    borderActive: "border-indigo-500",
+    iconColor: "text-indigo-600",
+  },
+  shadow_play: {
+    icon: Sun,
+    gradient: "from-amber-500/10 to-stone-500/10",
+    borderActive: "border-amber-500",
+    iconColor: "text-amber-600",
   },
 };
 
@@ -168,6 +183,28 @@ export function TemplatePicker({ listingType, selected, onSelect, previews }: Pr
               <p className="mt-2 text-xs leading-relaxed text-ink/45">
                 {t.description}
               </p>
+
+              {/* Fotoğraf yönlendirmesi — seçilince: referans kalitesini
+                  yakalamak için hangi fotoğrafları yüklemeli */}
+              {isSelected && t.shotGuide && t.shotGuide.length > 0 && (
+                <div className="mt-3 rounded-xl border border-brand-500/20 bg-brand-50/40 p-3">
+                  <p className="mb-1.5 flex items-center gap-1 text-[11px] font-bold text-brand-700">
+                    <Lightbulb size={12} />
+                    En iyi sonuç için
+                  </p>
+                  <ul className="space-y-1">
+                    {t.shotGuide.map((tip) => (
+                      <li
+                        key={tip}
+                        className="flex items-start gap-1.5 text-[11px] leading-snug text-ink/60"
+                      >
+                        <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-brand-500" />
+                        {tip}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Örnek klip — seçilince oynar; kontroller kartı seçmesin */}
               {isSelected && previewUrl && (

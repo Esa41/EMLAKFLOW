@@ -24,6 +24,8 @@ const PREVIEWS: Record<TemplateKey, { cover: string; videoUrl?: string }> = {
   social_promo: { cover: U("1505873242700-f289a29e1e0f") },
   // available:false — galeride gösterilmez; aktifleşince gerçek kapak gelecek
   presenter_reels: { cover: U("1505873242700-f289a29e1e0f") },
+  timelapse: { cover: U("1470071459604-3b5ec3a7fe05") },
+  shadow_play: { cover: U("1522708323590-d24dbb6b0267") },
 };
 
 export function TemplateGallery() {

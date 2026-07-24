@@ -29,7 +29,9 @@ export type TemplateKey =
   | "classic_interior"
   | "land_drone"
   | "social_promo"
-  | "presenter_reels";
+  | "presenter_reels"
+  | "timelapse"
+  | "shadow_play";
 
 /** Shotstack clip transition adları ile bire bir (Fast = whip/blur hissi). */
 export type TransitionKey =
@@ -147,6 +149,13 @@ export type TemplateDef = {
   targetListingTypes: "land" | "housing" | "any";
   /** Oda etiketi seçici bu şablonda gösterilsin mi */
   usesRooms: boolean;
+  /**
+   * "Bu şablon için hangi fotoğrafları yükle" yönlendirmesi — seçici
+   * ekranında madde madde gösterilir. Kullanıcının referans videonun
+   * aynısını üretebilmesi için doğru girdiyi vermesini sağlar
+   * (Esa geri bildirimi, 24 Tem 2026).
+   */
+  shotGuide?: string[];
   sceneRecipe: { slots: SceneSlotDef[]; fallback: SceneSlotDef };
   /** Sahne sınırları için geçişler — sequence varsa sınır index'i ile dönüşümlü */
   transitions: { default: TransitionKey; sequence?: TransitionKey[] };
@@ -216,6 +225,20 @@ const GOLDEN_HOUR_MOTIONS = [
   "slow drone push-in towards the entrance at golden hour, warm rim light, atmospheric haze",
 ];
 
+// Zaman Akışı (timelapse): dış çekimde bulut/ışık akışı + gün-alacakaranlık
+// geçişi hissi. Mimari sabit kalır, yalnızca gökyüzü ve ışık hareketlenir.
+const TIMELAPSE_MOTIONS = [
+  "cinematic timelapse of the property exterior, clouds streaking fast across the sky, sunlight shifting from day to golden dusk, long moving shadows, the building and landscape remain perfectly static and unchanged",
+  "timelapse drone hold over the property, fast drifting clouds, changing warm light, gentle shadow movement across the facade, architecture stays exactly as in the source photo",
+];
+
+// Gölge Oyunu (shadow play): iç mekânda pencereden süzülen güneş ışığının
+// zemin/duvarda yavaşça gezinen sıcak gölgeleri — sinematik atmosfer.
+const SHADOW_PLAY_MOTIONS = [
+  "cinematic interior with warm sunlight streaming through the window, soft shadows of blinds slowly moving across the floor and walls, gentle dust particles floating in the light beam, the room and furniture stay exactly as in the source photo",
+  "slow push-in through a sunlit room, golden light and soft window shadows drifting gently over the surfaces, warm atmospheric glow, furniture and layout unchanged",
+];
+
 // Vitrin Sunucusu: sahneler PiP sunucunun ARKA PLANIDIR — hareketler bilinçli
 // sakin ki izleyicinin gözü sunucuda kalsın (avatar klip lib/studio-avatar.ts).
 const PRESENTER_MOTIONS = [
@@ -246,6 +269,11 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     generationMode: "reference",
     targetListingTypes: "housing",
     usesRooms: true,
+    shotGuide: [
+      "Dış cephe fotoğrafıyla başlayın, sonra oda oda ilerleyin.",
+      "Her odadan geniş açı, net bir fotoğraf seçin (koridor/geçiş fotoğrafları akışı güçlendirir).",
+      "En fazla 8 fotoğraf — sıralamayı gerçek gezinme rotası gibi yapın.",
+    ],
     sceneRecipe: {
       slots: interiorSlots(FPV_MOTIONS),
       fallback: { motions: FPV_MOTIONS, durationSec: 5 },
@@ -507,6 +535,121 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     negative:
       "added buildings, added roads, changing architecture, altered landscape, " +
       "people, added vehicles",
+    shotGuide: [
+      "Gün ışığında çekilmiş net bir dış cephe fotoğrafı seçin.",
+      "Varsa drone/havadan çekim en iyi sonucu verir.",
+      "Bahçe, havuz veya manzara fotoğrafları ekleyin.",
+    ],
+  },
+
+  timelapse: {
+    key: "timelapse",
+    legacyConceptKey: "drone",
+    label: "Zaman Akışı",
+    subtitle: "Timelapse — akan bulutlar, değişen ışık",
+    description:
+      "Dış cephe fotoğrafınız sinematik bir timelapse'e dönüşür: hızla akan bulutlar, günden alacakaranlığa kayan ışık ve uzayan gölgeler. Bina sabit kalır, yalnızca gökyüzü ve atmosfer hareketlenir.",
+    badge: "Yeni",
+    aspectRatio: "16:9",
+    generationMode: "reference",
+    targetListingTypes: "any",
+    usesRooms: false,
+    shotGuide: [
+      "Açık gökyüzü görünen bir dış cephe fotoğrafı seçin (gökyüzü ne kadar çok görünürse o kadar etkileyici).",
+      "Drone/havadan çekim varsa idealdir.",
+      "Gündüz çekilmiş, net ve yüksek çözünürlüklü olsun.",
+    ],
+    sceneRecipe: {
+      slots: [],
+      fallback: { motions: TIMELAPSE_MOTIONS, durationSec: 10 },
+    },
+    transitions: { default: "fade" },
+    overlaySlots: [
+      {
+        key: "location",
+        label: "Konum",
+        source: "location",
+        placement: "first",
+        startSec: 0.8,
+        lengthSec: 3.5,
+        styleKey: "cardTopLeft",
+      },
+      {
+        key: "price",
+        label: "Fiyat",
+        source: "price",
+        placement: "last",
+        startSec: 0.5,
+        lengthSec: 4,
+        styleKey: "bigCenter",
+      },
+    ],
+    musicDefault: "epic_cinematic",
+    musicVolume: 0.2,
+    voiceTone: "calm",
+    style:
+      "cinematic real estate timelapse, fast moving clouds, shifting warm " +
+      "light from day to dusk, long moving shadows, high dynamic range, " +
+      "photorealistic, the building and landscape remain perfectly static and " +
+      "unchanged, only the sky and light move",
+    negative:
+      "moving building, warping architecture, added buildings, changing " +
+      "structure, people, distortion, morphing",
+  },
+
+  shadow_play: {
+    key: "shadow_play",
+    legacyConceptKey: "interior",
+    label: "Gölge Oyunu",
+    subtitle: "Pencereden süzülen ışık ve gölgeler",
+    description:
+      "İç mekân fotoğraflarınıza sinematik atmosfer: pencereden süzülen sıcak güneş ışığı, zemin ve duvarda yavaşça gezinen gölgeler, ışık huzmesinde uçuşan toz. Odalar ve eşyalar aynen kalır.",
+    badge: "Yeni",
+    aspectRatio: "9:16",
+    generationMode: "per_scene",
+    targetListingTypes: "housing",
+    usesRooms: true,
+    shotGuide: [
+      "Pencere veya doğal ışık alan odaların fotoğraflarını seçin.",
+      "Salon, yatak odası, mutfak gibi ferah mekânlar en iyi sonucu verir.",
+      "Loş/karanlık fotoğraflardan kaçının — ışık kaynağı görünsün.",
+    ],
+    sceneRecipe: {
+      slots: interiorSlots(SHADOW_PLAY_MOTIONS),
+      fallback: { motions: SHADOW_PLAY_MOTIONS, durationSec: 5 },
+    },
+    transitions: { default: "fade", sequence: ["fade", "zoom", "fade"] },
+    overlaySlots: [
+      {
+        key: "location",
+        label: "Konum",
+        source: "location",
+        placement: "first",
+        startSec: 0.8,
+        lengthSec: 3.5,
+        styleKey: "cardTopLeft",
+      },
+      {
+        key: "price",
+        label: "Fiyat",
+        source: "price",
+        placement: "last",
+        startSec: 0.5,
+        lengthSec: 4,
+        styleKey: "bigCenter",
+      },
+    ],
+    musicDefault: "calm_piano",
+    musicVolume: 0.16,
+    voiceTone: "calm",
+    style:
+      "cinematic interior with warm sunlight streaming through the window, " +
+      "soft moving shadows across the floor and walls, gentle dust particles " +
+      "in the light beam, warm atmospheric glow, photorealistic, the room, " +
+      "furniture and fixtures stay exactly as in the source photo",
+    negative:
+      "rearranged furniture, new decor, added objects, people, changing " +
+      "room layout, doors or windows appearing or disappearing, distortion",
   },
 
   classic_interior: {
@@ -561,6 +704,11 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     generationMode: "per_scene",
     targetListingTypes: "land",
     usesRooms: false,
+    shotGuide: [
+      "Havadan/drone çekilmiş arazi fotoğrafları en iyi sonucu verir.",
+      "Farklı açılardan (geniş + yakın) 2-4 fotoğraf ekleyin.",
+      "Varsa yola cephe, sınır taşı veya manzara fotoğrafı koyun.",
+    ],
     sceneRecipe: {
       slots: [
         {
@@ -741,6 +889,11 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     generationMode: "per_scene",
     targetListingTypes: "any",
     usesRooms: true,
+    shotGuide: [
+      "İLK sıraya dış cephe veya drone fotoğrafı koyun — sinematik iniş açılışı bundan üretilir.",
+      "Sonra her odadan 1 net fotoğraf ekleyin (salon, mutfak, yatak odası…).",
+      "Manzara/balkon fotoğrafıyla bitirin — güçlü bir kapanış olur.",
+    ],
     sceneRecipe: {
       // İlk sahne: dış cephe/drone kuruluş çekimi — sinematik iniş
       slots: [
@@ -798,6 +951,8 @@ export const TEMPLATE_LIST: TemplateDef[] = [
   TEMPLATES.land_drone,
   TEMPLATES.social_promo,
   TEMPLATES.presenter_reels,
+  TEMPLATES.timelapse,
+  TEMPLATES.shadow_play,
 ];
 
 const LEGACY_CONCEPT_TO_TEMPLATE: Record<VideoConceptKey, TemplateKey> = {
