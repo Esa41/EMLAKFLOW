@@ -188,13 +188,17 @@ export async function generateAvatarClip(input: {
     return { ok: false, error: message.slice(0, 300) };
   }
 
-  // Konuşma, sahnelerin toplam süresine sığmalı — sığmazsa kullanıcıya
-  // net yönlendirme (kredi henüz düşülmedi, güvenli çıkış)
-  const scenesSec = project.scenes.reduce((s, x) => s + x.durationSec, 0);
-  if (scenesSec > 0 && durationMs / 1000 > scenesSec + 1) {
+  // Konuşma, sunucunun ekranda olduğu süreye sığmalı: sunucu kuruluş
+  // sahnesinden (drone iniş açılışı) sonra girer — bütçe = toplam - açılış.
+  // Sığmazsa kredi düşülmeden net yönlendirmeyle çıkılır.
+  const durations = project.scenes.map((x) => x.durationSec);
+  const scenesSec = durations.reduce((s, x) => s + x, 0);
+  const establishSec = durations.length > 1 ? durations[0] : 0;
+  const speechBudget = scenesSec - establishSec;
+  if (speechBudget > 0 && durationMs / 1000 > speechBudget + 1) {
     return {
       ok: false,
-      error: `Konuşma ${Math.round(durationMs / 1000)} sn sürüyor ama video ${scenesSec} sn — metni kısaltın veya sahne/süre ekleyin.`,
+      error: `Konuşma ${Math.round(durationMs / 1000)} sn sürüyor ama sunucu bölümü ${speechBudget} sn (açılış sahnesi sonrası) — metni kısaltın veya sahne ekleyin.`,
     };
   }
 

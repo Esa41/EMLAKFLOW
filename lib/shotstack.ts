@@ -229,11 +229,12 @@ export function buildTimelineFromProject(input: {
   /** null = kapanış kartı/filigran yok */
   branding?: TimelineBranding | null;
   /**
-   * Vitrin Sunucusu klibi: ilk AVATAR_INTRO_SEC saniye TAM EKRAN hook,
-   * sonra köşe penceresine (PiP) küçülür; sesi (dudak senkronlu konuşma)
-   * videoya gömülüdür. Verildiğinde AI şeffaflık ibaresi OTOMATİK basılır.
+   * Vitrin Sunucusu klibi: startSec anında (kuruluş sahnesinden sonra)
+   * TAM EKRAN girer, AVATAR_INTRO_SEC sonra köşe penceresine (PiP) küçülür;
+   * sesi (dudak senkronlu konuşma) videoya gömülüdür. Verildiğinde AI
+   * şeffaflık ibaresi OTOMATİK basılır.
    */
-  avatar?: { videoUrl: string; durationSec: number } | null;
+  avatar?: { videoUrl: string; durationSec: number; startSec?: number } | null;
   /**
    * Altyazı stili: "band" küçük alt bant (varsayılan); "hook" referans
    * kreatiflerdeki dev, ortalanmış kelime-kelime tipografi (avatar kurguları).
@@ -241,19 +242,13 @@ export function buildTimelineFromProject(input: {
   captionStyle?: "band" | "hook";
   /** Hook tipografisinin rengi — ofis marka rengi (yoksa HOOK_DEFAULT_COLOR). */
   hookColor?: string;
-  /**
-   * Persona stinger'ı (siluet pozu) — sahnelerden sonra, kapanış kartından
-   * önce oynayan tek seferlik sinematik marka sahnesi.
-   */
-  stinger?: { videoUrl: string; durationSec: number } | null;
   callbackUrl?: string;
 }): ShotstackEdit {
   const portrait = input.aspectRatio === "9:16";
   const scenesSec = input.scenes.reduce((sum, s) => sum + s.durationSec, 0);
-  // body = sahneler + (varsa) stinger; kapanış kartı body'den sonra gelir
-  const stingerSec = input.stinger?.durationSec ?? 0;
-  const bodySec = scenesSec + stingerSec;
-  const totalSec = bodySec + (input.branding ? OUTRO_SEC : 0);
+  const totalSec = scenesSec + (input.branding ? OUTRO_SEC : 0);
+  // Sunucunun videoya giriş anı (kuruluş sahnesinden sonra)
+  const avatarStartSec = Math.min(input.avatar?.startSec ?? 0, scenesSec);
 
   // Sahne başlangıç zamanları (bitişik dizilim)
   const sceneStarts: number[] = [];
@@ -274,18 +269,6 @@ export function buildTimelineFromProject(input: {
       ? { transition: { in: s.transitionIn } }
       : {}),
   }));
-
-  // Stinger: sahnelerin ardından oynayan sinematik marka sahnesi (sessiz —
-  // i2v çıktısının rastgele ortam sesi kurguya girmesin)
-  if (input.stinger) {
-    videoClips.push({
-      asset: { type: "video", src: input.stinger.videoUrl, volume: 0 },
-      start: scenesSec,
-      length: stingerSec,
-      fit: "crop",
-      transition: { in: "fade" },
-    });
-  }
 
   // [0] Ekran yazıları — hedef sahnenin timeline offset'i + slot startSec
   const overlayClips: ShotstackClip[] = [];
@@ -396,7 +379,8 @@ export function buildTimelineFromProject(input: {
               width: portrait ? 1000 : 1500,
               height: 300,
             },
-            start: c.startMs / 1000,
+            // konuşma sunucuyla birlikte başlar — kuruluş sahnesi kadar kayar
+            start: avatarStartSec + c.startMs / 1000,
             length: (c.endMs - c.startMs) / 1000,
             position: "center" as const,
           }
@@ -427,7 +411,7 @@ export function buildTimelineFromProject(input: {
       brandingClips.push({
         asset: { type: "image", src: b.logoUrl },
         start: 0,
-        length: bodySec,
+        length: scenesSec,
         fit: "none",
         scale: 0.08,
         opacity: 0.55,
@@ -437,7 +421,7 @@ export function buildTimelineFromProject(input: {
       // Kapanış kartı: siyah zemin üzerinde logo
       brandingClips.push({
         asset: { type: "image", src: b.logoUrl },
-        start: bodySec,
+        start: scenesSec,
         length: OUTRO_SEC,
         fit: "none",
         scale: 0.22,
@@ -455,7 +439,7 @@ export function buildTimelineFromProject(input: {
         width: portrait ? 960 : 1400,
         height: 180,
       },
-      start: bodySec + 0.3,
+      start: scenesSec + 0.3,
       length: OUTRO_SEC - 0.3,
       position: "center",
       offset: { y: b.logoUrl ? -0.1 : 0 },
@@ -468,12 +452,13 @@ export function buildTimelineFromProject(input: {
   // kurgularda çağıran voiceKeyframes GÖNDERMEMELİDİR (çift ses olur).
   const avatarClips: ShotstackClip[] = [];
   if (input.avatar) {
-    const avatarLen = Math.min(input.avatar.durationSec, scenesSec);
+    // Kuruluş sahnesi (drone iniş) sunucusuz oynar; sunucu startSec anında
+    // TAM EKRAN videoya girer, sonra köşe penceresine küçülür.
+    const avatarLen = Math.min(input.avatar.durationSec, scenesSec - avatarStartSec);
     const introSec = Math.min(AVATAR_INTRO_SEC, avatarLen);
-    // Açılış: sunucu TAM EKRAN hook konuşması
     avatarClips.push({
       asset: { type: "video", src: input.avatar.videoUrl, volume: 1 },
-      start: 0,
+      start: avatarStartSec,
       length: introSec,
       fit: "cover",
       transition: { in: "fade" },
@@ -487,7 +472,7 @@ export function buildTimelineFromProject(input: {
           volume: 1,
           trim: introSec,
         },
-        start: introSec,
+        start: avatarStartSec + introSec,
         length: avatarLen - introSec,
         scale: AVATAR_PIP.scale,
         position: AVATAR_PIP.position,
@@ -506,7 +491,7 @@ export function buildTimelineFromProject(input: {
         height: 48,
       },
       start: 0.3,
-      length: Math.max(bodySec - 0.3, 1),
+      length: Math.max(scenesSec - 0.3, 1),
       position: "top",
       offset: { y: -0.025 },
     });

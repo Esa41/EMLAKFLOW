@@ -224,6 +224,15 @@ const PRESENTER_MOTIONS = [
   "gentle slow pan, smooth and unhurried",
 ];
 
+// Vitrin Sunucusu AÇILIŞ sahnesi: dış cephe/drone fotoğrafından sinematik
+// iniş — sunucu bu kuruluş sahnesinden SONRA tam ekran videoya girer
+// (Esa geri bildirimi, 24 Tem 2026: yapay marka sahnesi değil, gerçek
+// mekândan sinematik açılış).
+const PRESENTER_OPENING_MOTIONS = [
+  "cinematic aerial drone shot descending slowly toward the building entrance, smooth stabilized approach, warm natural light, the property remains exactly as in the source photo",
+  "slow drone push-in from above toward the property facade, gentle descent, golden hour glow, terrain and building unchanged from the source photo",
+];
+
 export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
   fpv_tour: {
     key: "fpv_tour",
@@ -725,15 +734,22 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     label: "Vitrin Sunucusu",
     subtitle: "AI sunucu ilanınızı anlatır",
     description:
-      "Seçtiğiniz AI sunucu ilanınızı kamera karşısında tanıtır: fotoğraflarınız akarken sunucu köşe penceresinde konuşur. Reels/TikTok için birebir — yapay zekâ ibaresi videoya otomatik eklenir.",
+      "Drone/dış cephe fotoğrafınızdan sinematik iniş açılışı, ardından AI sunucunuz videoya girer ve ev turu akarken ilanınızı anlatır. Reels/TikTok için birebir — yapay zekâ ibaresi otomatik eklenir.",
     badge: "Yakında",
     available: false,
     aspectRatio: "9:16",
     generationMode: "per_scene",
     targetListingTypes: "any",
-    usesRooms: false,
+    usesRooms: true,
     sceneRecipe: {
-      slots: [],
+      // İlk sahne: dış cephe/drone kuruluş çekimi — sinematik iniş
+      slots: [
+        {
+          roomKeyHint: "exterior",
+          motions: PRESENTER_OPENING_MOTIONS,
+          durationSec: 5,
+        },
+      ],
       fallback: { motions: PRESENTER_MOTIONS, durationSec: 5 },
     },
     transitions: { default: "fade" },
@@ -743,8 +759,8 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
         label: "Konum",
         source: "location",
         placement: "first",
-        // Tam ekran hook açılışı (AVATAR_INTRO_SEC=3.5) bittikten sonra girer
-        startSec: 4.5,
+        // Kuruluş (drone iniş) sahnesinin üzerinde görünür
+        startSec: 0.8,
         lengthSec: 3.5,
         styleKey: "cardTopLeft",
       },
@@ -845,7 +861,10 @@ export function buildTemplateScenePrompt(
     template.key === "fpv_tour" ||
     template.key === "cinematic_fpv" ||
     template.key === "fpv_reels";
-  const motion = fpvTemplate ? templateMotion : (room?.motion ?? templateMotion);
+  // Vitrin Sunucusu'nda şablonun sinematik açılış/sakin arka plan hareketi
+  // odanın genel hareketine tercih edilir
+  const templateFirst = fpvTemplate || template.key === "presenter_reels";
+  const motion = templateFirst ? templateMotion : (room?.motion ?? templateMotion);
   const context = room ? `${room.en}, ` : "";
   return `${context}${motion}, ${template.style}`;
 }

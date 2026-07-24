@@ -36,8 +36,6 @@ export type AvatarPersona = {
    * (scripts/generate-avatar-portraits.ts), tüm kliplere kimlik kaynağıdır.
    */
   portraitR2Key: string;
-  /** Stinger (detay/siluet) prompt'larında geçen özne tarifi. */
-  outfitEn: string;
 };
 
 export const AVATAR_PERSONAS: AvatarPersona[] = [
@@ -58,9 +56,6 @@ export const AVATAR_PERSONAS: AvatarPersona[] = [
       "looking directly at the camera, natural skin texture, 4K",
     voiceEnvVar: "ELEVENLABS_VOICE_ELIF",
     portraitR2Key: "studio/avatars/elif.png",
-    outfitEn:
-      "an elegant woman in a tailored dark blazer over a cream silk blouse " +
-      "with a small gold brooch",
   },
   {
     key: "deniz",
@@ -78,7 +73,6 @@ export const AVATAR_PERSONAS: AvatarPersona[] = [
       "directly at the camera, natural skin texture, 4K",
     voiceEnvVar: "ELEVENLABS_VOICE_DENIZ",
     portraitR2Key: "studio/avatars/deniz.png",
-    outfitEn: "a young woman in a chic ivory structured jacket with a small gold pin",
   },
   {
     key: "kerem",
@@ -96,7 +90,6 @@ export const AVATAR_PERSONAS: AvatarPersona[] = [
       "directly at the camera, natural skin texture, 4K",
     voiceEnvVar: "ELEVENLABS_VOICE_KEREM",
     portraitR2Key: "studio/avatars/kerem.png",
-    outfitEn: "a distinguished man in a tailored navy suit with a small gold lapel pin",
   },
 ];
 
@@ -218,53 +211,6 @@ export const AVATAR_INTRO_SEC = 3.5;
 
 /** Hook tipografisinin varsayılan rengi — ofis marka rengi yoksa. */
 export const HOOK_DEFAULT_COLOR = "#dc2626";
-
-// ── Persona stinger'ları — tek seferlik sinematik ara klipler ──
-// Her persona için bir kez üretilir (generate-avatar-portraits.ts),
-// sonra TÜM videolarda bedavaya yeniden kullanılır:
-//   detail : ceket/rozet yakın plan (gelecekte açılış b-roll'u)
-//   pose   : siluet pozu — kurguda kapanış kartından önceki marka sahnesi
-
-export type AvatarStingerKey = "detail" | "pose";
-
-export const AVATAR_STINGERS: {
-  key: AvatarStingerKey;
-  label: string;
-  imagePrompt: (p: AvatarPersona) => string;
-  motionPrompt: string;
-}[] = [
-  {
-    key: "detail",
-    label: "Detay çekimi",
-    imagePrompt: (p) =>
-      `cinematic close-up detail shot of ${p.outfitEn}, focus on the jacket ` +
-      "lapel and the small gold pin, one hand elegantly adjusting the lapel, " +
-      "face not visible, luxury office bokeh background, warm dramatic " +
-      "lighting, shallow depth of field, photorealistic, 4K",
-    motionPrompt:
-      "slow cinematic push-in, subtle natural hand movement, shallow depth " +
-      "of field, steady camera",
-  },
-  {
-    key: "pose",
-    label: "Siluet pozu",
-    imagePrompt: (p) =>
-      `stylized dark silhouette of ${p.outfitEn}, standing confidently with ` +
-      "arms crossed, backlit against a bright seamless studio background, " +
-      "strong rim light, minimalist high-fashion editorial look, " +
-      "photorealistic, 4K",
-    motionPrompt:
-      "very slow push-in, subtle breathing motion, fabric moving gently, " +
-      "steady camera",
-  },
-];
-
-export function stingerR2Key(
-  personaKey: string,
-  stingerKey: AvatarStingerKey,
-): string {
-  return `studio/avatars/${personaKey}-stinger-${stingerKey}.mp4`;
-}
 
 // ── Shotstack PiP yerleşimi ──
 // Sunucu klibi ilan sahnelerinin üzerine köşe penceresi olarak biner.

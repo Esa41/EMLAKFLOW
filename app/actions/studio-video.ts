@@ -35,11 +35,7 @@ import {
   type TransitionKey,
 } from "@/lib/studio-templates";
 import { MUSIC_TRACKS, isMusicKey, type MusicKey } from "@/lib/studio-music";
-import {
-  buildPresenterScript,
-  DEFAULT_AVATAR_PERSONA,
-  stingerR2Key,
-} from "@/lib/studio-avatar";
+import { buildPresenterScript, DEFAULT_AVATAR_PERSONA } from "@/lib/studio-avatar";
 import {
   submitShotstackRender,
   buildTimelineFromProject,
@@ -1126,16 +1122,10 @@ export async function mergeProject(input: {
       };
     }
 
-    // Persona stinger'ı (siluet pozu) — bir kez üretilmiş marka sahnesi;
-    // R2'de yoksa render bozulmasın diye atlanır (müzikle aynı soft-fail).
-    let stinger: { videoUrl: string; durationSec: number } | null = null;
-    if (avatarActive && project.avatarPersonaKey) {
-      const stingerUrl = publicUrl(
-        stingerR2Key(project.avatarPersonaKey, "pose"),
-      );
-      const head = await fetch(stingerUrl, { method: "HEAD" }).catch(() => null);
-      if (head?.ok) stinger = { videoUrl: stingerUrl, durationSec: 5 };
-    }
+    // Sunucu, kuruluş sahnesinden (drone iniş açılışı) SONRA videoya girer —
+    // tek sahnelik projede baştan itibaren görünür.
+    const avatarStartSec =
+      avatarActive && scenes.length > 1 ? scenes[0].durationSec : 0;
 
     // Webhook: secret tanımlıysa Shotstack bitişte bize haber verir
     // (kapalı sekmede bile merge tamamlanır); yoksa polling yeterli.
@@ -1156,11 +1146,11 @@ export async function mergeProject(input: {
         ? {
             videoUrl: project.avatarVideoUrl!,
             durationSec: project.avatarDurationMs! / 1000,
+            startSec: avatarStartSec,
           }
         : null,
       captionStyle: avatarActive ? "hook" : "band",
       hookColor: tenantBrand?.brandColor ?? undefined,
-      stinger,
       callbackUrl,
     });
     const { renderId } = await submitShotstackRender(edit);
