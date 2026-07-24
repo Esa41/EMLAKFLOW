@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { StudioBeforeAfter } from "./studio-before-after";
 import { enhancePhoto, applyEnhancedPhoto } from "@/app/actions/studio";
+import { PHOTO_PRESETS, DEFAULT_PHOTO_PRESET, getPhotoPreset } from "@/lib/studio-photo-presets";
 
 type MediaItem = {
   id: string;
@@ -56,6 +57,8 @@ export function StudioPhotoTab({
   const [pending, startTransition] = useTransition();
   const [showEditor, setShowEditor] = useState(false);
   const [filters, setFilters] = useState({ brightness: 100, contrast: 100 });
+  const [presetKey, setPresetKey] = useState(DEFAULT_PHOTO_PRESET);
+  const activePreset = getPhotoPreset(presetKey)!;
 
   const photos = media.filter((m) => m.kind === "photo");
   const selectedMedia = photos.find((m) => m.id === selected);
@@ -69,6 +72,7 @@ export function StudioPhotoTab({
         listingId,
         mediaId: selectedMedia.id,
         mediaUrl: selectedMedia.url,
+        preset: presetKey,
       });
 
       if (result.ok) {
@@ -157,7 +161,43 @@ export function StudioPhotoTab({
       {/* Seçili fotoğraf aksiyonları */}
       {selectedMedia && !enhanceState && (
         <div className="dash-card p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* İyileştirme şablonu (preset) */}
+          <div className="mb-5">
+            <p className="mb-2 text-sm font-semibold">İyileştirme şablonu</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {PHOTO_PRESETS.map((p) => {
+                const on = p.key === presetKey;
+                return (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => p.available && setPresetKey(p.key)}
+                    disabled={!p.available}
+                    aria-pressed={on}
+                    className={`rounded-xl border p-3 text-left transition-colors ${
+                      on
+                        ? "border-brand-600 bg-brand-50"
+                        : "border-[var(--app-border)] hover:border-ink/30"
+                    } ${!p.available ? "cursor-not-allowed opacity-55" : ""}`}
+                  >
+                    <span className="flex items-center justify-between gap-1">
+                      <span className="text-[13px] font-semibold">{p.label}</span>
+                      {!p.available ? (
+                        <span className="rounded-full bg-ink/8 px-1.5 py-0.5 font-mono text-[8.5px] font-bold uppercase tracking-wide text-ink/45">
+                          Yakında
+                        </span>
+                      ) : on ? (
+                        <Check size={14} className="shrink-0 text-brand-600" />
+                      ) : null}
+                    </span>
+                    <span className="mt-1 block text-[11px] leading-snug text-ink/50">{p.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 border-t border-[var(--app-border)] pt-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="relative h-16 w-24 overflow-hidden rounded-lg">
                 <Image
@@ -199,7 +239,7 @@ export function StudioPhotoTab({
                 ) : (
                   <>
                     <Sparkles size={14} />
-                    AI ile İyileştir
+                    {activePreset.label}
                   </>
                 )}
               </button>

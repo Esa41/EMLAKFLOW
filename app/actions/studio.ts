@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { forTenant } from "@/lib/tenant";
 import { isPro, isPremium, isStudioUnlimited, STUDIO_ALLOTMENT } from "@/lib/plans";
 import { enhanceImage, enhanceCostUsd } from "@/lib/ai-provider-registry";
+import { getPhotoPreset, DEFAULT_PHOTO_PRESET } from "@/lib/studio-photo-presets";
 import { putObject, publicUrl, deleteObject } from "@/lib/r2";
 import { processListingImage, variantKeys } from "@/lib/images";
 
@@ -180,9 +181,16 @@ export async function enhancePhoto(input: {
   listingId: string;
   mediaId: string;
   mediaUrl: string;
+  preset?: string;
 }): Promise<EnhanceResult> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Oturum bulunamadı." };
+
+  // Şablon (preset) — şimdilik yalnız "upscale" türü aktif; edit türleri yakında.
+  const preset = getPhotoPreset(input.preset) ?? getPhotoPreset(DEFAULT_PHOTO_PRESET)!;
+  if (preset.kind === "edit" && !preset.available) {
+    return { ok: false, error: `"${preset.label}" şablonu çok yakında aktif olacak.` };
+  }
 
   await ensureMonthlyReset(session.tenantId);
 
