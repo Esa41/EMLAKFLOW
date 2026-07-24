@@ -120,6 +120,8 @@ export const AVATAR_CLIP_NEGATIVE_PROMPT =
 // buildVoiceoverText'in sunucu formatı: birinci ağızdan, kancayla açar,
 // SADECE ilan verisini kullanır (uydurma özellik = güven kaybı + yasal risk).
 // Hedef: ≤30 sn klip; Türkçe seslendirme ~14 karakter/sn → ~420 karakter.
+// Kling v2'de video süresi = ses süresi — karakter bütçesi aynı zamanda
+// klip maliyetinin tavanıdır.
 
 export const PRESENTER_MAX_CLIP_SEC = 30;
 const PRESENTER_MAX_CHARS = PRESENTER_MAX_CLIP_SEC * 14;
@@ -194,7 +196,8 @@ export const AVATAR_PIP = {
 
 /**
  * Kredi bedeli — FİYATLANDIRMA KARARI BEKLİYOR (REFERENCE_CREDIT_COST ile
- * aynı durum): avatar modeli liste fiyatı doğrulanınca netleşecek.
- * ~30 sn konuşan klip, Kling 5 sn klibin (~1 kredi) birkaç katı maliyette.
+ * aynı durum): 30 sn klip Kling v2 standard'da ≈ $1.69 — Kling 5 sn sahne
+ * klibinin (~$0.28 = 1 kredi) ~6 katı. Maliyet paritesi 6 kredi der;
+ * REFERENCE_CREDIT_COST emsaline uyularak şimdilik 3'te tutuldu.
  */
 export const AVATAR_CREDIT_COST = 3;

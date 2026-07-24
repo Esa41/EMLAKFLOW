@@ -51,9 +51,9 @@ export const COST_RATES_USD = {
   clarityPerMegapixel: 0.03, // Clarity upscaler (çıktı MP başına)
   shotstackPerMin: 0.4, // Shotstack pay-as-you-go
   elevenPer1kChars: 0.3, // ElevenLabs (aşım fiyatı)
-  // Vitrin Sunucusu konuşan klip — LİSTE FİYATI DOĞRULANMADI, model
-  // seçimi netleşince (Kling AI Avatar / OmniHuman) gerçek fiyat yazılacak.
-  avatarPerSec: 0.1,
+  // Kling AI Avatar v2 standard — fal liste fiyatı (24 Tem 2026 doğrulandı).
+  // Pro $0.115/sn: FAL_AVATAR_MODEL ile pro'ya geçilirse burası da güncellenmeli.
+  avatarPerSec: 0.0562,
 } as const;
 
 const round4 = (n: number) => Math.round(n * 1e4) / 1e4;
@@ -331,16 +331,23 @@ function falAppId(model: string): string {
 // ── 1b) Vitrin Sunucusu — konuşan avatar klibi ──
 // Persona portresi + seslendirme dosyası → dudak senkronlu sunucu videosu.
 // FAL_KEY aynı; model FAL_AVATAR_MODEL ile ezilir (enhance deseni — yeni
-// Prisma AiProvider enum değeri GEREKTİRMEZ). Varsayılan model adayı Kling
-// AI Avatar'dır; kalite/fiyat kıyası yapılınca env ile kesinleşecek.
+// Prisma AiProvider enum değeri GEREKTİRMEZ).
+// MODEL KIYASI (24 Tem 2026): Kling AI Avatar v2 standard $0.0562/sn —
+// OmniHuman 1.5 ($0.12/sn) ve VEED Fabric ($0.08/sn) karşısında hem en
+// ucuz hem kıyaslarda en tutarlı (mimik/dudak senkronu). Pro varyant
+// ($0.115/sn, daha ince yüz detayı) env ile açılabilir.
+// Video süresi = ses dosyası süresi (ayrı duration parametresi yok).
 
-export const FAL_AVATAR_DEFAULT_MODEL = "fal-ai/kling-video/v1/pro/ai-avatar";
+export const FAL_AVATAR_DEFAULT_MODEL =
+  "fal-ai/kling-video/ai-avatar/v2/standard";
 
 export type GenerateAvatarVideoInput = {
   /** Persona portresi (R2 public URL) — kimlik kaynağı */
   personaImageUrl: string;
   /** Seslendirme dosyası (R2 public URL) — dudak senkronu bu sese yapılır */
   audioUrl: string;
+  /** Animasyonu yönlendiren opsiyonel çapa (AVATAR_CLIP_PROMPT) */
+  prompt?: string;
   /** İş bitince Fal.ai'nin çağıracağı webhook */
   webhookUrl?: string;
 };
@@ -370,6 +377,7 @@ export async function generateAvatarVideo(
       body: JSON.stringify({
         image_url: input.personaImageUrl,
         audio_url: input.audioUrl,
+        ...(input.prompt ? { prompt: input.prompt } : {}),
       }),
     },
   );
