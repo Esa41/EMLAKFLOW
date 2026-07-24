@@ -55,6 +55,8 @@ import {
   transitionForBoundary,
   REFERENCE_DURATION_SEC,
   REFERENCE_CREDIT_COST,
+  SCENE_CREDIT_COST,
+  SCENE_CREDIT_COST_10S,
   type TemplateKey,
   type TransitionKey,
 } from "@/lib/studio-templates";
@@ -382,7 +384,7 @@ export function StudioVideoTab({
   );
   const videoJobs = history.filter((j) => j.type === "VIDEO_GENERATE");
   // reference: tüm fotoğraflar tek videoya girer → sabit süre/bedel
-  // per_scene: 5 sn = 1 kredi, 10 sn = 2 kredi
+  // per_scene: 5 sn = 20 kredi, 10 sn = 40 kredi
   const isReference = template?.generationMode === "reference";
   const totalSeconds = isReference
     ? REFERENCE_DURATION_SEC
@@ -393,7 +395,8 @@ export function StudioVideoTab({
   const totalCost = isReference
     ? REFERENCE_CREDIT_COST
     : selectedPhotos.reduce(
-        (sum, id) => sum + (sceneDurations[id] === 10 ? 2 : 1),
+        (sum, id) =>
+          sum + (sceneDurations[id] === 10 ? SCENE_CREDIT_COST_10S : SCENE_CREDIT_COST),
         0,
       );
 
@@ -492,15 +495,19 @@ export function StudioVideoTab({
                       !project.finalVideoUrl && (
                         <button
                           onClick={() =>
-                            handleRegenerate(s.id, s.durationSec === 10 ? 2 : 1)
+                            handleRegenerate(
+                              s.id,
+                              s.durationSec === 10 ? SCENE_CREDIT_COST_10S : SCENE_CREDIT_COST,
+                            )
                           }
                           disabled={
                             pending ||
                             (!unlimited &&
-                              videoCredits < (s.durationSec === 10 ? 2 : 1))
+                              videoCredits <
+                                (s.durationSec === 10 ? SCENE_CREDIT_COST_10S : SCENE_CREDIT_COST))
                           }
                           className="flex items-center gap-1 text-[10px] font-semibold text-ink/45 hover:text-brand-600 disabled:opacity-40"
-                          title={`${s.durationSec === 10 ? 2 : 1} kredi ile yeniden üret`}
+                          title={`${s.durationSec === 10 ? SCENE_CREDIT_COST_10S : SCENE_CREDIT_COST} kredi ile yeniden üret`}
                         >
                           {busySceneId === s.id ? (
                             <Loader2 size={11} className="animate-spin" />
@@ -947,7 +954,7 @@ export function StudioVideoTab({
               </>
             ) : (
               <>
-                Her fotoğraf bir sahne olur: 5 sn = 1 kredi, 10 sn = 2 kredi (en
+                Her fotoğraf bir sahne olur: 5 sn = 20 kredi, 10 sn = 40 kredi (en
                 fazla {MAX_SCENES} sahne). Sıralama videonun akışını belirler.
               </>
             )}
@@ -1068,10 +1075,10 @@ export function StudioVideoTab({
                                 }))
                               }
                               className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-1.5 py-1 text-[11px] font-medium"
-                              title="Sahne süresi — 10 sn sahne 2 kredi düşer"
+                              title="Sahne süresi — 10 sn sahne 40 kredi düşer"
                             >
-                              <option value="5">5 sn · 1 kredi</option>
-                              <option value="10">10 sn · 2 kredi</option>
+                              <option value="5">5 sn · 20 kredi</option>
+                              <option value="10">10 sn · 40 kredi</option>
                             </select>
                           )}
                           <div className="flex gap-0.5">

@@ -25,6 +25,8 @@ import {
   buildTemplateTourPrompt,
   REFERENCE_DURATION_SEC,
   REFERENCE_CREDIT_COST,
+  SCENE_CREDIT_COST,
+  SCENE_CREDIT_COST_10S,
   isTemplateKey,
   TEMPLATES,
   TRANSITION_LABELS,
@@ -305,7 +307,7 @@ export async function createStudioProject(input: {
   /** Hazır şablon — sahne reçetesi, geçişler, overlay ve müziği belirler */
   templateKey: string;
   /** Sıralı seçim — roomKey iç mekân turunda "hangi fotoğraf hangi oda" bilgisi.
-   *  durationSec: 5 (1 kredi) | 10 (2 kredi — Kling tarafında ~2x maliyet) */
+   *  durationSec: 5 (20 kredi) | 10 (40 kredi — Kling tarafında ~2x maliyet) */
   selectedMedia: { id: string; roomKey?: string | null; durationSec?: number }[];
   /** Şablon varsayılanını ezmek için; "none" = müziksiz */
   musicKey?: string;
@@ -342,7 +344,7 @@ export async function createStudioProject(input: {
 
   // reference: TÜM fotoğraflar tek Seedance çağrısına referans → tek video,
   //            sabit bedel (sahne yok, birleştirme yok)
-  // per_scene: her fotoğraf ayrı Kling klibi; 10 sn sahne 2 kredi
+  // per_scene: her fotoğraf ayrı Kling klibi; 5 sn = 20, 10 sn = 40 kredi
   const isReference = template.generationMode === "reference";
   const sceneDurations = selected.map((s, i) =>
     s.durationSec === 10
@@ -355,7 +357,7 @@ export async function createStudioProject(input: {
   // da 0 olduğu için başarısızlıktaki iade (increment: creditCost) no-op olur.
   const unlimited = isStudioUnlimited();
   const sceneCosts: number[] = sceneDurations.map((d) =>
-    unlimited ? 0 : d === 10 ? 2 : 1,
+    unlimited ? 0 : d === 10 ? SCENE_CREDIT_COST_10S : SCENE_CREDIT_COST,
   );
   const cost = unlimited
     ? 0
@@ -676,10 +678,14 @@ export async function regenerateScene(sceneId: string): Promise<ProjectResult> {
     return { ok: false, error: "Bu sahne zaten işleniyor." };
   }
 
-  // Yeniden üretim sahnenin süresini korur — 10 sn sahne 2 kredi
+  // Yeniden üretim sahnenin süresini korur — 10 sn sahne 40 kredi
   // (test modunda bedelsiz)
   const unlimited = isStudioUnlimited();
-  const regenCost = unlimited ? 0 : scene.durationSec === 10 ? 2 : 1;
+  const regenCost = unlimited
+    ? 0
+    : scene.durationSec === 10
+      ? SCENE_CREDIT_COST_10S
+      : SCENE_CREDIT_COST;
   const tenant = await prisma.tenant.findUnique({
     where: { id: session.tenantId },
     select: { aiVideoCredits: true },

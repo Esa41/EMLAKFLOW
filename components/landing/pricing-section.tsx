@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
-import { PLANS, STUDIO_ALLOTMENT, CREDIT_TOPUP_PACKS, FREE_LISTING_LIMIT } from "@/lib/plans";
+import {
+  PLANS,
+  STUDIO_ALLOTMENT,
+  CREDIT_TOPUP_PACKS,
+  CREDITS_PER_VIDEO,
+  FREE_LISTING_LIMIT,
+} from "@/lib/plans";
 
 const tlFmt = new Intl.NumberFormat("tr-TR");
 
@@ -71,7 +77,7 @@ const CARDS = [
     priceSuffix: "/ ay",
     yearlyNote: `Yıllık ₺${tl.format(PLANS.premium.yearlyTRY)} — 2 ay hediye`,
     features: [
-      `Ayda ${STUDIO_ALLOTMENT.premium.video} AI tanıtım videosu dahil — krediyle ₺${tl.format(STUDIO_ALLOTMENT.premium.video * 12 * CREDIT_TOPUP_PACKS[0].priceTRY)}/yıl değer`,
+      `Ayda ${STUDIO_ALLOTMENT.premium.video / CREDITS_PER_VIDEO} AI tanıtım videosu (${tl.format(STUDIO_ALLOTMENT.premium.video)} kredi) dahil — krediyle ₺${tl.format((STUDIO_ALLOTMENT.premium.video / CREDITS_PER_VIDEO) * 12 * CREDIT_TOPUP_PACKS[0].priceTRY)}/yıl değer`,
       "Pro’daki tüm özellikler dahil",
       `AI Stüdyo: ayda ${STUDIO_ALLOTMENT.premium.image} foto iyileştirme dahil`,
       "Rozetsiz vitrin + kendi logon ve marka rengin",
@@ -107,7 +113,7 @@ export function PricingSection() {
               AI Stüdyo — Video Kredisi
             </p>
             <h3 className="mt-2 font-display text-xl font-extrabold tracking-tight">
-              Her kredi = bir ilan tanıtım videosu
+              {CREDITS_PER_VIDEO} kredi = bir ilan tanıtım videosu
             </h3>
             <p className="mt-2 text-[13px] text-ink/55">
               Ücretsiz planda bile video üretin — seslendirme, müzik, altyazı
@@ -126,14 +132,14 @@ export function PricingSection() {
                   </span>
                 )}
                 <p className="font-display text-2xl font-extrabold tracking-tight">
-                  {pack.videos}
-                  <span className="ml-1 text-sm font-medium text-ink/50">video</span>
+                  {tlFmt.format(pack.credits)}
+                  <span className="ml-1 text-sm font-medium text-ink/50">kredi</span>
                 </p>
                 <p className="mt-1 text-lg font-bold text-brand-600">
                   ₺{tlFmt.format(pack.priceTRY)}
                 </p>
                 <p className="mt-0.5 text-[11px] text-ink/45">
-                  video başı ₺{tlFmt.format(Math.round(pack.priceTRY / pack.videos))}
+                  ≈ {pack.credits / CREDITS_PER_VIDEO} tam video
                 </p>
               </div>
             ))}
@@ -246,8 +252,9 @@ export function PricingSection() {
               </span>
             </div>
             <p className="mt-1 text-[13px] text-ink/60">
-              Ayda {STUDIO_ALLOTMENT.kurumsal.video} AI tanıtım videosu (video
-              başı ₺{tl.format(Math.round(PLANS.kurumsal.monthlyTRY / STUDIO_ALLOTMENT.kurumsal.video))}) +
+              Ayda {STUDIO_ALLOTMENT.kurumsal.video / CREDITS_PER_VIDEO} AI
+              tanıtım videosu ({tl.format(STUDIO_ALLOTMENT.kurumsal.video)} kredi
+              — video başı ₺{tl.format(Math.round(PLANS.kurumsal.monthlyTRY / (STUDIO_ALLOTMENT.kurumsal.video / CREDITS_PER_VIDEO)))}) +
               tüm Premium hakları: sınırsız ilan ve ekip, white-label, öncelikli
               destek.
             </p>

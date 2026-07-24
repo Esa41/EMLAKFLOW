@@ -61,31 +61,40 @@ export const PLANS = {
 export type PlanKey = keyof typeof PLANS;
 
 /**
+ * KREDİ BİRİMİ (Esa kararı, 24 Tem 2026): 1 tam video = 100 kredi.
+ * Eski birim "1 kredi = 1 sahne" idi; ×20 çarpanıyla geçildi (5 sn sahne
+ * 20, 10 sn 40, referans tur 100, avatar klip 60). Pazarlama algısı:
+ * "1000 kredi" > "10 video". Mevcut bakiyeler deploy ile birlikte
+ * scripts/migrate-credits-x20.ts ile ×20 taşınır.
+ */
+export const CREDITS_PER_VIDEO = 100;
+
+/**
  * AI Stüdyo AYLIK plan hakları.
  * image: her ay bu değere RESET edilir (hediye — birikmez).
  * video: her ay bakiyeye EKLENİR (increment) — satın alınan krediler
- * korunur, plan hakkı üstüne biner. Kullanılmayan video devreder; bedeli
+ * korunur, plan hakkı üstüne biner. Kullanılmayan kredi devreder; bedeli
  * zaten plan ücretinde tahsil edildiği için maliyet riski sınırlıdır.
  * Tek kaynak — app/actions/studio.ts aylık reset buradan okur.
  */
 export const STUDIO_ALLOTMENT = {
   free: { image: 10, video: 0 },
   pro: { image: 100, video: 0 },
-  premium: { image: 500, video: 10 },
-  kurumsal: { image: 1000, video: 50 },
+  premium: { image: 500, video: 10 * CREDITS_PER_VIDEO }, // ayda 10 video
+  kurumsal: { image: 1000, video: 50 * CREDITS_PER_VIDEO }, // ayda 50 video
 } as const;
 
 /**
- * Video kredisi ek paketleri — birim fiyat ₺450 SABİT (Esa kararı: paket
+ * Kredi ek paketleri — 100 kredi = ₺450 SABİT birim (Esa kararı: paket
  * indirimi yok, indirim Premium/Kurumsal aboneliğinde). Bakiye sıfırlanmaz.
  * Maliyet ~₺100–137/video (kur ₺50) → marj %70+.
  * Şimdilik manuel havale → süper-admin bakiyeyi yükler (CreditLog'a işlenir);
  * online ödeme (iyzico) bağlanınca webhook aynı CreditLog akışını kullanacak.
  */
 export const CREDIT_TOPUP_PACKS = [
-  { key: "v1", videos: 1, priceTRY: 450 },
-  { key: "v5", videos: 5, priceTRY: 2250, badge: "Popüler" },
-  { key: "v10", videos: 10, priceTRY: 4500, badge: "En avantajlı" },
+  { key: "k100", credits: 100, priceTRY: 450 },
+  { key: "k500", credits: 500, priceTRY: 2250, badge: "Popüler" },
+  { key: "k1000", credits: 1000, priceTRY: 4500, badge: "En avantajlı" },
 ] as const;
 
 /** Tenant.plan (serbest string) → paket anahtarı. */

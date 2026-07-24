@@ -265,7 +265,7 @@ model Tenant {
   phone     String?
   city      String?
   district  String?
-  plan      String   @default("trial") // trial | starter | free | pro | premium
+  plan      String   @default("trial") // trial | starter | free | pro | premium | kurumsal
   vertical  Vertical @default(REAL_ESTATE) // iş kolu — kayıtta seçilir, ürün deneyimini belirler
   
   // Pro plan yönetimi (Admin paneli)
@@ -275,7 +275,7 @@ model Tenant {
 
   // AI Stüdyo kredi havuzu (ofis geneli — plan bazlı aylık reset)
   aiImageCredits     Int      @default(10)   // kalan fotoğraf iyileştirme hakkı
-  aiVideoCredits     Int      @default(3)    // kalan video üretme hakkı
+  aiVideoCredits     Int      @default(60)   // kalan kredi (100 kredi = 1 video)
   aiCreditsResetAt   DateTime @default(now()) // son kredi reset tarihi
 
   // Komisyon ayarları (Ayarlar sayfasından düzenlenecek)

@@ -203,9 +203,8 @@ export const AVATAR_PIP = {
 } as const;
 
 /**
- * Kredi bedeli — FİYATLANDIRMA KARARI BEKLİYOR (REFERENCE_CREDIT_COST ile
- * aynı durum): 30 sn klip Kling v2 standard'da ≈ $1.69 — Kling 5 sn sahne
- * klibinin (~$0.28 = 1 kredi) ~6 katı. Maliyet paritesi 6 kredi der;
- * REFERENCE_CREDIT_COST emsaline uyularak şimdilik 3'te tutuldu.
+ * Kredi bedeli — birim: 1 tam video = 100 kredi (plans-config).
+ * 30 sn konuşan klip Kling v2 standard'da ≈ $1.69 (~₺85, kur ₺50);
+ * 60 kredi = ₺270 satış değeri → marj korunur.
  */
-export const AVATAR_CREDIT_COST = 3;
+export const AVATAR_CREDIT_COST = 60;

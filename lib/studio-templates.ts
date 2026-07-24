@@ -69,13 +69,17 @@ export type GenerationMode = "reference" | "per_scene";
 
 /** reference modunda üretilen tek videonun süresi (Seedance: 4-15 sn). */
 export const REFERENCE_DURATION_SEC = 10;
-/**
- * reference modu kredi bedeli. Seedance fast 10 sn ≈ $2.4 — Kling 5 sn'lik
- * klibin (~$0.25 = 1 kredi) ~10 katı. FİYATLANDIRMA KARARI BEKLİYOR:
- * gerçek maliyete birebir bağlansa 10 kredi olmalı ama Pro'nun aylık 10
- * video kredisi tek videoya giderdi. Şimdilik 5'te tutuldu.
- */
-export const REFERENCE_CREDIT_COST = 5;
+
+// ── Kredi bedelleri — birim: 1 tam video = 100 kredi (plans-config) ──
+// Satış: 100 kredi = ₺450. Gerçek maliyetler (kur ₺50): Kling 5 sn ≈ ₺14,
+// Seedance 10 sn ≈ ₺120 → marjlar korunur.
+
+/** 5 sn Kling sahnesi. */
+export const SCENE_CREDIT_COST = 20;
+/** 10 sn Kling sahnesi (~2x vendor maliyeti). */
+export const SCENE_CREDIT_COST_10S = 40;
+/** reference modu (Seedance tek tur) = tam bir video. */
+export const REFERENCE_CREDIT_COST = 100;
 
 export type OverlayStyleKey =
   | "bannerBottom"

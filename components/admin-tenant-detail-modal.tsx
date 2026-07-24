@@ -967,7 +967,7 @@ export function AdminTenantDetailModal({
                         await reloadTenant();
                         router.refresh();
                         setActionMsg(
-                          `Aylık paket yüklendi: ${planAllotment.image} foto + ${planAllotment.video} video.`,
+                          `Aylık paket yüklendi: ${planAllotment.image} foto + ${planAllotment.video} video kredisi.`,
                         );
                       } catch { alert("Hata"); } finally { setSavingCredits(false); }
                     }}
@@ -1002,9 +1002,9 @@ export function AdminTenantDetailModal({
                   </button>
                 </div>
                 <p className="text-[11px] text-ink/45">
-                  Aylık otomatik video: Premium 10 · Kurumsal 50 (bakiyeye
-                  eklenir, sıfırlanmaz) · Foto her ay yenilenir: Pro 100 /
-                  Premium 500 / Kurumsal 1000.
+                  Birim: 100 kredi = 1 video. Aylık otomatik kredi: Premium
+                  1000 · Kurumsal 5000 (bakiyeye eklenir, sıfırlanmaz) · Foto
+                  her ay yenilenir: Pro 100 / Premium 500 / Kurumsal 1000.
                 </p>
               </div>
             </div>
