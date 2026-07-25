@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { LandingNav } from "./landing-nav";
 import { ScrollReveal } from "./scroll-reveal";
-import { CrmPreview } from "./crm-preview";
+import { CrmPreview, HeroDemoProvider, HeroDemoNav } from "./crm-preview";
 import { PricingCompare } from "./pricing-compare";
 import { FREE_LISTING_LIMIT } from "@/lib/plans";
 
@@ -76,8 +76,8 @@ function SiteMock({ office, listings }: { office: string; listings: DemoListing[
 function TalepMock() {
   const cols = [
     { h: "Yeni", n: "4", cards: [{ n: "Ahmet Yılmaz", m: "3+1 arıyor · 5M altı" }, { n: "Ceren A.", m: "Kiralık · 2+1" }] },
-    { h: "Aradım", n: "2", cards: [{ n: "Deniz Kaya", m: "Arsa · Alikahya" }] },
-    { h: "Görüştüm", n: "1", cards: [{ n: "Elif Toprak", m: "Villa · Kartepe" }] },
+    { h: "İletişimde", n: "2", cards: [{ n: "Deniz Kaya", m: "Arsa · Alikahya" }] },
+    { h: "Yer Gösterildi", n: "1", cards: [{ n: "Elif Toprak", m: "Villa · Kartepe" }] },
   ];
   return (
     <div className="grid grid-cols-3 gap-2">
@@ -238,6 +238,7 @@ export function LandingContent({
           style={{ background: "radial-gradient(80% 90% at 78% 0%, rgba(30,91,62,0.10), transparent 60%)" }}
           aria-hidden
         />
+        <HeroDemoProvider>
         <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1fr_1.08fr]">
           <ScrollReveal>
             <div>
@@ -272,20 +273,16 @@ export function LandingContent({
           </ScrollReveal>
 
           <ScrollReveal from="right" delay={120}>
-            <CrmPreview listings={demoListings} />
+            <CrmPreview listings={demoListings} office={demoOffice} />
           </ScrollReveal>
         </div>
 
+        {/* "Tek yerde" şeridi — panelin canlı kumandası (tıkla → değişir,
+            boşta otomatik döner; ikisi de aynı state'i paylaşır) */}
         <ScrollReveal delay={160}>
-          <div className="mx-auto mt-14 flex max-w-6xl flex-wrap items-center justify-center gap-x-7 gap-y-3 border-y border-ink/8 py-4">
-            <span className="font-mono text-[11px] uppercase tracking-wide text-ink/45">Tek yerde</span>
-            {["Web siten", "İlanların", "Müşterilerin", "Kiralar", "Randevular", "İstatistikler"].map((t) => (
-              <span key={t} className="text-[15px] font-bold">
-                {t}
-              </span>
-            ))}
-          </div>
+          <HeroDemoNav />
         </ScrollReveal>
+        </HeroDemoProvider>
       </section>
 
       {/* ── ÜCRETSİZ WEB SİTESİ ── */}

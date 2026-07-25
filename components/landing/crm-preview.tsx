@@ -1,35 +1,119 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import {
-  CalendarClock,
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  Globe,
   Building2,
-  GitBranch,
   Contact,
   KeyRound,
-  Sparkles,
+  CalendarClock,
   BarChart3,
-  Play,
+  Sparkles,
+  MessageSquare,
 } from "lucide-react";
 import type { DemoListing } from "./landing-content";
 
 /**
  * Ana sayfada gömülü, INTERAKTİF dashboard demosu (modal yok).
- * Kenar menü GERÇEK panel menümüzle aynı; tıklayınca içerik animasyonlu değişir,
- * boşta yavaşça kendi döner. İçerik seed verisini (İzmit portföyü) yansıtır.
+ * "Tek yerde" şeridi (HeroDemoNav) ve panel demosu (CrmPreview) AYNI state'i
+ * paylaşır (HeroDemoProvider): şeride tıkla → panel değişir; boşta ikisi de
+ * kendiliğinden döner. Sekme etiketleri şeritteki kelimelerle birebir aynı.
+ * İçerik seed verisini (İzmit portföyü) yansıtır.
  */
 
-const TABS = [
-  { key: "bugun", label: "Bugün", icon: CalendarClock },
-  { key: "portfoy", label: "Portföy", icon: Building2 },
-  { key: "pipeline", label: "Satış Hattı", icon: GitBranch },
-  { key: "kira", label: "Kira Takibi", icon: KeyRound },
-  { key: "studio", label: "AI Stüdyo", icon: Sparkles },
-  { key: "analitik", label: "Analitik", icon: BarChart3 },
+export const HERO_TABS = [
+  { key: "websiten", label: "Web siten", icon: Globe },
+  { key: "ilanlar", label: "İlanların", icon: Building2 },
+  { key: "musteriler", label: "Müşterilerin", icon: Contact },
+  { key: "kira", label: "Kiralar", icon: KeyRound },
+  { key: "randevular", label: "Randevular", icon: CalendarClock },
+  { key: "istatistik", label: "İstatistikler", icon: BarChart3 },
 ] as const;
 
 // Menüde ayrıca görünen (panelde var olan) diğer bölümler — görsel bütünlük için.
-const EXTRA_MENU = ["Müşteriler", "Ajanda", "Kasa", "Ekip"];
+const EXTRA_MENU = [
+  { label: "AI Stüdyo", icon: Sparkles },
+  { label: "Sohbet", icon: MessageSquare },
+];
+
+// ── Paylaşılan demo state'i (şerit + panel senkron) ──
+
+type DemoCtx = {
+  active: number;
+  setActive: (i: number) => void;
+  setPaused: (p: boolean) => void;
+};
+
+const Ctx = createContext<DemoCtx | null>(null);
+
+export function useHeroDemo(): DemoCtx {
+  const c = useContext(Ctx);
+  if (!c) throw new Error("useHeroDemo must be used within HeroDemoProvider");
+  return c;
+}
+
+export function HeroDemoProvider({ children }: { children: ReactNode }) {
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const reduced = useRef(false);
+
+  useEffect(() => {
+    reduced.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }, []);
+
+  useEffect(() => {
+    if (paused || reduced.current) return;
+    const id = setInterval(
+      () => setActive((a) => (a + 1) % HERO_TABS.length),
+      4200,
+    );
+    return () => clearInterval(id);
+  }, [paused]);
+
+  return (
+    <Ctx.Provider value={{ active, setActive, setPaused }}>
+      {children}
+    </Ctx.Provider>
+  );
+}
+
+// ── "Tek yerde" şeridi — panelin kumandası ──
+
+export function HeroDemoNav() {
+  const { active, setActive, setPaused } = useHeroDemo();
+  return (
+    <div
+      className="mx-auto mt-14 flex max-w-6xl flex-wrap items-center justify-center gap-x-2 gap-y-2 border-y border-ink/8 py-4"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <span className="mr-1 font-mono text-[11px] uppercase tracking-wide text-ink/45">
+        Tek yerde
+      </span>
+      {HERO_TABS.map((t, i) => (
+        <button
+          key={t.key}
+          type="button"
+          onClick={() => setActive(i)}
+          className={`rounded-full px-3 py-1.5 text-[15px] font-bold transition-colors ${
+            i === active
+              ? "bg-brand-600 text-white"
+              : "text-ink/60 hover:bg-ink/[0.05] hover:text-ink"
+          }`}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const LISTINGS = [
   { t: "Yahya Kaptan · 3+1", p: "4.850.000 ₺", v: 412, st: "Satılık", bg: "from-[#c9b08a] to-[#7d6247]" },
@@ -38,21 +122,15 @@ const LISTINGS = [
   { t: "Körfez · 1+1", p: "2.450.000 ₺", v: 158, st: "Satılık", bg: "from-[#b79a8a] to-[#5f4636]" },
 ];
 
+// Satış hattı — GERÇEK aşama adları (lib/labels.ts STAGE_TR).
 const PIPELINE = [
   { h: "Yeni", n: 4, cards: [{ n: "Ahmet Yılmaz", m: "3+1 · 5M altı" }, { n: "Ceren A.", m: "Kiralık · 2+1" }] },
-  { h: "Aradım", n: 2, cards: [{ n: "Deniz Kaya", m: "Arsa · Alikahya" }] },
-  { h: "Görüştüm", n: 1, cards: [{ n: "Elif Toprak", m: "Villa · Kartepe" }] },
+  { h: "İletişimde", n: 2, cards: [{ n: "Deniz Kaya", m: "Arsa · Alikahya" }] },
+  { h: "Yer Gösterildi", n: 1, cards: [{ n: "Elif Toprak", m: "Villa · Kartepe" }] },
 ];
 
-const TEMPLATES = [
-  { t: "Lüks Vitrin", d: "16:9 · sinematik, sakin", bg: "from-[#3a5a48] to-[#101a13]" },
-  { t: "FPV Ev Turu", d: "9:16 · enerjik, Reels", bg: "from-[#7a6a4c] to-[#2f2718]" },
-  { t: "Golden Hour Dış Cephe", d: "16:9 · gün batımı", bg: "from-[#c07f5f] to-[#33404b]" },
-  { t: "Drone Arsa", d: "16:9 · kuş bakışı", bg: "from-[#8fa06d] to-[#3b4a26]" },
-];
-
-function View({ tab, listings }: { tab: string; listings: DemoListing[] }) {
-  if (tab === "portfoy") {
+function View({ tab, listings, office }: { tab: string; listings: DemoListing[]; office: string }) {
+  if (tab === "ilanlar") {
     const views = [428, 312, 205, 176];
     const rows =
       listings.length >= 3
@@ -82,7 +160,7 @@ function View({ tab, listings }: { tab: string; listings: DemoListing[] }) {
       </div>
     );
   }
-  if (tab === "pipeline") {
+  if (tab === "musteriler") {
     return (
       <div className="grid grid-cols-3 gap-2">
         {PIPELINE.map((c) => (
@@ -127,29 +205,34 @@ function View({ tab, listings }: { tab: string; listings: DemoListing[] }) {
       </div>
     );
   }
-  if (tab === "studio") {
+  if (tab === "randevular") {
+    const items = [
+      { t: "10:00", n: "Ahmet Y.", m: "Yahya Kaptan · 3+1", k: "Yer gösterme", c: "text-brand-700 bg-brand-50" },
+      { t: "14:30", n: "Deniz K.", m: "Alikahya · arsa", k: "Görüşme", c: "text-ink/60 bg-ink/[0.05]" },
+      { t: "16:00", n: "Elif T.", m: "Kartepe · villa", k: "Sözleşme", c: "text-[#8a5a2b] bg-[#f2e5d3]" },
+    ];
     return (
-      <div>
-        <p className="mb-2 text-[12px] text-ink/55">Tek fotoğraftan tanıtım videosu — şablonu seç, gerisi otomatik.</p>
-        <div className="grid grid-cols-2 gap-2">
-          {TEMPLATES.map((t) => (
-            <div key={t.t} className="overflow-hidden rounded-xl border border-ink/8 bg-white">
-              <div className={`relative h-16 bg-gradient-to-br ${t.bg}`}>
-                <span className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink">
-                  <Play size={12} className="ml-0.5 fill-current" />
-                </span>
-              </div>
-              <div className="px-2.5 py-2">
-                <div className="text-[11.5px] font-semibold">{t.t}</div>
-                <div className="font-mono text-[8.5px] text-ink/45">{t.d}</div>
-              </div>
-            </div>
-          ))}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-0.5">
+          <span className="text-[12px] font-semibold">Bugün · 3 randevu</span>
+          <span className="font-mono text-[10px] text-ink/45">Cuma, 25 Tem</span>
         </div>
+        {items.map((r) => (
+          <div key={r.t} className="flex items-center gap-3 rounded-xl border border-ink/8 bg-white p-2.5">
+            <div className="w-11 shrink-0 text-center">
+              <div className="text-[13px] font-bold text-brand-600">{r.t}</div>
+            </div>
+            <div className="min-w-0 flex-1 border-l border-ink/8 pl-3">
+              <div className="truncate text-[12.5px] font-semibold">{r.n}</div>
+              <div className="font-mono text-[9px] text-ink/45">{r.m}</div>
+            </div>
+            <span className={`rounded-full px-2 py-0.5 font-mono text-[9px] font-semibold ${r.c}`}>{r.k}</span>
+          </div>
+        ))}
       </div>
     );
   }
-  if (tab === "analitik") {
+  if (tab === "istatistik") {
     const bars = [40, 62, 48, 78, 66, 92];
     return (
       <div className="space-y-2.5">
@@ -175,75 +258,55 @@ function View({ tab, listings }: { tab: string; listings: DemoListing[] }) {
       </div>
     );
   }
-  // bugün
+  // websiten — public vitrin (kendi web siteniz) önizlemesi
+  const cards: { title: string; price: string; img: string; bg: string }[] =
+    listings.length >= 2
+      ? listings.slice(0, 2).map((l) => ({ title: l.title, price: l.price, img: l.img, bg: "" }))
+      : LISTINGS.slice(0, 2).map((l) => ({ title: l.t, price: l.p, img: "", bg: l.bg }));
   return (
-    <div className="space-y-3">
-      <p className="text-[12px] text-ink/55">Merhaba <b className="text-ink">Selin</b> — bugün 3 işin var.</p>
-      <div className="grid grid-cols-4 gap-2 max-[520px]:grid-cols-2">
-        {[
-          { n: "5", l: "Yayında ilan" },
-          { n: "1.284", l: "Bu ay ziyaret", up: true },
-          { n: "7", l: "Yeni talep" },
-          { n: "3", l: "Bugünkü görev" },
-        ].map((t) => (
-          <div key={t.l} className="rounded-xl border border-ink/8 bg-white p-3">
-            <div className={`text-xl font-extrabold tracking-tight ${t.up ? "text-brand-600" : ""}`}>{t.n}</div>
-            <div className="mt-1 font-mono text-[9px] uppercase tracking-wide text-ink/45">{t.l}</div>
+    <div className="overflow-hidden rounded-xl border border-ink/8 bg-white">
+      <div className="flex items-center justify-between bg-gradient-to-r from-brand-600 to-[#2e7d55] px-3.5 py-2.5">
+        <div className="min-w-0">
+          <div className="truncate text-[12.5px] font-bold text-white">{office || "Prestij Gayrimenkul"}</div>
+          <div className="font-mono text-[8.5px] text-white/70">emlakflow.app/ofis/…</div>
+        </div>
+        <span className="flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 font-mono text-[8.5px] font-semibold text-white">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> Canlı
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 p-2.5">
+        {cards.map((l, i) => (
+          <div key={i} className="overflow-hidden rounded-lg border border-ink/8">
+            {l.img ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={l.img} alt="" loading="lazy" className="h-16 w-full object-cover" />
+            ) : (
+              <div className={`h-16 w-full bg-gradient-to-br ${l.bg}`} />
+            )}
+            <div className="px-2 py-1.5">
+              <div className="truncate text-[10.5px] font-semibold">{l.title}</div>
+              <div className="font-mono text-[9px] text-brand-600">{l.price}</div>
+            </div>
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-[1.4fr_1fr] gap-2.5 max-[520px]:grid-cols-1">
-        <div className="rounded-xl border border-ink/8 bg-white p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-[12px] font-semibold">İlanların kaç kez görüldü</span>
-            <span className="font-mono text-[10px] text-brand-600">▲ %28</span>
-          </div>
-          <svg viewBox="0 0 300 66" preserveAspectRatio="none" className="h-16 w-full">
-            <defs>
-              <linearGradient id="cp-spark" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor="#1e5b3e" stopOpacity=".28" />
-                <stop offset="1" stopColor="#1e5b3e" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path d="M0 52 40 46 80 50 120 34 160 40 200 24 240 30 300 12" fill="none" stroke="#1e5b3e" strokeWidth="2.4" />
-            <path d="M0 52 40 46 80 50 120 34 160 40 200 24 240 30 300 12 300 66 0 66 Z" fill="url(#cp-spark)" />
-          </svg>
-        </div>
-        <div className="rounded-xl border border-ink/8 bg-white p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-[12px] font-semibold">Gelen talepler</span>
-            <span className="font-mono text-[10px] text-ink/45">7 yeni</span>
-          </div>
-          <div className="space-y-1.5">
-            {[{ n: "Ahmet Y.", m: "3+1 · 5M altı" }, { n: "Deniz K.", m: "Arsa · Alikahya" }].map((l) => (
-              <div key={l.n} className="rounded-lg border border-ink/8 bg-paper px-2.5 py-1.5">
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold"><span className="h-1.5 w-1.5 rounded-full bg-brand-600" />{l.n}</div>
-                <div className="mt-0.5 font-mono text-[9px] text-ink/45">{l.m}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="flex items-center justify-between border-t border-ink/8 px-3 py-2">
+        <span className="text-[10.5px] text-ink/55">Ziyaretçi talebi → panelinize düşer</span>
+        <span className="rounded-full bg-brand-600 px-2.5 py-1 text-[9.5px] font-bold text-white">Talep Gönder</span>
       </div>
     </div>
   );
 }
 
-export function CrmPreview({ listings = [] }: { listings?: DemoListing[] }) {
-  const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const reduced = useRef(false);
-
-  useEffect(() => {
-    reduced.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  }, []);
-
-  useEffect(() => {
-    if (paused || reduced.current) return;
-    const id = setInterval(() => setActive((a) => (a + 1) % TABS.length), 4200);
-    return () => clearInterval(id);
-  }, [paused]);
-
-  const tab = TABS[active];
+export function CrmPreview({
+  listings = [],
+  office = "",
+}: {
+  listings?: DemoListing[];
+  office?: string;
+}) {
+  const { active, setActive, setPaused } = useHeroDemo();
+  const tab = HERO_TABS[active];
 
   return (
     <div
@@ -261,7 +324,7 @@ export function CrmPreview({ listings = [] }: { listings?: DemoListing[] }) {
       </div>
       <div className="grid grid-cols-[168px_1fr] max-[440px]:grid-cols-1">
         <div className="border-r border-ink/8 bg-paper p-2.5 max-[440px]:hidden">
-          {TABS.map((t, i) => (
+          {HERO_TABS.map((t, i) => (
             <button
               key={t.key}
               type="button"
@@ -276,9 +339,9 @@ export function CrmPreview({ listings = [] }: { listings?: DemoListing[] }) {
           ))}
           <div className="my-2 border-t border-ink/8" />
           {EXTRA_MENU.map((m) => (
-            <div key={m} className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12px] font-medium text-ink/40">
-              <Contact size={14} className="opacity-50" />
-              {m}
+            <div key={m.label} className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12px] font-medium text-ink/40">
+              <m.icon size={14} className="opacity-50" />
+              {m.label}
             </div>
           ))}
         </div>
@@ -287,10 +350,10 @@ export function CrmPreview({ listings = [] }: { listings?: DemoListing[] }) {
             <span className="font-display text-sm font-bold">{tab.label}</span>
           </div>
           <div key={active} className="landing-demo-view">
-            <View tab={tab.key} listings={listings} />
+            <View tab={tab.key} listings={listings} office={office} />
           </div>
           <div className="mt-3 flex gap-1.5 min-[440px]:hidden">
-            {TABS.map((t, i) => (
+            {HERO_TABS.map((t, i) => (
               <button
                 key={t.key}
                 type="button"
