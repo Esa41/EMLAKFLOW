@@ -822,6 +822,39 @@ body,
   }
 }
 
+/* ── Landing tasarım dili (Beehome/Structa referansı, 25 Tem 2026) ──
+   Marka token'ları landing kapsamında AMBER + soğuk lacivert mürekkebe
+   remaplenir (Tailwind v4: bg-brand-600 = var(--color-brand-600)). Böylece
+   tüm landing tek yerden yeni renge geçer; panel/vitrin yeşil kalır. */
+.landing-root {
+  --color-brand-50: #fff7e6;
+  --color-brand-100: #fde6a8;
+  --color-brand-500: #fbbf24;
+  --color-brand-600: #f59e0b; /* amber — vurgu (rozet, büyük sayı, ok butonu) */
+  --color-brand-700: #d97706; /* amber koyu — hover */
+  --color-ink: #0f1720;       /* soğuk near-black lacivert — başlık/koyu buton */
+  --color-paper: #f4f6f9;     /* temiz açık gri — bölüm zeminleri */
+}
+
+/* Daire-içi ok butonu (Beehome "View all →" / Structa CTA dili) */
+.arrow-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.75rem;
+  width: 2.75rem;
+  border-radius: 9999px;
+  border: 1.5px solid color-mix(in srgb, var(--color-ink) 18%, transparent);
+  color: var(--color-ink);
+  transition: all 0.2s ease;
+}
+.arrow-circle:hover {
+  background: var(--color-brand-600);
+  border-color: var(--color-brand-600);
+  color: var(--color-ink);
+  transform: translateX(2px);
+}
+
 /* İnteraktif dashboard demosu — sekme değişince içerik animasyonlu girer */
 .landing-demo-view {
   animation: landing-demo-in 0.42s cubic-bezier(0.16, 0.84, 0.28, 1);

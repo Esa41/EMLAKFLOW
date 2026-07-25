@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
+  ArrowUpRight,
   BarChart3,
   Check,
   Globe,
@@ -14,6 +16,10 @@ import { ScrollReveal } from "./scroll-reveal";
 import { CrmPreview, HeroDemoProvider, HeroDemoNav } from "./crm-preview";
 import { PricingCompare } from "./pricing-compare";
 import { FREE_LISTING_LIMIT } from "@/lib/plans";
+
+/* Unsplash görsel yardımcısı (kategori kartları) — next/image ile optimize. */
+const U = (id: string) =>
+  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=400&q=70`;
 
 /* Gerçek demo ofisi (Prestij) ilanı — landing önizlemelerinde kullanılır. */
 export type DemoListing = {
@@ -150,13 +156,15 @@ function CtaButton({
   children,
 }: {
   href: string;
-  variant?: "primary" | "secondary" | "inverse" | "ghost-dark";
+  variant?: "primary" | "accent" | "secondary" | "inverse" | "ghost-dark";
   children: ReactNode;
 }) {
+  // Beehome dili: koyu lacivert birincil aksiyon + amber vurgu CTA.
   const styles = {
-    primary: "bg-brand-600 text-white shadow-[0_8px_28px_-6px_rgba(30,91,62,0.45)] hover:bg-brand-700",
-    secondary: "border border-ink/12 bg-white text-ink hover:bg-paper",
-    inverse: "bg-white text-brand-700 hover:bg-brand-50",
+    primary: "bg-ink text-white shadow-[0_10px_30px_-8px_rgba(15,23,32,0.5)] hover:bg-ink/90",
+    accent: "bg-brand-600 text-ink shadow-[0_10px_30px_-8px_rgba(245,158,11,0.55)] hover:bg-brand-700",
+    secondary: "border border-ink/15 bg-white text-ink hover:bg-paper",
+    inverse: "bg-brand-600 text-ink hover:bg-brand-700",
     "ghost-dark": "border border-white/25 text-white hover:bg-white/10",
   };
   return (
@@ -283,6 +291,72 @@ export function LandingContent({
           <HeroDemoNav />
         </ScrollReveal>
         </HeroDemoProvider>
+      </section>
+
+      {/* ── İSTATİSTİK ŞERİDİ (Beehome "What's happening" dili) ── */}
+      <section className="px-5 sm:px-8">
+        <ScrollReveal>
+          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 rounded-[28px] border border-ink/8 bg-white px-6 py-9 shadow-[0_30px_70px_-45px_rgba(15,23,32,0.35)] sm:grid-cols-4 sm:px-10">
+            {[
+              { n: "5 dk", l: "Kurulumdan yayına" },
+              { n: "₺0", l: "Başlangıç, kartsız" },
+              { n: "8", l: "AI video şablonu" },
+              { n: "%100", l: "Senin markan" },
+            ].map((s) => (
+              <div key={s.l} className="text-center sm:text-left">
+                <div className="font-display text-3xl font-extrabold tracking-tight text-brand-600 sm:text-4xl">
+                  {s.n}
+                </div>
+                <div className="mt-1 text-[13px] font-medium text-ink/55">{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ── NE SUNUYORUZ (Beehome "Listing category" kart dili) ── */}
+      <section className="px-5 py-20 sm:px-8 sm:py-24">
+        <div className="mx-auto max-w-6xl">
+          <ScrollReveal>
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <h2 className="font-display text-3xl font-extrabold tracking-tight sm:text-[2.75rem]">
+                  Ne sunuyoruz
+                </h2>
+                <p className="mt-2 text-lg text-ink/55">
+                  Bir emlakçının dijitalde ihtiyacı olan üç şey — tek çatı altında.
+                </p>
+              </div>
+              <Link href="/register" aria-label="Ücretsiz başla" className="arrow-circle shrink-0">
+                <ArrowRight size={20} />
+              </Link>
+            </div>
+          </ScrollReveal>
+
+          <div className="mt-10 grid gap-4 lg:grid-cols-3">
+            {[
+              { img: U("1560518883-ce09059eeffa"), t: "Web siteniz", d: "Haritalı vitrin + talep formu", tag: "Ücretsiz" },
+              { img: U("1600880292203-757bb62b4baf"), t: "Müşteri & Satış", d: "Talep, satış hattı ve kira takibi", tag: "CRM" },
+              { img: U("1611162617213-7d7a39e9b1d7"), t: "AI Stüdyo", d: "Tanıtım videoları & Vitrin Sunucusu", tag: "Yapay zeka" },
+            ].map((c, i) => (
+              <ScrollReveal key={c.t} delay={i * 90}>
+                <article className="group flex items-center gap-4 overflow-hidden rounded-[22px] border border-ink/8 bg-white p-3 transition-all hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(15,23,32,0.35)]">
+                  <div className="relative h-24 w-28 shrink-0 overflow-hidden rounded-2xl">
+                    <Image src={c.img} alt={c.t} fill sizes="120px" loading="lazy" className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                  </div>
+                  <div className="min-w-0 flex-1 pr-2">
+                    <span className="inline-block rounded-full bg-brand-50 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-brand-700">
+                      {c.tag}
+                    </span>
+                    <h3 className="mt-1.5 font-display text-xl font-bold">{c.t}</h3>
+                    <p className="mt-0.5 text-[13px] leading-snug text-ink/55">{c.d}</p>
+                  </div>
+                  <ArrowUpRight size={20} className="mr-1 shrink-0 text-ink/25 transition-colors group-hover:text-brand-600" />
+                </article>
+              </ScrollReveal>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ── ÜCRETSİZ WEB SİTESİ ── */}
@@ -537,21 +611,27 @@ export function LandingContent({
 
       {/* ── FINAL CTA ── */}
       <section className="px-5 pb-24 sm:px-8">
-        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[26px] bg-brand-600 px-6 py-20 text-center text-white sm:py-24">
+        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[34px] bg-ink px-6 py-20 text-center text-white sm:py-28">
+          {/* amber ışıltı */}
+          <div
+            className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full opacity-40 blur-3xl"
+            style={{ background: "radial-gradient(circle, #f59e0b, transparent 70%)" }}
+            aria-hidden
+          />
           <ScrollReveal from="scale">
-            <h2 className="mx-auto max-w-[20ch] font-display text-[clamp(2rem,5vw,3.4rem)] font-extrabold leading-[1.05] tracking-tight">
-              Web siteniz ve iş takibiniz, bugün başlasın.
+            <h2 className="mx-auto max-w-[20ch] font-display text-[clamp(2.2rem,5.4vw,3.8rem)] font-extrabold leading-[1.03] tracking-tight">
+              Web siteniz ve iş takibiniz, <span className="text-brand-600">bugün</span> başlasın.
             </h2>
           </ScrollReveal>
           <ScrollReveal delay={120}>
-            <p className="mx-auto mt-5 max-w-lg text-lg text-white/75">
+            <p className="mx-auto mt-5 max-w-lg text-lg text-white/70">
               Kredi kartı yok, kurulum yok. 10 dakikada siteniz yayında; büyüdükçe
               kendi alan adınızı ve videoları ekleyin.
             </p>
           </ScrollReveal>
           <ScrollReveal delay={200}>
-            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <CtaButton href="/register" variant="inverse">
+            <div className="relative mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <CtaButton href="/register" variant="accent">
                 Ücretsiz hesap aç
                 <ArrowRight size={18} className="transition-transform group-hover:translate-x-0.5" />
               </CtaButton>

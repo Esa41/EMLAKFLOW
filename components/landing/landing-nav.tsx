@@ -59,7 +59,7 @@ export function LandingNav() {
           </Link>
           <Link
             href="/register"
-            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-sm font-bold text-white shadow-[0_6px_20px_-6px_rgba(30,91,62,0.5)] transition-all hover:bg-brand-700 sm:px-5"
+            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-sm font-bold text-ink shadow-[0_6px_20px_-6px_rgba(245,158,11,0.6)] transition-all hover:bg-brand-700 sm:px-5"
           >
             Ücretsiz dene
             <ArrowRight size={15} />
