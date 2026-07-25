@@ -216,12 +216,9 @@ const FEATURES = [
   },
 ];
 
-/* Fiyatlar (Esa kararı, 24 Tem 2026): Pro tek görünen fiyat (₺4.500/ay);
- * Premium ve Kurumsal "teklif al" (public fiyat yok — B2B görüşme). Bu blok
- * pazarlama yüzeyi; iç plan ekonomisi lib/plans-config.ts'te ayrı yönetilir. */
-const PRO_MONTHLY = 4500;
-const PRO_YEARLY = 45000;
-const tl = new Intl.NumberFormat("tr-TR");
+/* Fiyatlar (Esa kararı, 24 Tem 2026): public landing'de fiyat GİZLİ —
+ * Pro/Premium/Kurumsal hepsi "Teklif al" (B2B görüşme). Yalnızca Ücretsiz ₺0.
+ * Bu blok pazarlama yüzeyi; iç plan ekonomisi lib/plans-config.ts'te ayrı. */
 
 export function LandingContent({
   demoOffice = "",
@@ -445,10 +442,8 @@ export function LandingContent({
                 </span>
                 <div className="font-display text-lg font-bold">Pro</div>
                 <div className="mt-1 min-h-[40px] text-sm text-ink/55">5 ilandan sonrası, kendi alan adı ve yönlendirme</div>
-                <div className="mt-3 font-display text-4xl font-extrabold tracking-tight">
-                  ₺{tl.format(PRO_MONTHLY)} <span className="text-[14px] font-medium text-ink/50">/ ay</span>
-                </div>
-                <div className="mt-1 text-sm text-ink/50">Yıllık ₺{tl.format(PRO_YEARLY)} — 2 ay hediye</div>
+                <div className="mt-3 font-display text-3xl font-extrabold tracking-tight">Teklif al</div>
+                <div className="mt-1 text-sm text-ink/50">size uygun teklif</div>
                 <ul className="mt-6 space-y-2.5">
                   {[
                     "Sınırsız ilan (5 üstü)",
