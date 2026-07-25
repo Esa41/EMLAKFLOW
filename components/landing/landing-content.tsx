@@ -411,16 +411,16 @@ export function LandingContent({
             <ScrollReveal>
               <div className="flex h-full flex-col rounded-3xl border border-ink/10 bg-paper p-7">
                 <div className="font-display text-lg font-bold">Ücretsiz</div>
-                <div className="mt-1 min-h-[40px] text-sm text-ink/55">Denemek isteyen her emlakçı için</div>
+                <div className="mt-1 min-h-[40px] text-sm text-ink/55">Emlak işinizi dijitale taşımanın en kolay yolu</div>
                 <div className="mt-3 font-display text-4xl font-extrabold tracking-tight">₺0</div>
-                <div className="mt-1 text-sm text-ink/50">her zaman</div>
+                <div className="mt-1 text-sm text-ink/50">her zaman, kredi kartsız</div>
                 <ul className="mt-6 space-y-2.5">
                   {[
-                    `Kendi web siteniz + ${FREE_LISTING_LIMIT} ilan`,
-                    "Müşteri ve talep takibi",
-                    "Kira takibi, ajanda ve randevular",
-                    "İlan görüntülenme istatistiği",
-                    "AI tanıtım videosu — krediyle (Stüdyo'da)",
+                    `Haritalı kendi web siteniz — ${FREE_LISTING_LIMIT} ilan dakikalar içinde yayında`,
+                    "Müşteri, talep ve satış sürecini tek panelde yönetin",
+                    "Kira takibi, ajanda ve akıllı randevu hatırlatmaları",
+                    "Her ilanın görüntülenme ve ilgi istatistikleri",
+                    "AI Stüdyo'ya kredili erişim — ilanınıza tanıtım videosu",
                   ].map((f) => (
                     <li key={f} className="flex gap-2 text-sm leading-snug">
                       <Check size={16} className="mt-0.5 shrink-0 text-brand-600" />
@@ -441,16 +441,17 @@ export function LandingContent({
                   En popüler
                 </span>
                 <div className="font-display text-lg font-bold">Pro</div>
-                <div className="mt-1 min-h-[40px] text-sm text-ink/55">5 ilandan sonrası, kendi alan adı ve yönlendirme</div>
+                <div className="mt-1 min-h-[40px] text-sm text-ink/55">Portföyünüz büyüdükçe sizinle büyüyen güç</div>
                 <div className="mt-3 font-display text-3xl font-extrabold tracking-tight">Teklif al</div>
-                <div className="mt-1 text-sm text-ink/50">size uygun teklif</div>
+                <div className="mt-1 text-sm text-ink/50">size özel teklif</div>
                 <ul className="mt-6 space-y-2.5">
                   {[
-                    "Sınırsız ilan (5 üstü)",
-                    "Kendi alan adınız (domain)",
-                    "Yönlendirme / referans kazancı",
-                    "AI ilan metni, fiyat önerisi ve raporlar",
-                    "Öncelikli destek",
+                    "Sınırsız ilan — portföyünüz asla sınıra takılmaz",
+                    "Size özel alan adı — markanızın dijital adresi",
+                    "AI ilan metni, akıllı fiyat önerisi ve emsal analizi",
+                    "Alıcıyı portföyünüzle eşleştiren yapay zeka",
+                    "Haftalık mülk sahibi raporu — WhatsApp ve PDF",
+                    "Yönlendirme kazancı ve öncelikli destek",
                   ].map((f) => (
                     <li key={f} className="flex gap-2 text-sm leading-snug">
                       <Check size={16} className="mt-0.5 shrink-0 text-brand-600" />
@@ -468,16 +469,17 @@ export function LandingContent({
             <ScrollReveal delay={160}>
               <div className="flex h-full flex-col rounded-3xl border border-ink/10 bg-paper p-7">
                 <div className="font-display text-lg font-bold">Premium</div>
-                <div className="mt-1 min-h-[40px] text-sm text-ink/55">Ekipli ofisler ve markanız için</div>
+                <div className="mt-1 min-h-[40px] text-sm text-ink/55">Ekibiniz, markanız ve kendi AI sunucunuz</div>
                 <div className="mt-3 font-display text-3xl font-extrabold tracking-tight">Teklif al</div>
-                <div className="mt-1 text-sm text-ink/50">size uygun teklif</div>
+                <div className="mt-1 text-sm text-ink/50">size özel teklif</div>
                 <ul className="mt-6 space-y-2.5">
                   {[
-                    "Pro'daki her şey dahil",
-                    "Sınırsız ekip / çoklu kullanıcı",
-                    "Rozetsiz vitrin (kendi markanız)",
-                    "Aylık AI tanıtım videosu paketi dahil",
-                    "AI Vitrin Sunucusu",
+                    "Pro'daki her şey — tüm ekibinizle sınırsız kullanıcı",
+                    "Baştan sona sizin markanız: rozetsiz vitrin, logo ve renk",
+                    "AI Vitrin Sunucusu — ilanlarınızı anlatan dijital sunucu",
+                    "Her ay hazır AI tanıtım videosu paketi dahil",
+                    "Sinematik video şablonları: drone, altın saat, timelapse",
+                    "Sosyal medya planlayıcı ve içerik stüdyosu",
                   ].map((f) => (
                     <li key={f} className="flex gap-2 text-sm leading-snug">
                       <Check size={16} className="mt-0.5 shrink-0 text-brand-600" />
@@ -502,16 +504,17 @@ export function LandingContent({
                     50+ ilan
                   </span>
                 </div>
-                <div className="mt-1 min-h-[40px] text-sm text-ink/55">Çok şubeli ofisler ve franchise için</div>
+                <div className="mt-1 min-h-[40px] text-sm text-ink/55">Çok şubeli ölçek için kurumsal güç</div>
                 <div className="mt-3 font-display text-3xl font-extrabold tracking-tight">Teklif al</div>
                 <div className="mt-1 text-sm text-ink/50">hacme özel fiyat</div>
                 <ul className="mt-6 space-y-2.5">
                   {[
-                    "Premium'daki her şey dahil",
-                    "Yüksek hacimli aylık video paketi",
-                    "Şube / franchise yönetimi",
-                    "Özel kurulum + öncelikli destek",
-                    "Kuruma özel eğitim ve hesap yöneticisi",
+                    "Premium'daki her şey — kurumsal ölçekte, sınırsız",
+                    "Yüksek hacimli aylık AI video paketi",
+                    "Tüm şube ve franchise'lar tek merkezden yönetilir",
+                    "Verilerinizi biz taşırız — anahtar teslim kurulum",
+                    "Size atanmış hesap yöneticisi ve ekip eğitimi",
+                    "Ayrıcalıklı, öncelikli kurumsal destek",
                   ].map((f) => (
                     <li key={f} className="flex gap-2 text-sm leading-snug">
                       <Check size={16} className="mt-0.5 shrink-0 text-ink" />
