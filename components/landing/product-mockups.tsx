@@ -21,7 +21,7 @@ export function HeroProductMockup() {
           {/* Sidebar */}
           <div className="hidden border-r border-ink/8 bg-brand-50/40 p-3 sm:block">
             <div className="mb-4 font-display text-sm font-extrabold">
-              Emlak<span className="text-brand-600">Flow</span>
+              <span className="font-medium">Emlak</span><span className="font-extrabold">Flow</span>
             </div>
             {["Bugün", "Portföy", "Satış Hattı", "Kasa"].map((item, i) => (
               <div
@@ -41,7 +41,7 @@ export function HeroProductMockup() {
               className="absolute inset-0 opacity-40"
               style={{
                 backgroundImage:
-                  "linear-gradient(rgba(30,91,62,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(30,91,62,0.08) 1px, transparent 1px)",
+                  "linear-gradient(rgba(29,29,31,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(29,29,31,0.08) 1px, transparent 1px)",
                 backgroundSize: "28px 28px",
               }}
             />

@@ -29,7 +29,7 @@ export type MailLogCtx = {
 };
 
 const EMLAKFLOW_WORDMARK =
-  '<p style="font-size:18px;font-weight:800;margin:0 0 4px">Emlak<span style="color:#1e5b3e">Flow</span></p>';
+  '<p style="font-size:18px;font-weight:800;margin:0 0 4px"><span style="font-weight:500">Emlak</span><span style="font-weight:800">Flow</span></p>';
 
 function baseTemplate(
   brandName: string,
@@ -56,7 +56,7 @@ function baseTemplate(
       ctaText && ctaLink
         ? `
     <p style="margin:28px 0">
-      <a href="${ctaLink}" style="background:#1e5b3e;color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 24px;border-radius:10px;display:inline-block">
+      <a href="${ctaLink}" style="background:#1d1d1f;color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 24px;border-radius:10px;display:inline-block">
         ${ctaText}
       </a>
     </p>`
@@ -203,7 +203,7 @@ export async function sendPriceDropEmail(
     <p>Sayın <strong>${customerName}</strong>,</p>
     <p>Favorilerinize eklediğiniz <strong>${listingTitle}</strong> isimli mülkün fiyatında sizin lehinize bir güncelleme gerçekleşti.</p>
     <p>Önceki Fiyat: <s>${oldPrice}</s><br>
-    <strong>Yeni Fiyat: <span style="color:#1e5b3e">${newPrice}</span></strong></p>
+    <strong>Yeni Fiyat: <span style="color:#1d1d1f">${newPrice}</span></strong></p>
     <p>Bu fırsatı değerlendirmek isterseniz bize ulaşabilir veya ilan sayfasını tekrar ziyaret edebilirsiniz.</p>
   `;
   const text = `Sayın ${customerName}, favori ilanınız ${listingTitle} için yeni fiyat: ${newPrice} (önceki: ${oldPrice}). ${listingLink}`;

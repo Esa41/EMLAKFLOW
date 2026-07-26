@@ -35,7 +35,7 @@ export default async function OgImage({
     },
   });
 
-  const brand = tenant?.primaryColor || tenant?.brandColor || "#1e5b3e";
+  const brand = tenant?.primaryColor || tenant?.brandColor || "#1d1d1f";
   const name = tenant?.brandName?.trim() || tenant?.name || "Vitrin";
   const yer = [tenant?.district, tenant?.city].filter(Boolean).join(" · ");
   const count = tenant?._count.listings ?? 0;

@@ -55,7 +55,7 @@ export function tintMutedLayers(map: mapboxgl.Map) {
 
 export function applyEmlakflowMapTheme(map: mapboxgl.Map) {
   // Zemin — paper tonu
-  safePaint(map, "background", "background-color", "#eff1ec");
+  safePaint(map, "background", "background-color", "#f5f5f7");
   safePaint(map, "land", "background-color", "#e8ebe4");
 
   // Su — yumuşak adaçayı-yeşil
@@ -63,7 +63,7 @@ export function applyEmlakflowMapTheme(map: mapboxgl.Map) {
   safePaint(map, "waterway", "line-color", "#a8c4b8");
 
   // Yeşil alanlar — brand ailesi
-  safePaint(map, "national-park", "fill-color", "#d6e4d9");
+  safePaint(map, "national-park", "fill-color", "#ececee");
   safePaint(map, "landuse", "fill-color", "#e4ebe6");
 
   // Binalar — hafif, 3D browse modunda

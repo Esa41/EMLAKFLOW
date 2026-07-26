@@ -90,7 +90,7 @@ export function VideoHero({ landscapeVideoUrl, portraitVideoUrl }: Props) {
           <div className="mt-9 flex flex-col gap-4 sm:flex-row sm:items-center">
             <Link
               href="/register"
-              className="group inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand-600 px-7 py-3.5 text-base font-bold text-white shadow-[0_8px_28px_-6px_rgba(30,91,62,0.6)] transition-all hover:bg-brand-500"
+              className="group inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand-600 px-7 py-3.5 text-base font-bold text-white shadow-[0_8px_28px_-6px_rgba(29,29,31,0.6)] transition-all hover:bg-brand-500"
             >
               Ücretsiz başla
               <ArrowRight size={18} className="transition-transform group-hover:translate-x-0.5" />

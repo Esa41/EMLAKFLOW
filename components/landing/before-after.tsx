@@ -80,7 +80,7 @@ export function BeforeAfter() {
           <ScrollReveal from="scale" delay={120}>
             <div className="flex items-center justify-center gap-3 lg:flex-col">
               <span className="hidden h-px w-10 bg-ink/15 lg:block" />
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-[0_10px_30px_-8px_rgba(30,91,62,0.55)]">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-[0_10px_30px_-8px_rgba(29,29,31,0.55)]">
                 <ArrowRight size={22} className="rotate-90 lg:rotate-0" />
               </div>
               <p className="font-mono text-[11px] font-bold uppercase tracking-wider text-brand-600 lg:mt-1">

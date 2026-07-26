@@ -2,28 +2,32 @@
 
 @custom-variant dark (.app-shell[data-theme="dark"] &);
 
-/* Dolgu yeşili — app-shell dışında da (landing, vitrin) geçerli */
+/* ── MONOKROM MARKA KİMLİĞİ (Tem 2026) ──
+   EmlakFlow'un kendi yüzeyleri siyah-gri-beyaz. İlke: "gri marka taşır,
+   renk anlam taşır" — kimlik tipografi/boşlukta, renk yalnız içerikten
+   (ilan fotoğrafı) ve durumdan (gecikmiş kira) gelir.
+   Vitrin istisnadır: orada renk ofisin kendi markasıdır (bkz. lib/color.ts). */
 :root {
-  --app-brand-fill: #1e5b3e;
-  --app-brand-fill-hover: #123b27;
+  --app-brand-fill: #1d1d1f;
+  --app-brand-fill-hover: #33333a;
 }
 
 /* ── Uygulama kabuğu — tema yalnızca .app-shell içinde geçerli ── */
 .app-shell {
-  --app-bg: #f5f6f3;
+  --app-bg: #f5f5f7;
   --app-header-bg: rgba(255, 255, 255, 0.78);
   --app-sidebar-bg: rgba(255, 255, 255, 0.86);
-  --app-border: rgba(23, 32, 28, 0.07);
-  --app-surface: rgba(255, 255, 255, 0.88);
+  --app-border: rgba(29, 29, 31, 0.09);
+  --app-surface: rgba(255, 255, 255, 0.9);
   --app-surface-hover: #ffffff;
-  --app-muted: rgba(23, 32, 28, 0.45);
-  --app-shadow: rgba(23, 32, 28, 0.07);
-  --app-shadow-sm: rgba(23, 32, 28, 0.03);
-  --app-input-bg: rgba(23, 32, 28, 0.05);
-  --app-overlay: rgba(15, 23, 20, 0.35);
-  --app-danger-bg: rgba(193, 53, 21, 0.08);
-  --app-warn-bg: rgba(245, 158, 11, 0.08);
-  --app-warn-text: #92400e;
+  --app-muted: rgba(29, 29, 31, 0.45);
+  --app-shadow: rgba(29, 29, 31, 0.07);
+  --app-shadow-sm: rgba(29, 29, 31, 0.03);
+  --app-input-bg: rgba(29, 29, 31, 0.05);
+  --app-overlay: rgba(17, 17, 20, 0.35);
+  --app-danger-bg: rgba(163, 50, 50, 0.08);
+  --app-warn-bg: rgba(154, 107, 18, 0.1);
+  --app-warn-text: #7a5410;
 
   color-scheme: light;
   min-height: 100vh;
@@ -33,40 +37,49 @@
 }
 
 .app-shell[data-theme="dark"] {
-  /* Tek elevasyon merdiveni: zemin → yüzey → hover, hepsi aynı yeşil-gri ailesi.
+  /* Tek elevasyon merdiveni: zemin → yüzey → hover, hepsi aynı nötr aile.
      Yüzeyler opak — yarı saydam gri karmaşası bitiyor. */
-  --app-bg: #0e1311;
-  --app-header-bg: rgba(14, 19, 17, 0.85);
-  --app-sidebar-bg: rgba(16, 21, 19, 0.92);
-  --app-border: rgba(255, 255, 255, 0.09);
-  --app-surface: #161c19;
-  --app-surface-hover: #1c2420;
-  --app-muted: rgba(233, 240, 236, 0.5);
+  --app-bg: #0f0f11;
+  --app-header-bg: rgba(15, 15, 17, 0.85);
+  --app-sidebar-bg: rgba(18, 18, 21, 0.92);
+  --app-border: rgba(255, 255, 255, 0.1);
+  --app-surface: #17171a;
+  --app-surface-hover: #1e1e22;
+  --app-muted: rgba(245, 245, 247, 0.5);
   --app-shadow: rgba(0, 0, 0, 0.45);
   --app-shadow-sm: rgba(0, 0, 0, 0.28);
   --app-input-bg: rgba(255, 255, 255, 0.07);
   --app-overlay: rgba(0, 0, 0, 0.58);
   --app-danger-bg: rgba(248, 113, 113, 0.12);
-  --app-warn-bg: rgba(245, 158, 11, 0.14);
-  --app-warn-text: #fbbf24;
+  --app-warn-bg: rgba(229, 192, 123, 0.14);
+  --app-warn-text: #e5c07b;
 
-  /* Gece dolgusu: beyaz yazıyla 5:1 kontrast veren derin yeşil */
-  --app-brand-fill: #2e7550;
-  --app-brand-fill-hover: #35845c;
+  /* Gece dolgusu: beyaz yazıyla ~9:1 kontrast veren nötr gri
+     (aydınlıkta ink dolgu; koyuda ink zeminde kaybolurdu). */
+  --app-brand-fill: #46464e;
+  --app-brand-fill-hover: #55555e;
 
-  --color-ink: #e9f0ec;
-  --color-brand-50: #16221d;
-  --color-brand-100: #1f2f27;
-  --color-brand-500: #47996f;
-  --color-brand-600: #58ae83;
-  --color-brand-700: #79c69e;
+  --color-ink: #f5f5f7;
+  --color-paper: #0f0f11;
+  --color-brand-50: #1e1e22;
+  --color-brand-100: #2a2a30;
+  --color-brand-500: #9a9aa2;
+  --color-brand-600: #d9d9dd;
+  --color-brand-700: #f5f5f7;
+
+  /* Satış hattı aşamaları — koyuda ters rampa (açıktan koyuya değil,
+     koyudan açığa; aşama ilerledikçe belirginleşir). */
+  --color-stage-1: #3a3a42;
+  --color-stage-2: #6e6e76;
+  --color-stage-3: #9a9aa2;
+  --color-stage-4: #d9d9dd;
 
   color-scheme: dark;
 }
 
 /* Gece modunda overscroll/rubber-band alanı da koyu kalsın */
 body:has(.app-shell[data-theme="dark"]) {
-  background: #0e1311;
+  background: #0f0f11;
 }
 
 @theme {
@@ -74,20 +87,48 @@ body:has(.app-shell[data-theme="dark"]) {
   --font-display: var(--font-display), var(--font-sans), sans-serif;
   --font-mono: var(--font-mono), ui-monospace, monospace;
 
-  /* PARSEL paleti — tapu yeşili ailesi, brand token'ları bu ölçeğe bağlı */
-  --color-brand-50: #e9f0ea;
-  --color-brand-100: #d6e4d9;
-  --color-brand-500: #2e7050;
-  --color-brand-600: #1e5b3e;
-  --color-brand-700: #123b27;
+  /* ── Nötr rampa — tek gri ölçeği, hafif soğuk ──
+     Saf siyah/beyaz yok: #1d1d1f ekranda #000'den belirgin biçimde daha
+     yumuşak okunur. Tüm arayüz bu 13 basamağa dayanır. */
+  --color-n-0: #ffffff;
+  --color-n-25: #fbfbfd;
+  --color-n-50: #f5f5f7;
+  --color-n-100: #ececee;
+  --color-n-200: #d9d9dd;
+  --color-n-300: #c4c4ca;
+  --color-n-400: #9a9aa2;
+  --color-n-500: #6e6e76;
+  --color-n-600: #4b4b52;
+  --color-n-700: #33333a;
+  --color-n-800: #22222a;
+  --color-n-900: #1d1d1f;
+  --color-n-950: #111114;
 
-  --color-ink: #17201c;       /* yeşil-siyah mürekkep */
-  --color-paper: #eff1ec;     /* adaçayı kağıt */
-  --color-copper: #b4652a;    /* para */
-  --color-stage-1: #c7d6c2;   /* iletişimde */
-  --color-stage-2: #8fb392;   /* yer gösterildi */
-  --color-stage-3: #4e8362;   /* teklif */
-  --color-stage-4: #1e5b3e;   /* sözleşme */
+  /* brand-* token'ları nötr rampaya bağlandı — böylece koddaki her
+     bg-brand-600 / text-brand-600 kullanımı tek hamlede monokroma geçer. */
+  --color-brand-50: #f5f5f7;
+  --color-brand-100: #ececee;
+  --color-brand-500: #4b4b52;
+  --color-brand-600: #1d1d1f;
+  --color-brand-700: #111114;
+
+  --color-ink: #1d1d1f;       /* birincil mürekkep */
+  --color-paper: #f5f5f7;     /* kağıt */
+  --color-copper: #22222a;    /* para — artık vurgu değil, mürekkep */
+
+  /* Satış hattı aşamaları — nötr gradasyon (aşama ilerledikçe koyulaşır) */
+  --color-stage-1: #d9d9dd;   /* iletişimde */
+  --color-stage-2: #9a9aa2;   /* yer gösterildi */
+  --color-stage-3: #4b4b52;   /* teklif */
+  --color-stage-4: #1d1d1f;   /* sözleşme */
+
+  /* ── Semantik renk — YALNIZ durum bildirir ──
+     Buton, başlık, link, rozet-dışı vurgu ALMAZ. Monokrom uğruna
+     "gecikmiş kira"nın kırmızılığı feda edilmez; okunabilirlik önce gelir. */
+  --color-success: #1f7a4d;
+  --color-warning: #9a6b12;
+  --color-danger: #a33232;
+  --color-info: #2f5c8a;
 }
 
 /* Schibsted Grotesk, ₺ (U+20BA) glifini £ gibi çiziyor (fontun kendi kusuru,
@@ -117,7 +158,7 @@ body,
   -webkit-backdrop-filter: blur(16px);
 }
 
-/* Birincil buton — düz tapu yeşili, gölgesiz */
+/* Birincil buton — düz mürekkep dolgu, gölgesiz (monokrom kimlik) */
 .btn-selvi {
   background: var(--app-brand-fill);
   transition: background-color 0.15s;
@@ -290,7 +331,7 @@ body,
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(23, 32, 28, 0.14);
+  box-shadow: 0 4px 14px rgba(29, 29, 31, 0.14);
   position: relative;
   cursor: pointer;
 }
@@ -331,13 +372,13 @@ body,
   padding: 0 !important;
   border-radius: 10px !important;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(23, 32, 28, 0.16) !important;
-  border: 1px solid rgba(23, 32, 28, 0.12);
+  box-shadow: 0 8px 24px rgba(29, 29, 31, 0.16) !important;
+  border: 1px solid rgba(29, 29, 31, 0.12);
 }
 .mapboxgl-popup-close-button {
   font-size: 18px;
   padding: 4px 8px;
-  color: rgba(23, 32, 28, 0.45);
+  color: rgba(29, 29, 31, 0.45);
 }
 
 /* Uygulama içindeki haritalarda popup gece moduna uysun (vitrin hep gündüz kalır) */
@@ -728,8 +769,8 @@ body,
 /* ── Landing page ── */
 .landing-hero-grid {
   background-image:
-    linear-gradient(rgba(30, 91, 62, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(30, 91, 62, 0.06) 1px, transparent 1px);
+    linear-gradient(rgba(29, 29, 31, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(29, 29, 31, 0.05) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 75%);
 }
@@ -822,36 +863,12 @@ body,
   }
 }
 
-/* ── Landing tasarım dili (Beehome/Structa referansı, 25 Tem 2026) ──
-   Marka token'ları landing kapsamında AMBER + soğuk lacivert mürekkebe
-   remaplenir (Tailwind v4: bg-brand-600 = var(--color-brand-600)). Böylece
-   tüm landing tek yerden yeni renge geçer; panel/vitrin yeşil kalır. */
-.landing-root {
-  --color-brand-50: #fff7e6;
-  --color-brand-100: #fde6a8;
-  --color-brand-500: #fbbf24;
-  --color-brand-600: #f59e0b; /* amber — vurgu (rozet, büyük sayı, ok butonu) */
-  --color-brand-700: #d97706; /* amber koyu — hover */
-  --color-ink: #0f1720;       /* soğuk near-black lacivert — başlık/koyu buton */
-  --color-paper: #f4f6f9;     /* temiz açık gri — bölüm zeminleri */
-}
-
-/* ── Vitrin tasarım dili (Faz 2, Beehome/Structa referansı) ──
-   DİKKAT: vitrinde marka rengi ofisin KENDİ rengidir (`brandPalette()` layout'ta
-   inline style ile brand-50…700'ü basar). Bu yüzden burada marka token'ına
-   DOKUNULMAZ — yalnız yapısal mürekkep/kağıt landing ile aynı soğuk lacivert
-   ritmine alınır. Böylece landing ile vitrin aynı dili konuşur, ofis markası
-   ezilmez. */
-.showcase-root {
-  --color-ink: #0f1720;   /* soğuk near-black lacivert */
-  --color-paper: #f4f6f9; /* temiz açık gri */
-}
-
-/* Ofis rengi koyu olabilir → vitrinde ok butonu hover'ı beyaz metin ister
-   (landing amber zeminde koyu metin kullanır). */
-.showcase-root .arrow-circle:hover {
-  color: #fff;
-}
+/* Landing ve vitrin artık AYRI PALET TAŞIMAZ — mürekkep/kağıt tek kaynaktan
+   (@theme) gelir. Landing'in amber remap'i ve vitrinin lacivert override'ı
+   monokrom kimliğe geçişte kaldırıldı; `.landing-root`/`.showcase-root`
+   sınıfları yapısal kapsam olarak duruyor.
+   Vitrin istisnası: brand-50…700 orada `brandPalette()` ile ofisin kendi
+   renginden basılır — ofis markası EmlakFlow markası değildir. */
 
 /* Daire-içi ok butonu (Beehome "View all →" / Structa CTA dili) */
 .arrow-circle {
@@ -868,7 +885,7 @@ body,
 .arrow-circle:hover {
   background: var(--color-brand-600);
   border-color: var(--color-brand-600);
-  color: var(--color-ink);
+  color: #fff; /* dolgu artık ink (ya da vitrinde ofis rengi) — metin beyaz */
   transform: translateX(2px);
 }
 

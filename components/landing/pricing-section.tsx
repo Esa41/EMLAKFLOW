@@ -154,7 +154,7 @@ export function PricingSection() {
                 key={card.key}
                 className={`relative flex flex-col rounded-2xl border p-7 ${
                   card.highlight
-                    ? "border-brand-600 bg-brand-50/60 shadow-[0_16px_48px_-16px_rgba(30,91,62,0.35)]"
+                    ? "border-brand-600 bg-brand-50/60 shadow-[0_16px_48px_-16px_rgba(29,29,31,0.35)]"
                     : isEnterprise
                       ? "border-ink/20 bg-gradient-to-b from-ink/[0.03] to-paper"
                       : "border-ink/12 bg-paper"

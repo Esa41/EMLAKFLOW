@@ -344,7 +344,7 @@ export async function PATCH(
       const color = normalizeHex(body.primaryColor as string | null);
       if (color === false) {
         return NextResponse.json(
-          { error: "Geçersiz renk kodu. Örn: #1e5b3e" },
+          { error: "Geçersiz renk kodu. Örn: #1d1d1f" },
           { status: 400 },
         );
       }

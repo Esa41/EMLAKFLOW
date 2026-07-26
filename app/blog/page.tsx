@@ -43,7 +43,7 @@ export default function BlogIndexPage() {
             className="inline-flex items-center gap-1.5 text-sm font-medium text-ink/50 transition-colors hover:text-ink"
           >
             <ArrowLeft size={15} />
-            Emlak<span className="font-bold text-brand-600">Flow</span>
+            <span className="font-medium">Emlak</span><span className="font-extrabold">Flow</span>
           </Link>
         </div>
       </header>

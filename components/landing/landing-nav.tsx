@@ -31,7 +31,7 @@ export function LandingNav() {
           href="/"
           className="font-display text-xl font-extrabold tracking-tight text-ink"
         >
-          Emlak<span className="text-brand-600">Flow</span>
+          <span className="font-medium">Emlak</span><span className="font-extrabold">Flow</span>
         </Link>
         <nav className="hidden items-center gap-8 text-sm font-medium text-ink/60 md:flex">
           <a href="#website" className="transition-colors hover:text-ink">
@@ -59,7 +59,7 @@ export function LandingNav() {
           </Link>
           <Link
             href="/register"
-            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-sm font-bold text-ink shadow-[0_6px_20px_-6px_rgba(245,158,11,0.6)] transition-all hover:bg-brand-700 sm:px-5"
+            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-brand-600 px-4 py-2 text-sm font-bold text-white shadow-[0_6px_20px_-6px_rgba(29,29,31,0.6)] transition-all hover:bg-brand-700 sm:px-5"
           >
             Ücretsiz dene
             <ArrowRight size={15} />

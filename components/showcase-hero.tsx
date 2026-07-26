@@ -83,7 +83,7 @@ export function ShowcaseHero({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={heroImage} alt="" className="h-full w-full object-cover" />
         ) : (
-          <div className="h-full w-full bg-gradient-to-br from-[#2f6047] via-[#1c3f2f] to-[#0f2419]" />
+          <div className="h-full w-full bg-gradient-to-br from-[#4b4b52] via-[#2a2a30] to-[#111114]" />
         )}
       </div>
       {/* okunurluk örtüsü */}

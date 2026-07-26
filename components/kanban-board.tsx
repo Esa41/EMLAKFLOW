@@ -76,7 +76,7 @@ export function KanbanBoard({
   const OPEN_COLUMNS = OPEN_STAGES.map((key) => ({
     key,
     label: stageLabels[key] ?? key,
-    accent: STAGE_COLOR[key] ?? "#c7d6c2",
+    accent: STAGE_COLOR[key] ?? "#d9d9dd",
   }));
 
   const [deals, setDeals] = useState<DealCard[]>(initialDeals);
@@ -376,7 +376,7 @@ export function KanbanBoard({
               <DropCloseZone
                 id="CLOSED_WON"
                 label={stageLabels.CLOSED_WON}
-                color="#b4652a"
+                color="#22222a"
                 deals={showClosed ? byStage.CLOSED_WON : []}
                 stageLabels={stageLabels}
                 onSelect={openDrawer}
@@ -550,7 +550,7 @@ function Card({
         stale ? "dash-deal-card-stale" : ""
       } ${overlay ? "rotate-2 shadow-lg" : ""}`}
     >
-      <div className="h-1" style={{ background: col ?? "#c7d6c2" }} />
+      <div className="h-1" style={{ background: col ?? "#d9d9dd" }} />
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">
           <p className="font-semibold text-ink">

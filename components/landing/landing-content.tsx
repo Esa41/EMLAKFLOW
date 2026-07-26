@@ -41,10 +41,10 @@ function SiteMock({ office, listings }: { office: string; listings: DemoListing[
     { price: "7.200.000 ₺", meta: "230 m² · 4+1" },
     { price: "2.450.000 ₺", meta: "68 m² · 1+1" },
   ];
-  const gradients = ["from-[#c9b08a] to-[#7d6247]", "from-[#9fae7e] to-[#55663b]", "from-[#a9c3c8] to-[#3f7d7e]"];
+  const gradients = ["from-[#d9d9dd] to-[#6e6e76]", "from-[#c4c4ca] to-[#4b4b52]", "from-[#ececee] to-[#9a9aa2]"];
   return (
-    <div className="overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-[0_40px_90px_-50px_rgba(20,63,43,0.55)]">
-      <div className="relative h-44 bg-gradient-to-br from-[#6f9c7d] via-[#2f6047] to-[#1c3f2f]">
+    <div className="overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-[0_40px_90px_-50px_rgba(29,29,31,0.55)]">
+      <div className="relative h-44 bg-gradient-to-br from-[#4b4b52] via-[#2a2a30] to-[#1d1d1f]">
         <span className="absolute right-3.5 top-3.5 rounded-md border border-white/40 px-2 py-1 font-mono text-[9px] tracking-wide text-white/90">
           {real ? "emlakflow.app/ofis/prestij-gayrimenkul" : "selin-emlak.emlakflow.app"}
         </span>
@@ -140,7 +140,7 @@ function RentMock() {
         <span>Yuvacık · daire</span>
         <span className="font-mono">18.500 ₺ · 3 gün sonra</span>
       </div>
-      <div className="flex justify-between border-t border-ink/8 py-1.5 text-[11px] text-[#b4552f]">
+      <div className="flex justify-between border-t border-ink/8 py-1.5 text-[11px] text-[#a33232]">
         <span className="text-ink">Körfez · dükkan</span>
         <span className="font-mono">24.000 ₺ · gecikti</span>
       </div>
@@ -159,12 +159,13 @@ function CtaButton({
   variant?: "primary" | "accent" | "secondary" | "inverse" | "ghost-dark";
   children: ReactNode;
 }) {
-  // Beehome dili: koyu lacivert birincil aksiyon + amber vurgu CTA.
+  // Monokrom: renkli CTA yok. Aydınlık zeminde mürekkep dolgu, koyu zeminde
+  // beyaz dolgu. Hiyerarşi renkle değil dolgu/kenarlık ile kurulur.
   const styles = {
-    primary: "bg-ink text-white shadow-[0_10px_30px_-8px_rgba(15,23,32,0.5)] hover:bg-ink/90",
-    accent: "bg-brand-600 text-ink shadow-[0_10px_30px_-8px_rgba(245,158,11,0.55)] hover:bg-brand-700",
+    primary: "bg-ink text-white shadow-[0_10px_30px_-8px_rgba(29,29,31,0.5)] hover:bg-ink/90",
+    accent: "bg-ink text-white shadow-[0_10px_30px_-8px_rgba(29,29,31,0.5)] hover:bg-ink/90",
     secondary: "border border-ink/15 bg-white text-ink hover:bg-paper",
-    inverse: "bg-brand-600 text-ink hover:bg-brand-700",
+    inverse: "bg-white text-ink hover:bg-n-200",
     "ghost-dark": "border border-white/25 text-white hover:bg-white/10",
   };
   return (
@@ -200,7 +201,7 @@ const FEATURES = [
       <div className="space-y-1.5 rounded-xl border border-ink/8 bg-paper p-3">
         {[
           { t: "14:00 · Yer gösterimi", r: "Yuvacık", c: "text-ink/45" },
-          { t: "Ahmet Bey'i ara", r: "gecikti", c: "text-[#b4552f]" },
+          { t: "Ahmet Bey'i ara", r: "gecikti", c: "text-[#a33232]" },
           { t: "Yeni talep: 3+1", r: "bugün", c: "text-brand-600" },
         ].map((x) => (
           <div key={x.t} className="flex items-center justify-between text-[12px]">
@@ -243,7 +244,7 @@ export function LandingContent({
       <section className="relative overflow-hidden px-5 pb-16 pt-28 sm:px-8 sm:pt-36">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-[520px] opacity-70"
-          style={{ background: "radial-gradient(80% 90% at 78% 0%, rgba(30,91,62,0.10), transparent 60%)" }}
+          style={{ background: "radial-gradient(80% 90% at 78% 0%, rgba(29,29,31,0.10), transparent 60%)" }}
           aria-hidden
         />
         <HeroDemoProvider>
@@ -296,7 +297,7 @@ export function LandingContent({
       {/* ── İSTATİSTİK ŞERİDİ (Beehome "What's happening" dili) ── */}
       <section className="px-5 sm:px-8">
         <ScrollReveal>
-          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 rounded-[28px] border border-ink/8 bg-white px-6 py-9 shadow-[0_30px_70px_-45px_rgba(15,23,32,0.35)] sm:grid-cols-4 sm:px-10">
+          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 rounded-[28px] border border-ink/8 bg-white px-6 py-9 shadow-[0_30px_70px_-45px_rgba(29,29,31,0.35)] sm:grid-cols-4 sm:px-10">
             {[
               { n: "5 dk", l: "Kurulumdan yayına" },
               { n: "₺0", l: "Başlangıç, kartsız" },
@@ -340,7 +341,7 @@ export function LandingContent({
               { img: U("1611162617213-7d7a39e9b1d7"), t: "AI Stüdyo", d: "Tanıtım videoları & Vitrin Sunucusu", tag: "Yapay zeka" },
             ].map((c, i) => (
               <ScrollReveal key={c.t} delay={i * 90}>
-                <article className="group flex items-center gap-4 overflow-hidden rounded-[22px] border border-ink/8 bg-white p-3 transition-all hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(15,23,32,0.35)]">
+                <article className="group flex items-center gap-4 overflow-hidden rounded-[22px] border border-ink/8 bg-white p-3 transition-all hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(29,29,31,0.35)]">
                   <div className="relative h-24 w-28 shrink-0 overflow-hidden rounded-2xl">
                     <Image src={c.img} alt={c.t} fill sizes="120px" loading="lazy" className="object-cover transition-transform duration-500 group-hover:scale-105" />
                   </div>
@@ -422,7 +423,7 @@ export function LandingContent({
           <div className="mt-12 grid gap-5 lg:grid-cols-6">
             {FEATURES.map((f, i) => (
               <ScrollReveal key={f.title} delay={i * 70} className={f.big ? "lg:col-span-4" : "lg:col-span-2"}>
-                <article className="flex h-full flex-col rounded-3xl border border-ink/10 bg-paper p-6 transition-all hover:-translate-y-1 hover:shadow-[0_24px_50px_-26px_rgba(20,63,43,0.3)] sm:p-7">
+                <article className="flex h-full flex-col rounded-3xl border border-ink/10 bg-paper p-6 transition-all hover:-translate-y-1 hover:shadow-[0_24px_50px_-26px_rgba(29,29,31,0.3)] sm:p-7">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                     <f.icon size={19} />
                   </div>
@@ -507,7 +508,7 @@ export function LandingContent({
 
             {/* Pro */}
             <ScrollReveal delay={80}>
-              <div className="relative flex h-full flex-col rounded-3xl border border-brand-600 bg-white p-7 shadow-[0_24px_50px_-26px_rgba(20,63,43,0.35)]">
+              <div className="relative flex h-full flex-col rounded-3xl border border-brand-600 bg-white p-7 shadow-[0_24px_50px_-26px_rgba(29,29,31,0.35)]">
                 <span className="absolute -top-3 left-7 rounded-full bg-brand-600 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wide text-white">
                   En popüler
                 </span>
@@ -612,15 +613,20 @@ export function LandingContent({
       {/* ── FINAL CTA ── */}
       <section className="px-5 pb-24 sm:px-8">
         <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[34px] bg-ink px-6 py-20 text-center text-white sm:py-28">
-          {/* amber ışıltı */}
+          {/* nötr ışıltı — koyu blokta derinlik, renk değil */}
           <div
-            className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full opacity-40 blur-3xl"
-            style={{ background: "radial-gradient(circle, #f59e0b, transparent 70%)" }}
+            className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full opacity-25 blur-3xl"
+            style={{ background: "radial-gradient(circle, #ffffff, transparent 70%)" }}
             aria-hidden
           />
           <ScrollReveal from="scale">
             <h2 className="mx-auto max-w-[20ch] font-display text-[clamp(2.2rem,5.4vw,3.8rem)] font-extrabold leading-[1.03] tracking-tight">
-              Web siteniz ve iş takibiniz, <span className="text-brand-600">bugün</span> başlasın.
+              Web siteniz ve iş takibiniz,{" "}
+              {/* monokromda vurgu renkle değil çizgiyle yapılır */}
+              <span className="underline decoration-white/35 decoration-2 underline-offset-[6px]">
+                bugün
+              </span>{" "}
+              başlasın.
             </h2>
           </ScrollReveal>
           <ScrollReveal delay={120}>
@@ -647,7 +653,7 @@ export function LandingContent({
       <footer className="border-t border-ink/10 bg-paper py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 sm:flex-row sm:px-8">
           <p className="font-display text-lg font-extrabold">
-            Emlak<span className="text-brand-600">Flow</span>
+            <span className="font-medium">Emlak</span><span className="font-extrabold">Flow</span>
           </p>
           <p className="text-sm text-ink/45">© {new Date().getFullYear()} · Emlakçının dijital ofisi</p>
           <div className="flex gap-6 text-sm text-ink/50">

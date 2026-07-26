@@ -41,24 +41,30 @@ function hslToHex(h: number, s: number, l: number): string {
 
 /** Rengi açar (amount: 0-1 arası, ör. 0.85 → çok açık, 0.15 → biraz açık) */
 export function lighten(hex: string | null | undefined, amount: number): string {
-  if (!hex) return lighten("#1e5b3e", amount);
+  if (!hex) return lighten(DEFAULT_BRAND_HEX, amount);
   const [h, s, l] = hexToHsl(hex);
   return hslToHex(h, Math.max(0, s - amount * 30), Math.min(100, l + (100 - l) * amount));
 }
 
 /** Rengi koyulaştırır (amount: 0-1 arası) */
 export function darken(hex: string | null | undefined, amount: number): string {
-  if (!hex) return darken("#1e5b3e", amount);
+  if (!hex) return darken(DEFAULT_BRAND_HEX, amount);
   const [h, s, l] = hexToHsl(hex);
   return hslToHex(h, s, Math.max(0, l * (1 - amount)));
 }
+
+/**
+ * Vitrin varsayılan mürekkebi — ofis kendi rengini seçmediyse monokrom
+ * kimlikle aynı nötr tonu kullanır (eskiden selvi yeşiliydi).
+ */
+export const DEFAULT_BRAND_HEX = "#1d1d1f";
 
 /**
  * Tek bir brand hex'ten CSS custom property seti üretir.
  * Layout'ta `style` prop'una spread edilir.
  */
 export function brandPalette(hex: string | null | undefined): Record<string, string> {
-  const base = hex || "#1e5b3e";
+  const base = hex || DEFAULT_BRAND_HEX;
   return {
     "--color-brand-50": lighten(base, 0.88),
     "--color-brand-100": lighten(base, 0.72),

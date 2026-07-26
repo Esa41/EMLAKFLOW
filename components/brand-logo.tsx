@@ -24,10 +24,12 @@ export function BrandLogo({
     );
   }
   const v = getVertical(vertical);
+  // Monokrom kimlik: alt-marka ayrımı renkle değil AĞIRLIKLA yapılır
+  // (Apple'ın "Apple TV" dili). Tek mürekkep, iki ağırlık.
   return (
-    <p className={`font-display font-extrabold tracking-tight ${className}`}>
-      {v.brandHead}
-      <span className="text-brand-600">{v.brandTail}</span>
+    <p className={`font-display tracking-tight ${className}`}>
+      <span className="font-medium">{v.brandHead}</span>
+      <span className="font-extrabold">{v.brandTail}</span>
     </p>
   );
 }
@@ -44,9 +46,10 @@ export function BrandMark({
   const v = getVertical(vertical);
   const letter = (whiteLabelName?.trim() || v.brandHead).charAt(0).toUpperCase();
   const cls = size === "sm" ? "h-9 w-9 text-sm" : "h-10 w-10 text-base";
+  // Squircle (kare-daire arası) köşe + mürekkep dolgu — monokrom monogram.
   return (
     <div
-      className={`btn-selvi flex items-center justify-center rounded-xl font-extrabold text-white ${cls}`}
+      className={`btn-selvi flex items-center justify-center rounded-[28%] font-extrabold text-white ${cls}`}
     >
       {letter}
     </div>
@@ -65,9 +68,9 @@ export function ProductCard({
       href={href}
       className="group flex flex-col rounded-2xl border border-ink/15 bg-white p-6 shadow-sm transition-all hover:border-brand-500/40 hover:shadow-md"
     >
-      <p className="font-display text-2xl font-extrabold tracking-tight">
-        {config.brandHead}
-        <span className="text-brand-600">{config.brandTail}</span>
+      <p className="font-display text-2xl tracking-tight">
+        <span className="font-medium">{config.brandHead}</span>
+        <span className="font-extrabold">{config.brandTail}</span>
       </p>
       <p className="mt-2 flex-1 text-sm text-ink/60">{config.tagline}</p>
       <span className="mt-4 text-sm font-semibold text-brand-600 group-hover:underline">

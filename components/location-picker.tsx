@@ -126,7 +126,7 @@ export function LocationPicker({
     if (markerRef.current) {
       markerRef.current.setLngLat(lngLat);
     } else {
-      markerRef.current = new mapboxgl.Marker({ color: "#1e5b3e", draggable: true })
+      markerRef.current = new mapboxgl.Marker({ color: "#1d1d1f", draggable: true })
         .setLngLat(lngLat)
         .addTo(map);
       markerRef.current.on("dragend", () => {

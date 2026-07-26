@@ -45,7 +45,7 @@ export function HeroShell() {
             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
               <Link
                 href="/register"
-                className="group inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand-600 px-7 py-3.5 text-base font-bold text-white shadow-[0_8px_28px_-6px_rgba(30,91,62,0.45)] transition-all hover:bg-brand-700"
+                className="group inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand-600 px-7 py-3.5 text-base font-bold text-white shadow-[0_8px_28px_-6px_rgba(29,29,31,0.45)] transition-all hover:bg-brand-700"
               >
                 14 gün ücretsiz dene
                 <ArrowRight

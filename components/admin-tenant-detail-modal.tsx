@@ -97,7 +97,7 @@ export function AdminTenantDetailModal({
     customDomain: "",
     brandName: "",
     logoUrl: "",
-    primaryColor: "#1e5b3e",
+    primaryColor: "#1d1d1f",
   });
   const [savingWl, setSavingWl] = useState(false);
   const [dnsSteps, setDnsSteps] = useState<string[] | null>(null);
@@ -123,7 +123,7 @@ export function AdminTenantDetailModal({
       customDomain: t.customDomain ?? "",
       brandName: t.brandName ?? "",
       logoUrl: t.logoUrl ?? "",
-      primaryColor: t.primaryColor || t.brandColor || "#1e5b3e",
+      primaryColor: t.primaryColor || t.brandColor || "#1d1d1f",
     });
   }
 
@@ -779,7 +779,7 @@ export function AdminTenantDetailModal({
                       value={
                         /^#([0-9A-Fa-f]{6})$/.test(wl.primaryColor)
                           ? wl.primaryColor
-                          : "#1e5b3e"
+                          : "#1d1d1f"
                       }
                       onChange={(e) =>
                         setWl((s) => ({
@@ -799,7 +799,7 @@ export function AdminTenantDetailModal({
                           primaryColor: e.target.value,
                         }))
                       }
-                      placeholder="#1e5b3e"
+                      placeholder="#1d1d1f"
                       className="flex-1 rounded-lg border border-ink/20 px-3 py-2 font-mono text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-ink/[0.03]"
                     />
                   </div>

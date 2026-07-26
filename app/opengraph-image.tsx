@@ -12,7 +12,7 @@ export const contentType = "image/png";
 export const alt =
   "EmlakFlow — modern emlak ofisinin tek paneli";
 
-const BRAND = "#1e5b3e"; // tapu yeşili (globals.css --app-brand-fill)
+const BRAND = "#1d1d1f"; // tapu yeşili (globals.css --app-brand-fill)
 
 export default function OgImage() {
   return new ImageResponse(
@@ -46,7 +46,7 @@ export default function OgImage() {
               width: 18,
               height: 18,
               borderRadius: 5,
-              background: "#79c69e",
+              background: "#9a9aa2",
               display: "flex",
             }}
           />

@@ -327,7 +327,7 @@ export function SettingsForm({
             checked={v.showcaseEnabled}
             disabled={!isOwner}
             onChange={(e) => set("showcaseEnabled", e.target.checked)}
-            className="h-5 w-5 rounded border-ink/25 accent-[#1e5b3e]"
+            className="h-5 w-5 rounded border-ink/25 accent-[#1d1d1f]"
           />
         </label>
 
@@ -491,7 +491,7 @@ export function SettingsForm({
                 checked={v.showTeam}
                 disabled={!isOwner}
                 onChange={(e) => set("showTeam", e.target.checked)}
-                className="h-5 w-5 rounded border-ink/25 accent-[#1e5b3e]"
+                className="h-5 w-5 rounded border-ink/25 accent-[#1d1d1f]"
               />
             </label>
           </div>
@@ -507,17 +507,17 @@ export function SettingsForm({
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
-                    value={v.brandColor || "#1e5b3e"}
+                    value={v.brandColor || "#1d1d1f"}
                     disabled={!isOwner}
                     onChange={(e) => set("brandColor", e.target.value)}
                     className="h-10 w-14 cursor-pointer rounded-lg border border-ink/20 bg-white p-0.5 disabled:cursor-not-allowed"
                   />
                   <input
                     className={`${inputCls} max-w-32 font-mono text-xs`}
-                    value={v.brandColor || "#1e5b3e"}
+                    value={v.brandColor || "#1d1d1f"}
                     disabled={!isOwner}
                     maxLength={7}
-                    placeholder="#1e5b3e"
+                    placeholder="#1d1d1f"
                     onChange={(e) => set("brandColor", e.target.value)}
                   />
                   {v.brandColor && (

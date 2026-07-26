@@ -81,13 +81,14 @@ export const STAGE_TR: Record<string, string> = {
   CLOSED_LOST: "Kaybedildi",
 };
 
-/* Parsel renk rampası — sözleşmeye yaklaştıkça koyulaşır, kazanılan bakır */
+/* Nötr rampa — sözleşmeye yaklaştıkça koyulaşır; kazanılan tek semantik renk
+   (success), kaybedilen soluk gri. Monokrom kimlikle hizalı. */
 export const STAGE_COLOR: Record<string, string> = {
-  NEW: "#c7d6c2",
-  CONTACTED: "#c7d6c2",
-  VIEWING: "#8fb392",
-  OFFER: "#4e8362",
-  CONTRACT: "#1e5b3e",
-  CLOSED_WON: "#b4652a",
-  CLOSED_LOST: "#c8beb4",
+  NEW: "#d9d9dd",
+  CONTACTED: "#d9d9dd",
+  VIEWING: "#9a9aa2",
+  OFFER: "#4b4b52",
+  CONTRACT: "#1d1d1f",
+  CLOSED_WON: "#1f7a4d",
+  CLOSED_LOST: "#c4c4ca",
 };

@@ -24,7 +24,7 @@ export default async function AdminLayout({
             </div>
             <div>
               <p className="font-display text-base font-extrabold tracking-tight leading-none">
-                Emlak<span className="text-brand-600">Flow</span>
+                <span className="font-medium">Emlak</span><span className="font-extrabold">Flow</span>
               </p>
               <p className="text-[9px] font-mono font-semibold uppercase tracking-wider text-ink/40">
                 Super Admin

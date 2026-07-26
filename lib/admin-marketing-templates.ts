@@ -104,14 +104,14 @@ function bodyToHtml(
   const cta =
     ctaLabel && ctaHref
       ? `<p style="margin:28px 0">
-      <a href="${ctaHref}" style="background:#1e5b3e;color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 24px;border-radius:10px;display:inline-block">
+      <a href="${ctaHref}" style="background:#1d1d1f;color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 24px;border-radius:10px;display:inline-block">
         ${ctaLabel}
       </a>
     </p>`
       : "";
   return `
   <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#17201c">
-    <p style="font-size:18px;font-weight:800;margin:0 0 4px">Emlak<span style="color:#1e5b3e">Flow</span></p>
+    <p style="font-size:18px;font-weight:800;margin:0 0 4px"><span style="font-weight:500">Emlak</span><span style="font-weight:800">Flow</span></p>
     <h1 style="font-size:20px;margin:24px 0 8px">${title}</h1>
     <div style="font-size:14px;line-height:1.6;color:#4a544f">
       ${paragraphs}

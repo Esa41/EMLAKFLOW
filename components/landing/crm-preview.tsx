@@ -116,10 +116,10 @@ export function HeroDemoNav() {
 }
 
 const LISTINGS = [
-  { t: "Yahya Kaptan · 3+1", p: "4.850.000 ₺", v: 412, st: "Satılık", bg: "from-[#c9b08a] to-[#7d6247]" },
-  { t: "Yuvacık · 4+1 müstakil", p: "7.200.000 ₺", v: 286, st: "Satılık", bg: "from-[#9fae7e] to-[#55663b]" },
-  { t: "28 Haziran · 2+1", p: "22.000 ₺/ay", v: 194, st: "Kiralık", bg: "from-[#a9c3c8] to-[#3f7d7e]" },
-  { t: "Körfez · 1+1", p: "2.450.000 ₺", v: 158, st: "Satılık", bg: "from-[#b79a8a] to-[#5f4636]" },
+  { t: "Yahya Kaptan · 3+1", p: "4.850.000 ₺", v: 412, st: "Satılık", bg: "from-[#d9d9dd] to-[#6e6e76]" },
+  { t: "Yuvacık · 4+1 müstakil", p: "7.200.000 ₺", v: 286, st: "Satılık", bg: "from-[#c4c4ca] to-[#4b4b52]" },
+  { t: "28 Haziran · 2+1", p: "22.000 ₺/ay", v: 194, st: "Kiralık", bg: "from-[#ececee] to-[#9a9aa2]" },
+  { t: "Körfez · 1+1", p: "2.450.000 ₺", v: 158, st: "Satılık", bg: "from-[#d9d9dd] to-[#33333a]" },
 ];
 
 // Satış hattı — GERÇEK aşama adları (lib/labels.ts STAGE_TR).
@@ -197,7 +197,7 @@ function View({ tab, listings, office }: { tab: string; listings: DemoListing[];
           { a: "28 Haziran · daire", b: "16.000 ₺ · ödendi", late: false },
           { a: "Körfez · dükkan", b: "24.000 ₺ · gecikti", late: true },
         ].map((r) => (
-          <div key={r.a} className={`flex justify-between border-t border-ink/8 py-1.5 text-[11px] ${r.late ? "text-[#b4552f]" : ""}`}>
+          <div key={r.a} className={`flex justify-between border-t border-ink/8 py-1.5 text-[11px] ${r.late ? "text-[#a33232]" : ""}`}>
             <span className={r.late ? "text-ink" : ""}>{r.a}</span>
             <span className="font-mono">{r.b}</span>
           </div>
@@ -209,7 +209,7 @@ function View({ tab, listings, office }: { tab: string; listings: DemoListing[];
     const items = [
       { t: "10:00", n: "Ahmet Y.", m: "Yahya Kaptan · 3+1", k: "Yer gösterme", c: "text-brand-700 bg-brand-50" },
       { t: "14:30", n: "Deniz K.", m: "Alikahya · arsa", k: "Görüşme", c: "text-ink/60 bg-ink/[0.05]" },
-      { t: "16:00", n: "Elif T.", m: "Kartepe · villa", k: "Sözleşme", c: "text-[#8a5a2b] bg-[#f2e5d3]" },
+      { t: "16:00", n: "Elif T.", m: "Kartepe · villa", k: "Sözleşme", c: "text-[#4b4b52] bg-[#ececee]" },
     ];
     return (
       <div className="space-y-2">
@@ -265,13 +265,13 @@ function View({ tab, listings, office }: { tab: string; listings: DemoListing[];
       : LISTINGS.slice(0, 2).map((l) => ({ title: l.t, price: l.p, img: "", bg: l.bg }));
   return (
     <div className="overflow-hidden rounded-xl border border-ink/8 bg-white">
-      <div className="flex items-center justify-between bg-gradient-to-r from-brand-600 to-[#2e7d55] px-3.5 py-2.5">
+      <div className="flex items-center justify-between bg-gradient-to-r from-ink to-[#4b4b52] px-3.5 py-2.5">
         <div className="min-w-0">
           <div className="truncate text-[12.5px] font-bold text-white">{office || "Prestij Gayrimenkul"}</div>
           <div className="font-mono text-[8.5px] text-white/70">emlakflow.app/ofis/…</div>
         </div>
         <span className="flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 font-mono text-[8.5px] font-semibold text-white">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> Canlı
+          <span className="h-1.5 w-1.5 rounded-full bg-white" /> Canlı
         </span>
       </div>
       <div className="grid grid-cols-2 gap-2 p-2.5">
@@ -310,7 +310,7 @@ export function CrmPreview({
 
   return (
     <div
-      className="overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-[0_40px_90px_-50px_rgba(20,63,43,0.55)]"
+      className="overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-[0_40px_90px_-50px_rgba(29,29,31,0.55)]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >

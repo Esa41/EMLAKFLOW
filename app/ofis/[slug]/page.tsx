@@ -445,7 +445,7 @@ export default async function ShowcasePage({
               <Link
                 key={c.key}
                 href={c.href}
-                className="group flex items-center gap-4 overflow-hidden rounded-[22px] border border-ink/8 bg-white p-3 transition-all hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(15,23,32,0.35)]"
+                className="group flex items-center gap-4 overflow-hidden rounded-[22px] border border-ink/8 bg-white p-3 transition-all hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(29,29,31,0.35)]"
               >
                 <div className="relative h-24 w-28 shrink-0 overflow-hidden rounded-2xl bg-brand-50">
                   {c.image ? (

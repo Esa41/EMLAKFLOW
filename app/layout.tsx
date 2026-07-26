@@ -33,8 +33,8 @@ const mono = Spline_Sans_Mono({
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#1e5b3e" },
-    { media: "(prefers-color-scheme: dark)", color: "#1e5b3e" },
+    { media: "(prefers-color-scheme: light)", color: "#1d1d1f" },
+    { media: "(prefers-color-scheme: dark)", color: "#1d1d1f" },
   ],
   colorScheme: "light",
   width: "device-width",

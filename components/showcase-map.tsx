@@ -84,6 +84,14 @@ export function ShowcaseMap({
       mapboxgl.accessToken = token;
       const single = mode === "single";
 
+      /* İşaretçi/parsel rengi ofisin markasından okunur: vitrin paleti
+         layout'ta `.showcase-root` üzerine inline basılır, buradan miras alınır.
+         Ofis renk seçmediyse monokrom varsayılan (#1d1d1f) gelir. */
+      const brand =
+        getComputedStyle(ref.current)
+          .getPropertyValue("--color-brand-600")
+          .trim() || "#1d1d1f";
+
       try {
         map = new mapboxgl.Map({
           container: ref.current,
@@ -126,7 +134,7 @@ export function ShowcaseMap({
           bounds.extend([l.lng, l.lat]);
 
           if (single) {
-            new mapboxgl.Marker({ color: "#1e5b3e" })
+            new mapboxgl.Marker({ color: brand })
               .setLngLat([l.lng, l.lat])
               .addTo(map!);
             continue;
@@ -165,7 +173,7 @@ export function ShowcaseMap({
                 <div style="font-weight:800;font-size:15px;margin-top:4px">${shortMoney(
                   l.price,
                 )}${l.purpose === "RENT" ? "<span style='font-size:11px;font-weight:500;color:#889'>/ay</span>" : ""}</div>
-                <div style="margin-top:6px;font-size:11px;font-weight:700;color:#1e5b3e">İncele →</div>
+                <div style="margin-top:6px;font-size:11px;font-weight:700;color:${brand}">İncele →</div>
               </div>
             </a>`;
 
@@ -205,13 +213,13 @@ export function ShowcaseMap({
             id: "parcel-fill",
             type: "fill",
             source: "parcel",
-            paint: { "fill-color": "#1e5b3e", "fill-opacity": 0.25 },
+            paint: { "fill-color": brand, "fill-opacity": 0.25 },
           });
           map.addLayer({
             id: "parcel-line",
             type: "line",
             source: "parcel",
-            paint: { "line-color": "#1e5b3e", "line-width": 2.5 },
+            paint: { "line-color": brand, "line-width": 2.5 },
           });
         }
 

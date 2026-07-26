@@ -56,10 +56,10 @@ export function ParselMap({ deals }: { deals: ParselDeal[] }) {
 
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-ink/60">
         {[
-          ["#c7d6c2", "İletişimde"],
-          ["#8fb392", "Yer gösterildi"],
-          ["#4e8362", "Teklif"],
-          ["#1e5b3e", "Sözleşme"],
+          ["#d9d9dd", "İletişimde"],
+          ["#9a9aa2", "Yer gösterildi"],
+          ["#4b4b52", "Teklif"],
+          ["#1d1d1f", "Sözleşme"],
         ].map(([c, l]) => (
           <span key={l} className="flex items-center gap-1.5">
             <i className="inline-block h-2.5 w-2.5 rounded-[3px]" style={{ background: c }} />
