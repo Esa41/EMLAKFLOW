@@ -359,6 +359,94 @@ body,
   --dash-radius: 20px;
 }
 
+/* URBN mono yüzey — yalnızca dashboard sayfası (.dash-urbn).
+   Yeşil marka geri planda; vurgu ink/beyaz, pozitif trend yumuşak yeşil. */
+.dash-urbn {
+  --dash-radius: 14px;
+  --dash-trend-up: #5fbf88;
+  --dash-trend-down: #c45c5c;
+}
+.dash-urbn .dash-card,
+.dash-urbn .dash-kpi {
+  border-radius: var(--dash-radius);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-ink) 8%, transparent),
+    0 8px 28px -18px color-mix(in srgb, var(--color-ink) 28%, transparent);
+}
+.dash-urbn .dash-kpi {
+  display: flex;
+  flex-direction: column;
+  min-height: 148px;
+  padding: 1.15rem 1.25rem 1rem;
+}
+.dash-urbn .dash-kpi:hover {
+  transform: translateY(-2px);
+}
+.dash-urbn .dash-btn-primary {
+  border-radius: 12px;
+  background: var(--color-ink);
+  color: var(--app-bg, #fff);
+}
+.dash-urbn .dash-btn-primary:hover {
+  background: color-mix(in srgb, var(--color-ink) 88%, transparent);
+}
+.dash-urbn .dash-btn-secondary {
+  border-radius: 12px;
+  background: transparent;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-ink) 12%, transparent);
+}
+.dash-urbn .dash-link {
+  color: color-mix(in srgb, var(--color-ink) 45%, transparent);
+}
+.dash-urbn .dash-link:hover {
+  color: var(--color-ink);
+}
+.dash-urbn .dash-filter-pill-active {
+  background: var(--color-ink);
+  color: var(--app-bg, #fff);
+}
+.dash-urbn .dash-timeline-item::before {
+  background: var(--color-ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ink) 12%, transparent);
+}
+.dash-urbn .dash-more {
+  margin-top: auto;
+  padding-top: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--color-ink) 40%, transparent);
+  transition: color 0.15s;
+}
+.dash-urbn .dash-kpi:hover .dash-more {
+  color: var(--color-ink);
+}
+.dash-urbn .dash-trend {
+  margin-top: 0.55rem;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.dash-urbn .dash-trend-up {
+  color: var(--dash-trend-up);
+}
+.dash-urbn .dash-trend-down {
+  color: var(--dash-trend-down);
+}
+.app-shell[data-theme="dark"] .dash-urbn .dash-btn-primary {
+  background: #f3f4f6;
+  color: #0f1720;
+}
+.app-shell[data-theme="dark"] .dash-urbn .dash-btn-primary:hover {
+  background: #fff;
+}
+.app-shell[data-theme="dark"] .dash-urbn .dash-filter-pill-active {
+  background: #f3f4f6;
+  color: #0f1720;
+}
+
 .dash-card {
   border-radius: var(--dash-radius);
   background: var(--app-surface);
