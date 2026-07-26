@@ -54,9 +54,9 @@ export default async function ShowcaseLayout({
 
   return (
     <SiteSessionProvider slug={slug}>
-    <div className="min-h-screen" style={palette as React.CSSProperties}>
-      {/* Antet — müşteri yüzü */}
-      <header className="sticky top-0 z-30 border-b border-ink bg-paper">
+    <div className="showcase-root min-h-screen" style={palette as React.CSSProperties}>
+      {/* Antet — müşteri yüzü (Beehome dili: ince çizgi + camlı zemin) */}
+      <header className="sticky top-0 z-30 border-b border-ink/10 bg-paper/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-[1080px] items-center gap-3 px-4 sm:px-6">
           <ShowcaseHomeLink
             slug={slug}
@@ -85,7 +85,7 @@ export default async function ShowcaseLayout({
             {tenant.phone && (
               <a
                 href={`tel:${tenant.phone.replace(/\s/g, "")}`}
-                className="btn-selvi hidden items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700 sm:flex"
+                className="hidden items-center gap-2 rounded-full bg-brand-600 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700 sm:flex"
               >
                 <Phone size={15} /> Ara
               </a>
@@ -102,14 +102,14 @@ export default async function ShowcaseLayout({
           {tenant.phone && (
             <a
               href={`tel:${tenant.phone.replace(/\s/g, "")}`}
-              className="btn-selvi flex-1 rounded-lg py-3 text-center text-sm font-bold text-white"
+              className="flex-1 rounded-full bg-brand-600 py-3 text-center text-sm font-bold text-white transition-colors hover:bg-brand-700"
             >
               📞 Hemen Ara
             </a>
           )}
           <a
             href="#talep-form"
-            className="flex-1 rounded-lg border border-ink/20 bg-white py-3 text-center text-sm font-bold text-ink transition-colors hover:border-ink/50"
+            className="flex-1 rounded-full border border-ink/15 bg-white py-3 text-center text-sm font-bold text-ink transition-colors hover:border-ink/50"
           >
             💬 Talep Bırak
           </a>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { AnimatedCounter } from "@/components/animated-counter";
 
 type Stat = { value: string; label: string };
@@ -108,15 +108,17 @@ export function ShowcaseHero({
           {tagline}
         </p>
         <div className="hero-rise mt-8 flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: "280ms" }}>
+          {/* Beehome dili: ofis rengiyle dolu birincil + camlı ikincil */}
           <a
             href="#koleksiyon"
-            className="inline-flex items-center rounded-full bg-white px-6 py-3 text-[15px] font-bold text-ink transition-transform hover:scale-[1.03]"
+            className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-7 py-3.5 text-[15px] font-bold text-white shadow-[0_14px_36px_-12px_rgba(0,0,0,0.6)] transition-transform hover:scale-[1.03]"
           >
             Portföyü Gör
+            <ArrowRight size={17} />
           </a>
           <a
             href="#talep-form"
-            className="inline-flex items-center rounded-full border border-white/40 px-6 py-3 text-[15px] font-bold text-white transition-colors hover:bg-white/10"
+            className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-7 py-3.5 text-[15px] font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/20"
           >
             Talep Bırak
           </a>

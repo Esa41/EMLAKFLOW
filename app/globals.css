@@ -836,6 +836,23 @@ body,
   --color-paper: #f4f6f9;     /* temiz açık gri — bölüm zeminleri */
 }
 
+/* ── Vitrin tasarım dili (Faz 2, Beehome/Structa referansı) ──
+   DİKKAT: vitrinde marka rengi ofisin KENDİ rengidir (`brandPalette()` layout'ta
+   inline style ile brand-50…700'ü basar). Bu yüzden burada marka token'ına
+   DOKUNULMAZ — yalnız yapısal mürekkep/kağıt landing ile aynı soğuk lacivert
+   ritmine alınır. Böylece landing ile vitrin aynı dili konuşur, ofis markası
+   ezilmez. */
+.showcase-root {
+  --color-ink: #0f1720;   /* soğuk near-black lacivert */
+  --color-paper: #f4f6f9; /* temiz açık gri */
+}
+
+/* Ofis rengi koyu olabilir → vitrinde ok butonu hover'ı beyaz metin ister
+   (landing amber zeminde koyu metin kullanır). */
+.showcase-root .arrow-circle:hover {
+  color: #fff;
+}
+
 /* Daire-içi ok butonu (Beehome "View all →" / Structa CTA dili) */
 .arrow-circle {
   display: inline-flex;

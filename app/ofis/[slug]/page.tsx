@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Building2 } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Building2 } from "lucide-react";
 import type { ListingPurpose } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { trMoney, ROOM_OPTIONS } from "@/lib/labels";
@@ -218,6 +219,7 @@ export default async function ShowcasePage({
     activeCount,
     completedCount,
     neighborhoodCount,
+    purposeGroups,
   ] = await Promise.all([
     prisma.listing.findMany({
       where: listingWhere,
@@ -274,6 +276,12 @@ export default async function ShowcasePage({
       select: { neighborhood: true },
       distinct: ["neighborhood"],
     }),
+    // Kategori kartlarının (Satılık / Kiralık) doğru adetleri
+    prisma.listing.groupBy({
+      by: ["purpose"],
+      where: { tenantId: tenant.id, status: "ACTIVE" },
+      _count: { _all: true },
+    }),
   ]);
 
   const splitListings: SplitListing[] = listings.map((l) => ({
@@ -291,6 +299,44 @@ export default async function ShowcasePage({
     ...toCardListing(l),
     hasVideo: false,
   }));
+
+  /* ── Kategori kartları (Beehome "listing category" dili) ──
+     Kapak fotoğrafı ofisin gerçek ilanlarından seçilir: önce öne çıkanlar,
+     sonra yeniler, sonra listenin geneli. Adetler groupBy'dan (filtreden
+     bağımsız, doğru). */
+  const purposeCount = (p: string) =>
+    purposeGroups.find((g) => g.purpose === p)?._count._all ?? 0;
+  const coverFor = (p: string) =>
+    [...featuredCards, ...newCards, ...splitListings].find(
+      (l) => l.purpose === p && l.image,
+    )?.image ?? null;
+
+  const categories = [
+    {
+      key: "SALE",
+      title: isAuto ? "Satılık Araç" : "Satılık",
+      desc: isAuto ? "Stoktaki satılık araçlar" : "Konut, arsa ve iş yeri",
+      count: purposeCount("SALE"),
+      href: `/ofis/${slug}?purpose=SALE#portfoy`,
+      image: coverFor("SALE"),
+    },
+    {
+      key: "RENT",
+      title: isAuto ? "Kiralık Araç" : "Kiralık",
+      desc: isAuto ? "Kiraya hazır araçlar" : "Hemen taşınabilir seçenekler",
+      count: purposeCount("RENT"),
+      href: `/ofis/${slug}?purpose=RENT#portfoy`,
+      image: coverFor("RENT"),
+    },
+    {
+      key: "NEW",
+      title: "Yeni Gelenler",
+      desc: `Son 14 günde portföye giren ${isAuto ? "araçlar" : "mülkler"}`,
+      count: newCards.length,
+      href: "#koleksiyon",
+      image: newCards.find((l) => l.image)?.image ?? null,
+    },
+  ].filter((c) => c.count > 0);
 
   const savedStats = Array.isArray(tenant.aboutStats)
     ? (tenant.aboutStats as Array<{ value: string; label: string }>).filter(
@@ -373,6 +419,66 @@ export default async function ShowcasePage({
           video={null}
         />
       </div>
+
+      {/* ── NE ARIYORSUNUZ (Beehome kategori kartı dili: görsel-sol + ok) ── */}
+      {categories.length > 0 && (
+        <section className="pt-12 sm:pt-16">
+          <div className="mb-7 flex items-end justify-between gap-4">
+            <div className="min-w-0">
+              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand-600">
+                Kategoriler
+              </p>
+              <h2 className="mt-3 font-display text-[clamp(24px,3.2vw,38px)] font-extrabold tracking-tight">
+                Ne arıyorsunuz?
+              </h2>
+            </div>
+            <a
+              href="#portfoy"
+              aria-label="Tüm portföyü gör"
+              className="arrow-circle shrink-0"
+            >
+              <ArrowRight size={20} />
+            </a>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-3">
+            {categories.map((c) => (
+              <Link
+                key={c.key}
+                href={c.href}
+                className="group flex items-center gap-4 overflow-hidden rounded-[22px] border border-ink/8 bg-white p-3 transition-all hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(15,23,32,0.35)]"
+              >
+                <div className="relative h-24 w-28 shrink-0 overflow-hidden rounded-2xl bg-brand-50">
+                  {c.image ? (
+                    <Image
+                      src={c.image}
+                      alt={c.title}
+                      fill
+                      sizes="120px"
+                      loading="lazy"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-brand-600/40">
+                      <Building2 size={22} />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 pr-2">
+                  <span className="inline-block rounded-full bg-brand-50 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-brand-700">
+                    {c.count} {isAuto ? "araç" : "ilan"}
+                  </span>
+                  <h3 className="mt-1.5 font-display text-xl font-bold">{c.title}</h3>
+                  <p className="mt-0.5 text-[13px] leading-snug text-ink/55">{c.desc}</p>
+                </div>
+                <ArrowUpRight
+                  size={20}
+                  className="mr-1 shrink-0 text-ink/25 transition-colors group-hover:text-brand-600"
+                />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <ShowcaseCollections
         slug={slug}
@@ -518,24 +624,39 @@ export default async function ShowcasePage({
         </section>
       )}
 
-      <section id="talep-form" className="scroll-mt-20 py-20 text-center sm:py-28">
-        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand-600">
-          İletişim
-        </p>
-        <h2 className="mt-4 font-display text-[clamp(28px,4vw,46px)] font-extrabold tracking-tight text-balance">
-          Aradığınızı söyleyin.
-        </h2>
-        <p className="mx-auto mt-5 max-w-lg text-[17px] leading-relaxed text-ink/60">
-          Kriterlerinizi bırakın — uyan bir {isAuto ? "araç" : "mülk"} portföye
-          girdiği an sizi arayalım.
-        </p>
-        <div className="mx-auto mt-9 max-w-2xl text-left">
-          <RequestForm
-            slug={slug}
-            districts={districts.map((d) => d.district)}
-            rooms={[...ROOM_OPTIONS]}
-            isAuto={isAuto}
+      {/* ── İLETİŞİM — koyu lacivert final blok (landing CTA diliyle aynı) ── */}
+      <section id="talep-form" className="scroll-mt-20 pb-16 pt-10 sm:pb-24">
+        <div className="relative overflow-hidden rounded-[34px] bg-ink px-5 py-16 text-center text-white sm:px-10 sm:py-20">
+          {/* ofis rengiyle ışıltı */}
+          <div
+            className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full opacity-40 blur-3xl"
+            style={{
+              background:
+                "radial-gradient(circle, var(--color-brand-600), transparent 70%)",
+            }}
+            aria-hidden
           />
+          <div className="relative">
+            {/* brand-100: ofis rengi koyu olsa da koyu zeminde okunur kalan ton */}
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand-100">
+              İletişim
+            </p>
+            <h2 className="mt-4 font-display text-[clamp(28px,4.4vw,50px)] font-extrabold leading-[1.04] tracking-tight text-balance">
+              Aradığınızı söyleyin.
+            </h2>
+            <p className="mx-auto mt-5 max-w-lg text-[17px] leading-relaxed text-white/70">
+              Kriterlerinizi bırakın — uyan bir {isAuto ? "araç" : "mülk"} portföye
+              girdiği an sizi arayalım.
+            </p>
+            <div className="mx-auto mt-10 max-w-2xl rounded-[24px] bg-paper p-4 text-left text-ink shadow-[0_30px_70px_-40px_rgba(0,0,0,0.8)] sm:p-6">
+              <RequestForm
+                slug={slug}
+                districts={districts.map((d) => d.district)}
+                rooms={[...ROOM_OPTIONS]}
+                isAuto={isAuto}
+              />
+            </div>
+          </div>
         </div>
       </section>
     </div>
