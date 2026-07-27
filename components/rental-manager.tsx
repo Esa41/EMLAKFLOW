@@ -22,6 +22,13 @@ export interface RentalRow {
     amount: number;
     paidAt: string | null;
   }>;
+  /** Taranmış/imzalı belgeler — Contract kayıtları */
+  contracts?: Array<{
+    id: string;
+    fileUrl: string | null;
+    fileName: string | null;
+    type: string;
+  }>;
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -237,6 +244,7 @@ export function RentalManager({
         paymentDueDay: a.paymentDueDay,
         contact: a.contact,
         listing: a.listing,
+        contracts: a.contracts ?? [],
         payments: a.payments.map(
           (p: { id: string; periodLabel: string; dueDate: string; amount: unknown; paidAt: string | null }) => ({
             id: p.id,

@@ -17,6 +17,10 @@ export async function GET() {
       },
       listing: { select: { id: true, refCode: true, title: true } },
       payments: { orderBy: { dueDate: "asc" } },
+      contracts: {
+        orderBy: { createdAt: "desc" },
+        select: { id: true, fileUrl: true, fileName: true, type: true },
+      },
     },
   });
 
@@ -117,9 +121,6 @@ export async function POST(req: Request) {
         body.increaseRate != null && body.increaseRate !== ""
           ? Number(body.increaseRate)
           : null,
-      contractFileUrl: body.contractFileUrl || null,
-      contractFileKey: body.contractFileKey || null,
-      contractFileName: body.contractFileName || null,
       startDate,
       endDate,
       rentAmount,
@@ -129,6 +130,23 @@ export async function POST(req: Request) {
       note: body.note || null,
     },
   });
+
+  /* Taranmış sözleşme varsa Contract kaydı olarak bağlanır — böylece belge
+     mevcut sözleşme altyapısında da görünür ve ileride ek belge eklenebilir. */
+  if (body.contractFileUrl) {
+    await db.contract.create({
+      data: {
+        tenantId: session.tenantId,
+        type: "RENT_CONTRACT",
+        rentalAgreementId: agreement.id,
+        contactId,
+        listingId: body.listingId || null,
+        fileUrl: body.contractFileUrl,
+        fileKey: body.contractFileKey || null,
+        fileName: body.contractFileName || null,
+      },
+    });
+  }
 
   const schedule = buildPaymentSchedule({
     startDate,
@@ -163,6 +181,10 @@ export async function POST(req: Request) {
       contact: { select: { id: true, fullName: true, phone: true } },
       listing: { select: { id: true, refCode: true, title: true } },
       payments: { orderBy: { dueDate: "asc" } },
+      contracts: {
+        orderBy: { createdAt: "desc" },
+        select: { id: true, fileUrl: true, fileName: true, type: true },
+      },
     },
   });
 

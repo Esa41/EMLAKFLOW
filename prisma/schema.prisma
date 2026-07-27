@@ -643,6 +643,10 @@ model Contract {
   contact   Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
   dealId    String?      // hangi fırsata (Deal) bağlı — anlaşılan bedeli buradan alır
   deal      Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  /** Kira sözleşmesine bağlı belge (RENT_CONTRACT ve ekleri) */
+  rentalAgreementId String?
+  rentalAgreement   RentalAgreement? @relation(fields: [rentalAgreementId], references: [id], onDelete: Cascade)
+  fileName  String?      // kullanıcıya gösterilecek özgün dosya adı
   fileUrl   String?      // R2'deki taranmış/imzalı belge (PDF ya da fotoğraf)
   fileKey   String?      // R2 object key — silme için
   signedAt  DateTime?
@@ -652,6 +656,7 @@ model Contract {
 
   @@index([tenantId, type])
   @@index([tenantId, dealId])
+  @@index([tenantId, rentalAgreementId])
 }
 
 model Commission {
@@ -883,18 +888,17 @@ model RentalAgreement {
   /** Yıllık kira artış oranı (%) — yenileme hatırlatmasında kullanılır */
   increaseRate    Decimal? @db.Decimal(5, 2)
 
-  /** Daha önce kâğıtta imzalanmış sözleşmenin taranmış hâli (R2). Ofisler
-      mevcut yazılı sözleşmelerini elektronik ortamda saklayabilsin diye. */
-  contractFileUrl String?
-  contractFileKey String?  // R2 object key — silme için
-  contractFileName String? // kullanıcıya gösterilecek özgün dosya adı
-
   note      String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   payments RentPayment[]
+  /** Taranmış/imzalı belgeler — kâğıtta imzalanmış kira sözleşmesi, ek
+      protokol, kimlik fotokopisi… Tek dosya alanı yerine Contract'a bağlandı:
+      mevcut belge altyapısı (fileUrl/fileKey/signedAt/expiresAt) yeniden
+      kullanılıyor ve çok belge bedava geliyor. */
+  contracts Contract[]
 
   @@index([tenantId, status])
   @@index([tenantId, endDate])
