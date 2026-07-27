@@ -1150,3 +1150,169 @@ body,
   background: var(--app-surface);
 }
 
+
+/* ══════════════════════════════════════════════════════════════════
+   GÖRSEL ETKİ KATMANI (Tem 2026) — "monokrom düz demek değil"
+   Palet siyah-gri-beyaz kalır; derinlik ve zenginlik RENKTEN değil
+   hareket, doku, ışık ve tipografi ölçeğinden gelir.
+
+   Performans disiplini: yalnız transform/opacity animasyonu (compositor'da
+   çalışır, layout tetiklemez). Landing bir SEO sayfası — LCP metni JS'e
+   BAĞLANMAZ, saf CSS keyframe ile açılır.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Film grenli doku — premium his, tek katman, 0 istek ── */
+.fx-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
+}
+
+/* ── Gri gradyan sisi — renksiz derinlik ── */
+.fx-mesh {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.fx-mesh::before,
+.fx-mesh::after {
+  content: "";
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+}
+.fx-mesh::before {
+  width: 46vw;
+  height: 46vw;
+  top: -14vw;
+  right: -10vw;
+  background: radial-gradient(circle, rgba(29, 29, 31, 0.16), transparent 68%);
+  animation: fx-drift 26s ease-in-out infinite alternate;
+}
+.fx-mesh::after {
+  width: 38vw;
+  height: 38vw;
+  bottom: -16vw;
+  left: -8vw;
+  background: radial-gradient(circle, rgba(29, 29, 31, 0.1), transparent 70%);
+  animation: fx-drift 34s ease-in-out infinite alternate-reverse;
+}
+@keyframes fx-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(-4vw, 3vw, 0) scale(1.12); }
+}
+
+/* ── İmleç ışığı — konumu JS'ten --mx/--my olarak gelir ── */
+.fx-spotlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  background: radial-gradient(
+    420px circle at var(--mx, 50%) var(--my, 40%),
+    rgba(29, 29, 31, 0.07),
+    transparent 72%
+  );
+}
+.fx-spotlight-on { opacity: 1; }
+
+/* ── Kinetik başlık: kelime kelime maskeli açılış ──
+   LCP güvenliği: JS beklemez, saf CSS ile hemen çalışır. */
+.fx-kinetic { display: inline-block; overflow: hidden; vertical-align: bottom; }
+.fx-kinetic > span {
+  display: inline-block;
+  transform: translateY(105%) rotate(2deg);
+  animation: fx-word-in 0.9s cubic-bezier(0.16, 0.84, 0.28, 1) forwards;
+}
+@keyframes fx-word-in {
+  to { transform: translateY(0) rotate(0); }
+}
+
+/* ── Bulanıktan netleşen giriş — "pahalı" duran reveal ── */
+.fx-rise {
+  opacity: 0;
+  transform: translateY(22px);
+  filter: blur(10px);
+  transition:
+    opacity 0.85s cubic-bezier(0.16, 0.84, 0.28, 1),
+    transform 0.85s cubic-bezier(0.16, 0.84, 0.28, 1),
+    filter 0.85s ease;
+  will-change: transform, opacity;
+}
+.fx-rise-in {
+  opacity: 1;
+  transform: none;
+  filter: blur(0);
+}
+
+/* ── 3B eğim — kart imlece göre hafifçe döner ── */
+.fx-tilt {
+  transform-style: preserve-3d;
+  transition: transform 0.35s cubic-bezier(0.16, 0.84, 0.28, 1);
+  will-change: transform;
+}
+.fx-tilt-lift {
+  transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))
+    translate3d(0, -6px, 0);
+}
+
+/* ── Üstteki okuma ilerleme çizgisi ── */
+.fx-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 2px;
+  z-index: 60;
+  background: var(--color-ink);
+  transform: scaleX(var(--p, 0));
+  transform-origin: 0 50%;
+  will-change: transform;
+}
+
+/* ── Sonsuz şerit (marquee) ── */
+.fx-marquee { overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.fx-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: fx-marquee 38s linear infinite;
+}
+.fx-marquee:hover .fx-marquee-track { animation-play-state: paused; }
+@keyframes fx-marquee {
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+/* ── Işık süpüren kenarlık (kartlarda hover) ── */
+.fx-sheen { position: relative; overflow: hidden; }
+.fx-sheen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 70%
+  );
+  transition: transform 0.9s cubic-bezier(0.16, 0.84, 0.28, 1);
+  pointer-events: none;
+}
+.fx-sheen:hover::before { transform: translateX(120%); }
+
+/* ── Hareket azaltma: TAMAMI kapanır, içerik tam görünür kalır ── */
+@media (prefers-reduced-motion: reduce) {
+  .fx-mesh::before,
+  .fx-mesh::after,
+  .fx-marquee-track { animation: none; }
+  .fx-kinetic > span { transform: none; animation: none; }
+  .fx-rise { opacity: 1; transform: none; filter: none; transition: none; }
+  .fx-tilt, .fx-tilt-lift { transform: none; transition: none; }
+  .fx-spotlight { display: none; }
+  .fx-sheen::before { display: none; }
+}

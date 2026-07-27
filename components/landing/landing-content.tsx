@@ -15,6 +15,7 @@ import { LandingNav } from "./landing-nav";
 import { ScrollReveal } from "./scroll-reveal";
 import { CrmPreview, HeroDemoProvider, HeroDemoNav } from "./crm-preview";
 import { PricingCompare } from "./pricing-compare";
+import { Kinetic, Rise, Spotlight, Tilt, ScrollProgress, Marquee } from "./fx";
 import { FREE_LISTING_LIMIT } from "@/lib/plans";
 
 /* Unsplash görsel yardımcısı (kategori kartları) — next/image ile optimize. */
@@ -156,16 +157,15 @@ function CtaButton({
   children,
 }: {
   href: string;
-  variant?: "primary" | "accent" | "secondary" | "inverse" | "ghost-dark";
+  variant?: "primary" | "secondary" | "inverse" | "ghost-dark";
   children: ReactNode;
 }) {
   // Monokrom: renkli CTA yok. Aydınlık zeminde mürekkep dolgu, koyu zeminde
   // beyaz dolgu. Hiyerarşi renkle değil dolgu/kenarlık ile kurulur.
   const styles = {
     primary: "bg-ink text-white shadow-[0_10px_30px_-8px_rgba(29,29,31,0.5)] hover:bg-ink/90",
-    accent: "bg-ink text-white shadow-[0_10px_30px_-8px_rgba(29,29,31,0.5)] hover:bg-ink/90",
     secondary: "border border-ink/15 bg-white text-ink hover:bg-paper",
-    inverse: "bg-white text-ink hover:bg-n-200",
+    inverse: "bg-white text-ink shadow-[0_10px_30px_-8px_rgba(0,0,0,0.55)] hover:bg-n-100",
     "ghost-dark": "border border-white/25 text-white hover:bg-white/10",
   };
   return (
@@ -238,15 +238,14 @@ export function LandingContent({
 }) {
   return (
     <div className="landing-root min-h-screen bg-paper text-ink selection:bg-brand-500/25">
+      <ScrollProgress />
       <LandingNav />
 
       {/* ── HERO ── */}
-      <section className="relative overflow-hidden px-5 pb-16 pt-28 sm:px-8 sm:pt-36">
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-[520px] opacity-70"
-          style={{ background: "radial-gradient(80% 90% at 78% 0%, rgba(29,29,31,0.10), transparent 60%)" }}
-          aria-hidden
-        />
+      <section className="fx-grain relative overflow-hidden px-5 pb-16 pt-28 sm:px-8 sm:pt-36">
+        {/* Derinlik renkten değil ışıktan: gri sis + film greni + imleç hâlesi */}
+        <div className="fx-mesh" aria-hidden />
+        <Spotlight />
         <HeroDemoProvider>
         <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1fr_1.08fr]">
           <ScrollReveal>
@@ -255,10 +254,10 @@ export function LandingContent({
                 <span className="h-1.5 w-1.5 rounded-full bg-brand-600" />
                 Emlakçının ücretsiz web sitesi + iş takibi
               </span>
-              <h1 className="mt-5 font-display text-[clamp(2.5rem,5.6vw,4rem)] font-extrabold leading-[1.02] tracking-tight">
-                İlanların, müşterilerin
+              <h1 className="mt-5 font-display text-[clamp(2.6rem,6vw,4.4rem)] font-extrabold leading-[1.0] tracking-[-0.03em]">
+                <Kinetic text="İlanların, müşterilerin" />
                 <br />
-                ve <span className="text-brand-600">web siten</span> — tek yerde.
+                <Kinetic text="ve web siten — tek yerde." delay={160} />
               </h1>
               <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink/60">
                 Ücretsiz emlak web siteni dakikalar içinde aç, ilanlarını ekle,
@@ -282,7 +281,9 @@ export function LandingContent({
           </ScrollReveal>
 
           <ScrollReveal from="right" delay={120}>
-            <CrmPreview listings={demoListings} office={demoOffice} />
+            <Tilt max={4}>
+              <CrmPreview listings={demoListings} office={demoOffice} />
+            </Tilt>
           </ScrollReveal>
         </div>
 
@@ -294,10 +295,28 @@ export function LandingContent({
         </HeroDemoProvider>
       </section>
 
+      {/* ── SONSUZ ŞERİT — ürünün kapsamını tek bakışta geçirir ── */}
+      <div className="border-y border-ink/8 bg-white/60 py-4">
+        <Marquee
+          items={[
+            "Ücretsiz web sitesi",
+            "İlan & portföy",
+            "Müşteri takibi",
+            "Satış hattı",
+            "Kira & tahsilat",
+            "Ajanda",
+            "AI Stüdyo",
+            "Sosyal içerik",
+            "Harita vitrini",
+            "Komisyon paylaşımı",
+          ]}
+        />
+      </div>
+
       {/* ── İSTATİSTİK ŞERİDİ (Beehome "What's happening" dili) ── */}
       <section className="px-5 sm:px-8">
         <ScrollReveal>
-          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 rounded-[28px] border border-ink/8 bg-white px-6 py-9 shadow-[0_30px_70px_-45px_rgba(29,29,31,0.35)] sm:grid-cols-4 sm:px-10">
+          <div className="fx-grain relative mx-auto grid max-w-6xl grid-cols-2 gap-6 overflow-hidden rounded-[28px] border border-ink/8 bg-white px-6 py-9 shadow-[0_30px_70px_-45px_rgba(29,29,31,0.35)] sm:grid-cols-4 sm:px-10">
             {[
               { n: "5 dk", l: "Kurulumdan yayına" },
               { n: "₺0", l: "Başlangıç, kartsız" },
@@ -318,7 +337,7 @@ export function LandingContent({
       {/* ── NE SUNUYORUZ (Beehome "Listing category" kart dili) ── */}
       <section className="px-5 py-20 sm:px-8 sm:py-24">
         <div className="mx-auto max-w-6xl">
-          <ScrollReveal>
+          <Rise>
             <div className="flex items-end justify-between gap-4">
               <div>
                 <h2 className="font-display text-3xl font-extrabold tracking-tight sm:text-[2.75rem]">
@@ -332,7 +351,7 @@ export function LandingContent({
                 <ArrowRight size={20} />
               </Link>
             </div>
-          </ScrollReveal>
+          </Rise>
 
           <div className="mt-10 grid gap-4 lg:grid-cols-3">
             {[
@@ -341,7 +360,7 @@ export function LandingContent({
               { img: U("1611162617213-7d7a39e9b1d7"), t: "AI Stüdyo", d: "Tanıtım videoları & Vitrin Sunucusu", tag: "Yapay zeka" },
             ].map((c, i) => (
               <ScrollReveal key={c.t} delay={i * 90}>
-                <article className="group flex items-center gap-4 overflow-hidden rounded-[22px] border border-ink/8 bg-white p-3 transition-all hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(29,29,31,0.35)]">
+                <article className="fx-sheen group flex items-center gap-4 overflow-hidden rounded-[22px] border border-ink/8 bg-white p-3 transition-all hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(29,29,31,0.35)]">
                   <div className="relative h-24 w-28 shrink-0 overflow-hidden rounded-2xl">
                     <Image src={c.img} alt={c.t} fill sizes="120px" loading="lazy" className="object-cover transition-transform duration-500 group-hover:scale-105" />
                   </div>
@@ -612,11 +631,16 @@ export function LandingContent({
 
       {/* ── FINAL CTA ── */}
       <section className="px-5 pb-24 sm:px-8">
-        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[34px] bg-ink px-6 py-20 text-center text-white sm:py-28">
-          {/* nötr ışıltı — koyu blokta derinlik, renk değil */}
+        <div className="fx-grain relative mx-auto max-w-6xl overflow-hidden rounded-[34px] bg-ink px-6 py-20 text-center text-white sm:py-28">
+          {/* Koyu blokta derinlik: iki beyaz hâle + film greni — renk yok */}
           <div
             className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full opacity-25 blur-3xl"
             style={{ background: "radial-gradient(circle, #ffffff, transparent 70%)" }}
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -bottom-32 -left-20 h-80 w-80 rounded-full opacity-[0.14] blur-3xl"
+            style={{ background: "radial-gradient(circle, #ffffff, transparent 72%)" }}
             aria-hidden
           />
           <ScrollReveal from="scale">
@@ -637,7 +661,7 @@ export function LandingContent({
           </ScrollReveal>
           <ScrollReveal delay={200}>
             <div className="relative mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <CtaButton href="/register" variant="accent">
+              <CtaButton href="/register" variant="inverse">
                 Ücretsiz hesap aç
                 <ArrowRight size={18} className="transition-transform group-hover:translate-x-0.5" />
               </CtaButton>
