@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { presignUpload } from "@/lib/r2";
+import { presignUpload, publicUrl } from "@/lib/r2";
 
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const MAX_NAME = 100;
@@ -37,5 +37,7 @@ export async function POST(req: Request) {
   const key = `${session.tenantId}/${folder}/${Date.now()}-${safe}.${ext}`;
 
   const uploadUrl = await presignUpload(key, body.contentType);
-  return NextResponse.json({ uploadUrl, key });
+  /* publicUrl da dönülür: istemci R2_PUBLIC_URL'i bilmez, yüklemeden sonra
+     dosyanın erişilebilir adresini kendi kuramaz. */
+  return NextResponse.json({ uploadUrl, key, publicUrl: publicUrl(key) });
 }

@@ -395,6 +395,11 @@ model Contact {
   fullName  String
   phone     String?
   email     String?
+  /** TC kimlik no — kira sözleşmesinde taraf kimliği için. Opsiyonel:
+      alıcı/satıcı kayıtlarında gerekmez, yalnız sözleşmeli işlerde istenir. */
+  nationalId String?
+  /** Sözleşmede geçen tebligat adresi */
+  address   String?
   note      String?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -868,6 +873,22 @@ model RentalAgreement {
   currency  String       @default("TRY")
   deposit   Decimal?     @db.Decimal(12, 2)
   paymentDueDay Int      @default(1) // ayın kaçında ödenir (MONTHLY için, 1–31)
+
+  /** İlana bağlı DEĞİLSE mülkün açık adresi — ofis kendi portföyünde olmayan
+      bir mülkün kirasını da takip edebilsin diye (listingId zaten opsiyonel). */
+  propertyAddress String?
+  /** Kiraya veren (mal sahibi) — ofis aracıysa kiracıdan farklı taraftır */
+  ownerName       String?
+  ownerNationalId String?
+  /** Yıllık kira artış oranı (%) — yenileme hatırlatmasında kullanılır */
+  increaseRate    Decimal? @db.Decimal(5, 2)
+
+  /** Daha önce kâğıtta imzalanmış sözleşmenin taranmış hâli (R2). Ofisler
+      mevcut yazılı sözleşmelerini elektronik ortamda saklayabilsin diye. */
+  contractFileUrl String?
+  contractFileKey String?  // R2 object key — silme için
+  contractFileName String? // kullanıcıya gösterilecek özgün dosya adı
+
   note      String?
 
   createdAt DateTime @default(now())
