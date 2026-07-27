@@ -5,11 +5,7 @@ import Link from "next/link";
 import type mapboxgl from "mapbox-gl";
 import { ArrowRight, ChevronDown, ChevronRight, Sparkles, Zap } from "lucide-react";
 import "mapbox-gl/dist/mapbox-gl.css";
-import {
-  applyEmlakflowMapTheme,
-  getMapboxStyleUrl,
-  tintMutedLayers,
-} from "@/lib/mapbox-style";
+import { getMapboxStyleUrl } from "@/lib/mapbox-style";
 
 /**
  * Scrub hero: 350vh'lik ray boyunca sayfa kaydırıldıkça Mapbox kamerası
@@ -93,17 +89,11 @@ export function ScrubHero() {
 
       map.addControl(new gl.AttributionControl({ compact: true }), "bottom-left");
 
-      const theme = () => {
-        if (cancelled || !map) return;
-        applyEmlakflowMapTheme(map);
-        tintMutedLayers(map);
-      };
+      // Harita orijinal standart Mapbox şablonuyla çizilir — özel tema yok.
 
       map.on("load", () => {
         if (cancelled || !map) return;
         map.resize();
-        theme();
-        map.once("idle", theme);
         mapRef.current = map;
         setReady(true);
 

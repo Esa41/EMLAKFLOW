@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { applyEmlakflowMapTheme, getMapboxStyleUrl } from "@/lib/mapbox-style";
+import { getMapboxStyleUrl } from "@/lib/mapbox-style";
 
 export interface MapListing {
   id: string;
@@ -125,8 +125,6 @@ export function ShowcaseMap({
 
       map.on("load", () => {
         if (cancelled || !map) return;
-
-        applyEmlakflowMapTheme(map);
 
         const bounds = new mapboxgl.LngLatBounds();
 
