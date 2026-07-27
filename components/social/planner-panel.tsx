@@ -140,6 +140,7 @@ export function PlannerPanel({
           listingId,
           format,
           tone,
+          packId: activePackId,
           mediaUrls: boundVideo ? [boundVideo.videoUrl] : undefined,
           studioProjectId:
             boundVideo?.kind === "project" ? boundVideo.id : null,

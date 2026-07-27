@@ -1,5 +1,20 @@
 # Sosyal OS — Ne Var, Ne Yok, Nasıl Tamamlanır
 
+> **GÜNCELLEME (Tem 2026): iki karar alındı ve uygulandı.**
+> 1. **Otomatik yayın kapsam dışı.** Faz B/E (destekli ve otomatik yayın)
+>    yapılmayacak. Ürün içeriği hazırlar, paylaşımı emlakçı kendi yapar.
+>    → Aşağıdaki 5. bölümdeki B ve E fazları **iptal**; 1. maddedeki
+>    "vaadi dürüstleştir" hâlâ geçerli (başlıktaki "yayınla" iddiası).
+> 2. **GPT çağrısı kaldırıldı.** İçerik artık `lib/social-os/templates.ts`
+>    + `render.ts` ile bizim yazdığımız şablonlardan üretiliyor.
+>    → 3. bölümdeki maliyet/gecikme/kota analizi **artık geçersiz**:
+>    maliyet 0, yanıt anlık, parse hatası imkânsız, kota gereksiz.
+>    Şablonların ham hâli `sourceTemplate` olarak çıktıya konur; müşteri
+>    görüp kendi içeriğini aynı tarzda üretebilir.
+>
+> Bölüm 2.1–2.3'teki tespitler (yayının hiç kurulmamış olması, ölçüm
+> döngüsünün kopukluğu) **olduğu gibi geçerli** — kayıt için duruyor.
+
 > Temmuz 2026. Ekrandaki Planlayıcı'nın kod seviyesinde incelemesi.
 > Okunanlar: `components/social/planner-panel.tsx`, `app/actions/social-os.ts`,
 > `lib/social-os/{generate,prompts,catalog}.ts`, `lib/social.ts`,

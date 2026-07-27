@@ -5,7 +5,7 @@ import type { ContentFormat, SocialPlatform } from "@prisma/client";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { forTenant } from "@/lib/tenant";
-import { generateListingContent } from "@/lib/social-os/generate";
+import { renderListingContent } from "@/lib/social-os/render";
 
 const FORMATS = new Set([
   "FEED_POST",
@@ -62,6 +62,8 @@ export async function generateSocialAsset(input: {
   listingId: string;
   format: string;
   tone: string;
+  /** Hazır paket kimliği — paketin açısı (fiyat düştü, açık kapı…) için */
+  packId?: string | null;
   /** Stüdyo videosu / seçili medya — yoksa ilan fotoğrafları */
   mediaUrls?: string[];
   studioProjectId?: string | null;
@@ -98,13 +100,15 @@ export async function generateSocialAsset(input: {
     where: { tenantId: session.tenantId },
   });
 
-  const generated = await generateListingContent({
+  // Şablon motoru — LLM çağrısı yok: anlık, maliyetsiz, çıktı deterministik.
+  const generated = renderListingContent({
     listing: {
       ...listing,
       price: listing.price.toString(),
     },
     format: input.format,
     tone: input.tone,
+    packId: input.packId ?? null,
     brandVoice: brand?.voice,
     emojiPolicy: brand?.emojiPolicy,
     forbidden: brand?.forbiddenPhrases ?? [],
@@ -128,7 +132,11 @@ export async function generateSocialAsset(input: {
       emojiStrategy: generated.emojiStrategy,
       hashtags: generated.hashtags,
       seoKeywords: generated.seoKeywords,
-      imagePrompt: generated.imagePrompt,
+      imagePrompt: {
+        prompt: generated.imagePrompt,
+        // Müşteri şablonu görüp kendi içeriğini aynı tarzda üretebilsin
+        sourceTemplate: generated.sourceTemplate,
+      },
       videoPrompt: generated.videoPrompt,
       thumbnailIdea: generated.thumbnailIdea,
       carouselSlides: generated.carouselSlides,

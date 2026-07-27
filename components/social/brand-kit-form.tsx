@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { upsertBrandKit } from "@/app/actions/social-os";
-import { TONE_OPTIONS } from "@/lib/social-os/prompts";
+import { TONE_OPTIONS } from "@/lib/social-os/catalog";
 
 const fieldClass =
   "w-full rounded-xl border border-ink/10 bg-[var(--app-input-bg)] px-3 py-2.5 text-sm outline-none focus:border-brand-600";
