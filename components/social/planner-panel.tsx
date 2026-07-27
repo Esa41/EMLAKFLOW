@@ -82,6 +82,10 @@ export function PlannerPanel({
     bootPack?.id ?? "new-listing",
   );
   const [boundVideo, setBoundVideo] = useState<StudioMediaItem | null>(null);
+  /* Paket seçiliyken format/ton elle değiştirilirse paket DÜŞMEZ — paketin
+     açısı (açılış, özel not, CTA) çıktıyı etkilediği için sessizce
+     kaybolması kullanıcının haberi olmadan metni değiştirirdi. */
+  const [packCustomized, setPackCustomized] = useState(false);
 
   const listing = useMemo(
     () => listings.find((l) => l.id === listingId) ?? null,
@@ -129,6 +133,7 @@ export function PlannerPanel({
     setActivePackId(pack.id);
     setFormat(pack.format);
     setTone(pack.tone);
+    setPackCustomized(false);
   }
 
   function generate() {
@@ -233,6 +238,7 @@ export function PlannerPanel({
               onChange={(e) => {
                 setListingId(e.target.value);
                 setActivePackId(null);
+                setPackCustomized(false);
                 setBoundVideo(null);
               }}
               className="w-full rounded-xl border border-ink/10 bg-[var(--app-input-bg)] px-3 py-2 text-sm"
@@ -335,7 +341,7 @@ export function PlannerPanel({
                     type="button"
                     onClick={() => {
                       setFormat(key);
-                      setActivePackId(null);
+                      setPackCustomized(true);
                     }}
                     className={`rounded-xl border px-3 py-2.5 text-left transition ${
                       on
@@ -369,7 +375,7 @@ export function PlannerPanel({
                     title={`${g.vibe} — ${g.useWhen}`}
                     onClick={() => {
                       setTone(key);
-                      setActivePackId(null);
+                      setPackCustomized(true);
                     }}
                     className={`rounded-full px-3 py-1.5 text-[12px] font-medium transition ${
                       on
@@ -402,6 +408,12 @@ export function PlannerPanel({
             <p className="mt-1 text-[13px] font-semibold text-ink">
               {formatMeta.label} × {toneMeta.label}
             </p>
+            {activePack && (
+              <p className="mt-0.5 text-[12px] text-ink/55">
+                Paket: {activePack.title}
+                {packCustomized ? " (özelleştirildi)" : ""}
+              </p>
+            )}
             <p className="mt-0.5 text-[12px] text-ink/55">{formatMeta.produces}</p>
           </div>
 
