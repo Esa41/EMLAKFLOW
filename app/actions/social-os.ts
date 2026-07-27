@@ -64,6 +64,10 @@ export async function generateSocialAsset(input: {
   tone: string;
   /** Hazır paket kimliği — paketin açısı (fiyat düştü, açık kapı…) için */
   packId?: string | null;
+  /** Önizlemede kullanılan varyant tohumu. İstemci ne gördüyse o kaydedilsin
+      diye aynısı geçilir; içerik yine SUNUCUDA, DB'deki ilan verisinden
+      üretilir (istemciden gelen metne güvenilmez). */
+  variantSeed?: number;
   /** Stüdyo videosu / seçili medya — yoksa ilan fotoğrafları */
   mediaUrls?: string[];
   studioProjectId?: string | null;
@@ -109,6 +113,7 @@ export async function generateSocialAsset(input: {
     format: input.format,
     tone: input.tone,
     packId: input.packId ?? null,
+    variantSeed: input.variantSeed,
     brandVoice: brand?.voice,
     emojiPolicy: brand?.emojiPolicy,
     forbidden: brand?.forbiddenPhrases ?? [],

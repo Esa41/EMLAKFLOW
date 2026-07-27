@@ -16,6 +16,10 @@ import {
 } from "@/lib/social-os/catalog";
 import { TEMPLATES, type TemplateKey } from "@/lib/studio-templates";
 import type { StudioMediaItem } from "@/lib/social-os/studio-media";
+/* Şablon motoru SAF bir fonksiyon (I/O yok) — tarayıcıda çalışır.
+   Canlı önizleme bu yüzden sunucuya hiç gitmeden anında güncellenir.
+   LLM kaldırıldığı için mümkün oldu. */
+import { renderListingContent } from "@/lib/social-os/render";
 
 type ListingOpt = {
   id: string;
@@ -24,6 +28,14 @@ type ListingOpt = {
   purpose: string;
   type: string;
   price: number;
+  currency: string;
+  city: string;
+  district: string;
+  neighborhood: string | null;
+  rooms: string | null;
+  netArea: number | null;
+  grossArea: number | null;
+  features: string[];
 };
 
 type AssetRow = {
@@ -86,6 +98,10 @@ export function PlannerPanel({
      açısı (açılış, özel not, CTA) çıktıyı etkilediği için sessizce
      kaybolması kullanıcının haberi olmadan metni değiştirirdi. */
   const [packCustomized, setPackCustomized] = useState(false);
+  /* Varyant tohumu: aynı seçimde farklı açılış/CTA denemek için. Kaydederken
+     sunucuya AYNI tohum gider → önizlenen metin birebir kaydedilir. */
+  const [seed, setSeed] = useState(1);
+  const [justSaved, setJustSaved] = useState<string | null>(null);
 
   const listing = useMemo(
     () => listings.find((l) => l.id === listingId) ?? null,
@@ -129,6 +145,37 @@ export function PlannerPanel({
     [assets, selectedId],
   );
 
+  /* CANLI ÖNİZLEME — sunucuya gitmez, her seçim değişiminde yeniden hesaplanır.
+     Marka kiti (ses/yasak ifade) sunucuda uygulanır; önizleme onsuz da metnin
+     iskeletini doğru gösterir. */
+  const preview = useMemo(() => {
+    if (!listing) return null;
+    try {
+      return renderListingContent({
+        listing: {
+          title: listing.title,
+          purpose: listing.purpose,
+          type: listing.type,
+          price: String(listing.price),
+          currency: listing.currency,
+          city: listing.city,
+          district: listing.district,
+          neighborhood: listing.neighborhood,
+          rooms: listing.rooms,
+          netArea: listing.netArea,
+          grossArea: listing.grossArea,
+          features: listing.features,
+        },
+        format,
+        tone,
+        packId: activePackId,
+        variantSeed: seed,
+      });
+    } catch {
+      return null;
+    }
+  }, [listing, format, tone, activePackId, seed]);
+
   function applyPack(pack: ContentPack) {
     setActivePackId(pack.id);
     setFormat(pack.format);
@@ -136,9 +183,13 @@ export function PlannerPanel({
     setPackCustomized(false);
   }
 
-  function generate() {
-    if (!listingId) return;
+  /* Önizlenen içeriği taslak olarak kaydet. Üretim ücretsiz ve anlık olduğu
+     için ARTIK HER DENEME DB'YE YAZILMIYOR — yalnız beğenilen kaydedilir.
+     (Eskiden her tıklama bir DRAFT üretip taslak listesini çöple dolduruyordu.) */
+  function save() {
+    if (!listingId || !preview) return;
     setError(null);
+    setJustSaved(null);
     start(async () => {
       try {
         const res = await generateSocialAsset({
@@ -146,14 +197,36 @@ export function PlannerPanel({
           format,
           tone,
           packId: activePackId,
+          variantSeed: seed, // önizlenen varyantın aynısı kaydedilsin
           mediaUrls: boundVideo ? [boundVideo.videoUrl] : undefined,
           studioProjectId:
             boundVideo?.kind === "project" ? boundVideo.id : null,
           studioJobId: boundVideo?.kind === "job" ? boundVideo.id : null,
         });
-        window.location.href = `/sosyal/planlayici?focus=${res.assetId}`;
+        // Tam sayfa yenilemesi yok — taslak listesine yerinde eklenir
+        setAssets((prev) => [
+          {
+            id: res.assetId,
+            headline: preview.headline,
+            caption: preview.caption,
+            cta: preview.cta,
+            format,
+            tone,
+            status: "DRAFT",
+            hashtags: preview.hashtags,
+            mediaUrls: boundVideo ? [boundVideo.videoUrl] : [],
+            listing: listing
+              ? { refCode: listing.refCode, title: listing.title }
+              : null,
+            postingRec: preview.postingRecommendation,
+            createdAt: new Date().toISOString(),
+          },
+          ...prev,
+        ]);
+        setSelectedId(res.assetId);
+        setJustSaved(res.assetId);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Üretim başarısız");
+        setError(e instanceof Error ? e.message : "Kaydedilemedi");
       }
     });
   }
@@ -329,7 +402,15 @@ export function PlannerPanel({
             </div>
           )}
 
-          <div className="space-y-2">
+          {/* İnce ayar KATLANMIŞ: paket zaten format+ton'u ayarlıyor; ikisini
+              de açık bırakmak aynı kararı iki kez sordurup kafa karıştırıyordu. */}
+          <details className="group space-y-2">
+            <summary className="cursor-pointer list-none text-[12px] font-semibold text-ink/40 hover:text-ink/60">
+              İnce ayar — format ve ton
+              <span className="ml-1 text-ink/30 group-open:hidden">(aç)</span>
+            </summary>
+
+          <div className="mt-3 space-y-2">
             <p className="text-[12px] font-semibold text-ink/40">Format</p>
             <div className="grid gap-1.5">
               {FORMAT_KEYS.map((key) => {
@@ -400,12 +481,10 @@ export function PlannerPanel({
               </p>
             </div>
           </div>
+          </details>
 
-          <div className="rounded-xl border border-dashed border-brand-600/30 bg-brand-600/5 px-3 py-2.5">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-brand-600">
-              Bu seçim ne üretecek?
-            </p>
-            <p className="mt-1 text-[13px] font-semibold text-ink">
+          <div className="rounded-xl border border-dashed border-ink/20 bg-[var(--app-input-bg)] px-3 py-2.5">
+            <p className="text-[13px] font-semibold text-ink">
               {formatMeta.label} × {toneMeta.label}
             </p>
             {activePack && (
@@ -417,14 +496,29 @@ export function PlannerPanel({
             <p className="mt-0.5 text-[12px] text-ink/55">{formatMeta.produces}</p>
           </div>
 
-          <button
-            type="button"
-            disabled={pending || !listingId}
-            onClick={generate}
-            className="w-full rounded-xl bg-brand-600 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            {pending ? "Üretiliyor…" : "İçerik üret"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setSeed((n) => n + 1)}
+              className="rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-semibold text-ink/70 transition hover:bg-[var(--app-input-bg)]"
+              title="Aynı seçimle farklı bir açılış ve CTA dene"
+            >
+              Başka varyant
+            </button>
+            <button
+              type="button"
+              disabled={pending || !listingId || !preview}
+              onClick={save}
+              className="flex-1 rounded-xl bg-brand-600 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {pending ? "Kaydediliyor…" : "Taslak olarak kaydet"}
+            </button>
+          </div>
+          {justSaved && (
+            <p className="text-[12px] font-medium text-ink/55">
+              Kaydedildi — taslaklara eklendi.
+            </p>
+          )}
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <div className="border-t border-ink/10 pt-3">
@@ -455,18 +549,131 @@ export function PlannerPanel({
           </div>
         </div>
 
+        <div className="space-y-4">
+        {/* ── CANLI ÖNİZLEME — seçim değiştikçe anında güncellenir ── */}
+        {preview && (
+          <section className="rounded-2xl border border-ink/10 bg-[var(--app-surface)] p-5">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="text-[12px] font-semibold uppercase tracking-wide text-ink/40">
+                Canlı önizleme
+              </p>
+              <span className="text-[11px] text-ink/35">
+                {formatMeta.label} · {toneMeta.label}
+              </span>
+            </div>
+
+            {/* Gönderi kartı — emlakçı sonucun nasıl duracağını görsün */}
+            <div className="overflow-hidden rounded-2xl border border-ink/10 bg-[var(--app-surface-hover)]">
+              <div className="flex items-center gap-2 border-b border-ink/8 px-3 py-2">
+                <span className="h-6 w-6 rounded-full bg-ink/10" />
+                <span className="text-[12px] font-semibold">
+                  {listing?.refCode ?? "İlan"}
+                </span>
+              </div>
+              {boundVideo ? (
+                <video
+                  src={boundVideo.videoUrl}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="aspect-square w-full bg-black object-cover"
+                />
+              ) : (
+                <div className="flex aspect-square w-full items-center justify-center bg-gradient-to-br from-[#ececee] to-[#9a9aa2] text-[12px] text-ink/40">
+                  Görsel: ilan fotoğrafı
+                </div>
+              )}
+              <div className="px-3 py-3">
+                <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed">
+                  {preview.caption}
+                </p>
+              </div>
+            </div>
+
+            {preview.carouselSlides.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-1.5 text-[12px] font-semibold text-ink/40">
+                  Slaytlar ({preview.carouselSlides.length})
+                </p>
+                <ol className="space-y-1">
+                  {preview.carouselSlides.map((sl) => (
+                    <li
+                      key={sl.order}
+                      className="rounded-lg bg-[var(--app-input-bg)] px-2.5 py-1.5 text-[12.5px]"
+                    >
+                      <span className="mr-1.5 font-mono text-[10px] text-ink/40">
+                        {sl.order}
+                      </span>
+                      {sl.text}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {preview.storySequence.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-1.5 text-[12px] font-semibold text-ink/40">
+                  Story kareleri
+                </p>
+                <ol className="space-y-1">
+                  {preview.storySequence.map((fr) => (
+                    <li
+                      key={fr.order}
+                      className="flex justify-between gap-3 rounded-lg bg-[var(--app-input-bg)] px-2.5 py-1.5 text-[12.5px]"
+                    >
+                      <span>{fr.text}</span>
+                      <span className="shrink-0 font-mono text-[10px] text-ink/40">
+                        {fr.durationSec}sn
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            <div className="mt-4 grid gap-3 border-t border-ink/8 pt-3 sm:grid-cols-2">
+              <div>
+                <p className="text-[11px] font-semibold text-ink/40">Görsel promptu</p>
+                <p className="mt-1 text-[12px] leading-snug text-ink/60">
+                  {preview.imagePrompt}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-ink/40">
+                  Ne zaman paylaşılmalı
+                </p>
+                <p className="mt-1 text-[12px] leading-snug text-ink/60">
+                  {preview.postingRecommendation.bestTimesLocal.join(" · ")} —{" "}
+                  {preview.postingRecommendation.reason}
+                </p>
+              </div>
+            </div>
+
+            {/* Müşteri şablonu görüp kendi içeriğini aynı tarzda üretebilsin */}
+            <details className="mt-3">
+              <summary className="cursor-pointer text-[12px] font-semibold text-ink/45">
+                Bu metnin şablonu
+              </summary>
+              <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-lg bg-[var(--app-input-bg)] p-2.5 text-[11.5px] text-ink/60">
+                {preview.sourceTemplate}
+              </pre>
+            </details>
+          </section>
+        )}
+
         <div className="rounded-2xl border border-ink/10 bg-[var(--app-surface)] p-5">
           {!selected ? (
             <div className="space-y-3 text-sm text-ink/50">
-              <p className="font-medium text-ink/70">Nasıl başlanır?</p>
+              <p className="font-medium text-ink/70">Nasıl çalışır?</p>
               <ol className="list-decimal space-y-1.5 pl-4">
-                <li>Üstten bir hazır paket seç (veya format + tonu elle ayarla)</li>
-                <li>İlanı seç</li>
+                <li>Hazır paket seç — önizleme yukarıda anında belirir</li>
+                <li>Ton veya formata dokun, metin anında değişir</li>
                 <li>
-                  <strong className="text-ink">İçerik üret</strong> — caption, CTA,
-                  hashtag ve görsel/video prompt’ları gelir
+                  <strong className="text-ink">Başka varyant</strong> ile farklı
+                  açılış ve CTA dene — hepsi ücretsiz ve anlık
                 </li>
-                <li>Beğenirsen takvime ekle</li>
+                <li>Beğendiğini taslak olarak kaydet, sonra takvime ekle</li>
               </ol>
             </div>
           ) : (
@@ -564,6 +771,7 @@ export function PlannerPanel({
               </div>
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>

@@ -145,12 +145,15 @@ export function renderListingContent(input: {
   const seed =
     input.variantSeed ?? seedFrom(`${l.title}|${format}|${tone}|${Date.now() >> 22}`);
 
+  /* Açılış, köprü ve CTA AYRI indekslerle seçilir. Hepsi `seed % n` olsaydı
+     3 açılış + 3 CTA yalnız 3 kombinasyon verirdi (hep aynı eşleşme); ayrı
+     kaydırmayla 3×3 = 9 farklı metin çıkıyor. */
   const openerPool = angle?.openers ?? v.openers;
-  const opener = fillTokens(openerPool[seed % openerPool.length], d);
-  const bridge = v.bridges[seed % v.bridges.length];
   const ctaPool = angle?.ctas ?? v.ctas;
-  const cta = ctaPool[seed % ctaPool.length];
-  const note = angle?.note?.[seed % angle.note.length] ?? "";
+  const opener = fillTokens(openerPool[seed % openerPool.length], d);
+  const bridge = v.bridges[(seed >> 2) % v.bridges.length];
+  const cta = ctaPool[Math.floor(seed / openerPool.length) % ctaPool.length];
+  const note = angle?.note?.[(seed >> 1) % angle.note.length] ?? "";
   const emoji = emojiFor(tone, input.emojiPolicy);
 
   /* Künye satırı: tek kalan bilgi ilçeyse ve açılış zaten orayı söylüyorsa

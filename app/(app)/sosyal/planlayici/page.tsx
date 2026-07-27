@@ -21,6 +21,8 @@ export default async function PlanlayiciPage({
     db.listing.findMany({
       where: { status: "ACTIVE" },
       orderBy: { createdAt: "desc" },
+      // Canlı önizleme şablonu tarayıcıda render ediliyor — künye alanlarının
+      // tamamı istemciye gitmeli (renderListingContent saf bir fonksiyon).
       select: {
         id: true,
         refCode: true,
@@ -28,6 +30,14 @@ export default async function PlanlayiciPage({
         purpose: true,
         type: true,
         price: true,
+        currency: true,
+        city: true,
+        district: true,
+        neighborhood: true,
+        rooms: true,
+        netArea: true,
+        grossArea: true,
+        features: true,
       },
       take: 100,
     }),
@@ -75,6 +85,14 @@ export default async function PlanlayiciPage({
         purpose: l.purpose,
         type: l.type,
         price: Number(l.price),
+        currency: l.currency,
+        city: l.city,
+        district: l.district,
+        neighborhood: l.neighborhood,
+        rooms: l.rooms,
+        netArea: l.netArea,
+        grossArea: l.grossArea,
+        features: l.features,
       }))}
       studioVideos={videos}
       initialListingId={initialListingId}
