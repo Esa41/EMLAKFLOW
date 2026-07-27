@@ -19,7 +19,6 @@ import {
   UserPlus,
   Target,
   Landmark,
-  CalendarDays,
 } from "lucide-react";
 import { SetupChecklist } from "@/components/setup-checklist";
 import { showcaseUrl } from "@/lib/url";
@@ -62,6 +61,8 @@ export default async function DashboardPage() {
   endOfDay.setDate(endOfDay.getDate() + 1);
   const monthStart = new Date(startOfDay.getFullYear(), startOfDay.getMonth(), 1);
   const monthEnd = new Date(startOfDay.getFullYear(), startOfDay.getMonth() + 1, 1);
+  // Önceki ay — "bu ay kapanan" metriğinin değişim (▲/▼) karşılaştırması için
+  const prevMonthStart = new Date(startOfDay.getFullYear(), startOfDay.getMonth() - 1, 1);
 
   const tenantBrand = await prisma.tenant.findUnique({
     where: { id: session.tenantId },
@@ -94,6 +95,8 @@ export default async function DashboardPage() {
     monthDue,
     overdue,
     upcomingPayments,
+    monthWon,
+    prevMonthWon,
   ] = await Promise.all([
     db.deal.findMany({
       where: {
@@ -161,6 +164,19 @@ export default async function DashboardPage() {
         },
       },
     }),
+    // Bu ay kazanılan işlemler — panelin "nasıl gidiyorum" metriği
+    db.deal.aggregate({
+      _sum: { value: true },
+      _count: true,
+      where: { stage: "CLOSED_WON", closedAt: { gte: monthStart, lt: monthEnd } },
+    }),
+    db.deal.aggregate({
+      _sum: { value: true },
+      where: {
+        stage: "CLOSED_WON",
+        closedAt: { gte: prevMonthStart, lt: monthStart },
+      },
+    }),
   ]);
 
   const monthPaidTotal = Number(monthPaid._sum.amount ?? 0);
@@ -216,6 +232,15 @@ export default async function DashboardPage() {
     .filter(Boolean)
     .join(" · ");
 
+  const monthWonTotal = Number(monthWon._sum.value ?? 0);
+  const prevWonTotal = Number(prevMonthWon._sum.value ?? 0);
+  /* Değişim yüzdesi — geçen ay sıfırsa oran tanımsızdır, gösterme
+     (0'dan artışı "%∞" ya da "%100" diye yazmak yanıltıcı olur). */
+  const wonDelta =
+    prevWonTotal > 0
+      ? Math.round(((monthWonTotal - prevWonTotal) / prevWonTotal) * 100)
+      : null;
+
   const kpis = [
     {
       icon: Landmark,
@@ -224,7 +249,16 @@ export default async function DashboardPage() {
       sub: `${parselDeals.length} aktif fırsat`,
       href: "/musteriler",
       money: true,
-      accent: "from-brand-600/8 to-brand-600/2",
+      delta: null as number | null,
+    },
+    {
+      icon: Wallet,
+      label: "Bu ay kapanan",
+      value: monthWonTotal > 0 ? compactMoney(monthWonTotal) : "—",
+      sub: `${monthWon._count} işlem`,
+      href: "/musteriler",
+      money: true,
+      delta: wonDelta,
     },
     {
       icon: Building2,
@@ -232,7 +266,8 @@ export default async function DashboardPage() {
       value: activeListings,
       sub: "vitrinde canlı",
       href: "/portfoy",
-      accent: "from-blue-500/8 to-blue-500/2",
+      money: false,
+      delta: null as number | null,
     },
     {
       icon: Target,
@@ -240,17 +275,10 @@ export default async function DashboardPage() {
       value: openLeads,
       sub: "eşleşme bekliyor",
       href: "/kisiler",
-      accent: "from-amber-500/8 to-amber-500/2",
+      money: false,
+      delta: null as number | null,
     },
-    {
-      icon: CalendarDays,
-      label: "Bugün randevu",
-      value: todaysAppointments.length,
-      sub: "ajandanızda",
-      href: "/ajanda",
-      accent: "from-violet-500/8 to-violet-500/2",
-    },
-  ] as const;
+  ];
 
   // ── Aktivasyon (yeni ofis kurulumu) ──
   const vConf = getVertical(tenantBrand?.vertical);
@@ -299,8 +327,24 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* ── Aksiyon uyarısı — KPI'ların ÜSTÜNDE (durum değil, yapılacak iş) ── */}
+      {overdue._count > 0 && (
+        <Link
+          href="/kiralar"
+          className="dash-alert-danger dash-in mt-6"
+          style={{ animationDelay: "80ms" }}
+        >
+          <AlertTriangle size={16} className="shrink-0" />
+          <span className="min-w-0 flex-1">
+            {overdue._count} kira ödemesi gecikti —{" "}
+            <span className="tabular-nums">{trMoney.format(overdueTotal)}</span>
+          </span>
+          <ArrowRight size={15} className="shrink-0" />
+        </Link>
+      )}
+
       {/* ── KPI şeridi ── */}
-      <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+      <div className="mt-6 grid grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-3">
         {kpis.map((k, i) => (
           <Link
             key={k.label}
@@ -308,37 +352,40 @@ export default async function DashboardPage() {
             className="dash-kpi dash-in group"
             style={{ animationDelay: `${100 + i * 60}ms` }}
           >
-            <div
-              className={`absolute inset-0 bg-gradient-to-br ${k.accent} opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
-              aria-hidden
-            />
             <div className="relative flex items-start justify-between">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink/[0.04] text-ink/60 transition-colors group-hover:bg-brand-600 group-hover:text-white">
-                <k.icon size={17} strokeWidth={1.75} />
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink/[0.04] text-ink/60 transition-colors group-hover:bg-ink group-hover:text-white">
+                <k.icon size={16} strokeWidth={1.75} />
               </span>
               <ArrowUpRight
-                size={15}
-                className="text-ink/20 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-brand-600"
+                size={14}
+                className="text-ink/20 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink"
               />
             </div>
-            <p className="relative mt-4 font-display text-[28px] font-bold leading-none tracking-tight tabular-nums">
-              {"money" in k && k.money ? (
-                k.value
-              ) : (
-                <CountUp to={Number(k.value)} duration={900} />
-              )}
+            <p className="relative mt-3 font-display text-[26px] font-bold leading-none tracking-tight tabular-nums">
+              {k.money ? k.value : <CountUp to={Number(k.value)} duration={900} />}
             </p>
-            <p className="relative mt-1.5 text-[14px] font-semibold text-ink/75">{k.label}</p>
+            <div className="relative mt-1.5 flex items-center gap-1.5">
+              <p className="text-[13px] font-semibold text-ink/75">{k.label}</p>
+              {k.delta !== null && (
+                <span
+                  className={`dash-delta ${k.delta > 0 ? "dash-delta-up" : k.delta < 0 ? "dash-delta-down" : ""}`}
+                  title={`Geçen aya göre %${Math.abs(k.delta)}`}
+                >
+                  {k.delta > 0 ? "▲" : k.delta < 0 ? "▼" : "•"}
+                  {Math.abs(k.delta)}%
+                </span>
+              )}
+            </div>
             <p className="relative text-[12px] text-ink/40">{k.sub}</p>
           </Link>
         ))}
       </div>
 
       {/* ── Ana grid ── */}
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
           {/* Satış hattı */}
-          <section className="dash-card dash-in p-5 sm:p-6" style={{ animationDelay: "280ms" }}>
+          <section className="dash-card dash-in p-4 sm:p-5" style={{ animationDelay: "280ms" }}>
             <SectionHeader title="Satış hattı" href="/musteriler" linkLabel="Kanban" />
             <div className="mt-5">
               <ParselMap deals={parselDeals} />
@@ -403,9 +450,9 @@ export default async function DashboardPage() {
         </div>
 
         {/* Sağ kolon */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Bugünün rotası */}
-          <section className="dash-card dash-in p-5 sm:p-6" style={{ animationDelay: "300ms" }}>
+          <section className="dash-card dash-in p-4 sm:p-5" style={{ animationDelay: "300ms" }}>
             <SectionHeader title="Bugünün rotası" href="/ajanda" linkLabel="Ajanda" />
             {todaysAppointments.length === 0 ? (
               <div className="dash-empty mt-4">Bugün planlanmış randevu yok.</div>
@@ -436,7 +483,7 @@ export default async function DashboardPage() {
 
           {/* Kira & Finans */}
           {showRentals && (
-            <section className="dash-card dash-in p-5 sm:p-6" style={{ animationDelay: "360ms" }}>
+            <section className="dash-card dash-in p-4 sm:p-5" style={{ animationDelay: "360ms" }}>
               <SectionHeader title="Kira & finans" href="/kiralar" linkLabel="Tümü" />
               <div className="mt-4">
                 <div className="flex items-center justify-between">
@@ -464,15 +511,8 @@ export default async function DashboardPage() {
                   )}
                 </div>
 
-                {overdue._count > 0 && (
-                  <Link
-                    href="/kiralar"
-                    className="mt-3 flex items-center gap-2 rounded-xl bg-red-500/[0.08] px-3.5 py-2.5 text-[13px] font-medium text-red-700 transition hover:bg-red-500/[0.12] dark:text-red-400"
-                  >
-                    <AlertTriangle size={14} />
-                    {overdue._count} geciken · {trMoney.format(overdueTotal)}
-                  </Link>
-                )}
+                {/* Geciken tahsilat uyarısı sayfanın EN ÜSTÜNE taşındı
+                    (aksiyon gerektiren iş, kart içinde gömülü kalmamalı). */}
 
                 {upcomingPayments.length > 0 && (
                   <div className="mt-4 border-t border-ink/[0.06] pt-4">

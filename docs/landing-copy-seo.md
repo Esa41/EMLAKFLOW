@@ -13,7 +13,7 @@
 `Ücretsiz Emlak Web Sitesi Kurma + Gayrimenkul CRM | EmlakFlow`
 
 **Meta description (154 karakter):**
-`5 dakikada kendi markanızla ücretsiz emlak web sitesi kurun. İlan, müşteri, kira ve randevu takibi tek panelde. Kredi kartı ve kod bilgisi gerekmez.`
+`Kendi markanızla ücretsiz emlak web sitesi kurun. İlan, müşteri, kira ve randevu takibi tek panelde. Kredi kartı ve kod bilgisi gerekmez.`
 
 **OG başlık:** `Emlak Ofisiniz İçin Ücretsiz Web Sitesi + Tek Panel`
 **Canonical:** `https://emlakflow.app/`
@@ -34,7 +34,7 @@ kartı istemiyoruz.**
 **İkincil CTA:** `Paneli 60 saniyede gez`
 
 **Güven vurgusu (CTA altı, tek satır):**
-Kurulum 5 dakika · Kredi kartı yok · İstediğiniz an tek tıkla silin
+Kredi kartı yok · Taahhüt yok · İstediğiniz an tek tıkla silin
 
 ---
 
@@ -63,14 +63,14 @@ müşteri veritabanınız**, **kendi takibiniz**.
 
 ### Saniyeler İçinde Kurulum — Ücretsiz Emlak Web Sitesi
 
-Ajansla anlaşma yok, 20 bin liralık teklif yok, aylık bakım faturası yok.
 Ofis adınızı ve bölgenizi girin; haritalı, mobil uyumlu, Google'a uygun emlak
-web siteniz **5 dakikada yayında olsun**.
+web siteniz hazır olarak yayına alınsın. Hosting, tema, SSL derdi yok.
 
-- Kendi logonuz, kendi renginiz, kendi alan adınız
+- Kendi logonuz ve kendi marka renginiz
 - Her ilan için otomatik SEO'lu detay sayfası ve paylaşım linki
 - Ziyaretçi talep formu — gelen her talep doğrudan panelinize düşer
 - Ücretsiz planda kredi kartı hiç sorulmaz
+- Kendi alan adınızı (`www.ofisadiniz.com`) Pro pakette bağlayın
 
 > Artık müşteriye "ilanım sahibinden'de şu numarada" demiyorsunuz.
 > **Kendi sitenizin linkini** gönderiyorsunuz.
@@ -143,7 +143,7 @@ panelinize düşer, hiçbiri kaybolmaz.
 Evet. Ücretsiz planda kendi markanıza ait web sitenizi kurar, ilanlarınızı
 yayınlar ve gelen talepleri panelden takip edersiniz. Kredi kartı bilgisi
 istemiyoruz. Portföyünüz büyüdüğünde veya kendi alan adınızı, yapay zeka
-video araçlarını kullanmak istediğinizde ücretli plana geçebilirsiniz.
+video araçlarını kullanmak istediğinizde Pro pakete geçebilirsiniz.
 
 ### Web sitesi kurmak için kod veya teknik bilgi gerekiyor mu?
 Hayır. Hosting, alan adı, tema kurulumu, SSL gibi hiçbir teknik işlem yok.
@@ -179,9 +179,8 @@ aktarabilir, hesabınızı silebilirsiniz. Ofisinizin verisi başka bir ofisle
 paylaşılmaz.
 
 ### Kendi alan adımı bağlayabilir miyim?
-Evet. Ücretli planlarda `www.ofisadiniz.com` gibi kendi alan adınızı
-bağlayabilir, sitenizi tamamen kendi markanız altında (EmlakFlow ibaresi
-olmadan) yayınlayabilirsiniz.
+Evet. **Pro pakette** `www.ofisadiniz.com` gibi kendi alan adınızı
+bağlayabilir, sitenizi tamamen kendi markanız altında yayınlayabilirsiniz.
 
 ---
 
@@ -189,11 +188,23 @@ olmadan) yayınlayabilirsiniz.
 
 ## Bu Ay Kaç Talebi Unuttuğunuzu Bilmiyorsunuz. Yarın Bileceksiniz.
 
-Web siteniz 5 dakikada yayında, portföyünüz Excel'den çıkmış, hiçbir müşteri
-WhatsApp'ın içinde kaybolmuyor. Kurulum ücretsiz, kredi kartı yok, taahhüt yok.
+Web siteniz yayında, portföyünüz Excel'den çıkmış, hiçbir müşteri WhatsApp'ın
+içinde kaybolmuyor. Kurulum ücretsiz, kredi kartı yok, taahhüt yok.
 
 **Ana CTA:** `Ücretsiz Emlak Sitemi Kur →`
-**Alt satır:** Kurulum 5 dakika · Kredi kartı istemiyoruz · İstediğiniz an silin
+**Alt satır:** Kredi kartı istemiyoruz · Taahhüt yok · İstediğiniz an silin
+
+---
+
+## ⚠️ Çözülmesi gereken tutarsızlık — alan adı hangi pakette?
+
+Bu metin **Pro** diyor (ürün sahibinin beyanı). Ancak canlı fiyat bölümünde
+(`components/landing/pricing-section.tsx`) "Kendi alan adınız (custom domain)"
+maddesi **Premium** özellikleri altında duruyor. Kodda `customDomain` için plan
+kısıtı yok — yani bu tamamen pazarlama kararı ve iki yerde farklı yazılı.
+
+Metin yayına girmeden önce ikisi eşitlenmeli; aksi halde aynı sayfada
+çelişkili iki vaat görünür.
 
 ---
 

@@ -397,7 +397,49 @@ body,
 
 /* ── Dashboard — Apple-tarzı sade panel ── */
 .dash-shell {
-  --dash-radius: 20px;
+  /* Yoğunluk geçişi: kurumsal panel dili daha sıkı köşe ve daha az boşluk
+     ister — bilgi yoğunluğu artar, ekran başına daha çok karar görünür. */
+  --dash-radius: 16px;
+}
+
+/* Metrik değişim göstergesi (▲/▼) — renk değil yön bildirir; artış/azalış
+   semantik renkle değil ok yönü + nötr tonla ayrılır. */
+.dash-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--color-ink) 45%, transparent);
+}
+.dash-delta-up {
+  color: var(--color-success);
+}
+.dash-delta-down {
+  color: var(--color-danger);
+}
+
+/* Aksiyon gerektiren uyarı satırı — KPI'ların ÜSTÜNDE durur.
+   KPI = durum, uyarı = yapılacak iş. */
+.dash-alert-danger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: var(--dash-radius);
+  padding: 12px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  background: var(--app-danger-bg);
+  color: var(--color-danger);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-danger) 18%, transparent);
+  transition: background-color 0.18s ease;
+}
+.dash-alert-danger:hover {
+  background: color-mix(in srgb, var(--color-danger) 14%, transparent);
+}
+.app-shell[data-theme="dark"] .dash-alert-danger {
+  color: #f8a5a5;
 }
 
 .dash-card {
@@ -419,7 +461,7 @@ body,
   box-shadow:
     0 0 0 1px var(--app-border),
     0 1px 2px var(--app-shadow-sm);
-  padding: 1.125rem 1.25rem;
+  padding: 0.875rem 1rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.35s ease;
 }
 .dash-kpi:hover {
