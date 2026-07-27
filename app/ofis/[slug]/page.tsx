@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { trMoney, ROOM_OPTIONS } from "@/lib/labels";
 import { RequestForm } from "@/components/showcase-forms";
 import { TrackImpressions } from "@/components/vitrin-tracking";
-import { officeJsonLd } from "@/lib/seo";
+import { officeJsonLd, SHOWCASE_INDEX_MIN_LISTINGS } from "@/lib/seo";
 import { getBaseUrl } from "@/lib/url";
 import { isAutoVertical } from "@/lib/verticals";
 import { ShowcaseWorkspace, type SplitListing } from "@/components/showcase-workspace";
@@ -100,15 +100,22 @@ export async function generateMetadata({
       plan: true,
       city: true,
       district: true,
+      _count: { select: { listings: { where: { status: "ACTIVE" } } } },
     },
   });
   if (!tenant) return {};
   const displayName = tenant.brandName?.trim() || tenant.name;
+
+  /* İnce içerik kapısı — az ilanlı vitrin indekslenmez.
+     follow açık: ilan detay sayfaları indekslenmeye devam eder, link değeri
+     onlara akar. Ofis ilan ekledikçe sayfa kendiliğinden indekse açılır. */
+  const thin = tenant._count.listings < SHOWCASE_INDEX_MIN_LISTINGS;
   const title = `${displayName} — Satılık ve Kiralık Portföy`;
   const description = `${displayName} güncel portföyü: ${tenant.city ?? "Türkiye"} genelinde satılık ve kiralık gayrimenkuller.`;
   return {
     title: { absolute: title },
     description,
+    ...(thin ? { robots: { index: false, follow: true } } : {}),
     alternates: { canonical: `${BASE_URL}/ofis/${slug}` },
     openGraph: {
       title,

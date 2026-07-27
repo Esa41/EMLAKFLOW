@@ -2,10 +2,12 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { BLOG_POSTS } from "@/lib/blog";
 import { getBaseUrl } from "@/lib/url";
+import { SHOWCASE_INDEX_MIN_LISTINGS } from "@/lib/seo";
 
 /**
  * Dinamik sitemap — yalnızca public/indekslenebilir sayfalar:
- * vitrin açık ofislerin ana sayfası + o ofislerin yayındaki (ACTIVE) ilanları.
+ * vitrin açık ve YETERİ KADAR İLANI OLAN ofislerin ana sayfası
+ * (bkz. SHOWCASE_INDEX_MIN_LISTINGS) + tüm o ofislerin yayındaki ilanları.
  * CRM (app) rotaları auth arkasında olduğundan burada yer almaz (bkz. robots.ts).
  *
  * İlan URL'leri detay sayfasındaki canonical ile birebir aynı formatta
@@ -34,13 +36,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   });
 
-  const officeEntries: MetadataRoute.Sitemap = tenants.map((t) => ({
-    url: `${baseUrl}/ofis/${t.slug}`,
-    lastModified: t.updatedAt,
-    changeFrequency: "daily",
-    priority: 0.8,
-  }));
+  /* İnce içerik kapısı: eşiğin altındaki vitrinler sitemap'e KONMAZ.
+     O sayfalar zaten noindex alıyor (bkz. ofis/[slug]/page.tsx); noindex
+     bir sayfayı sitemap'te bildirmek çelişkili sinyal verir ve tarama
+     bütçesini boşa harcar. */
+  const officeEntries: MetadataRoute.Sitemap = tenants
+    .filter((t) => t.listings.length >= SHOWCASE_INDEX_MIN_LISTINGS)
+    .map((t) => ({
+      url: `${baseUrl}/ofis/${t.slug}`,
+      lastModified: t.updatedAt,
+      changeFrequency: "daily",
+      priority: 0.8,
+    }));
 
+  /* İlan detayları TÜM ofisler için kalır — tek ilanlı bir ofisin ilanı da
+     benzersiz içeriktir (fotoğraf, fiyat, konum, açıklama). İnce olan ofis
+     vitrininin kendisi, ilan sayfası değil. */
   const listingEntries: MetadataRoute.Sitemap = tenants.flatMap((t) =>
     t.listings.map((l) => ({
       url: `${baseUrl}/ofis/${t.slug}/ilan/${l.slug ? `${l.id}-${l.slug}` : l.id}`,

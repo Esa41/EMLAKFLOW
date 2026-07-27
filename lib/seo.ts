@@ -2,6 +2,23 @@ import { TYPE_TR } from "./labels";
 import type { Listing, ListingMedia, Tenant } from "@prisma/client";
 
 /**
+ * İNCE İÇERİK KAPISI — vitrin sayfası kaç aktif ilanla indekslenebilir?
+ *
+ * Bu eşiğin ALTINDAKİ ofislerin vitrin ana sayfası `noindex` alır ve
+ * sitemap'e KONMAZ. Gerekçe: 1-2 ilanlı bir vitrin, Google'ın "thin content"
+ * saydığı sayfadır; yüzlerce zayıf sayfa yalnız o sayfalara değil, alan
+ * adının tamamının güvenine zarar verir.
+ *
+ * `follow` açık bırakılır — ofisin İLAN DETAY sayfaları indekslenmeye devam
+ * eder (onlar gerçek, benzersiz içerik: fotoğraf, fiyat, konum, açıklama).
+ * Kapatılan yalnız ofis vitrininin kendisidir.
+ *
+ * TEK KAYNAK: hem app/sitemap.ts hem app/ofis/[slug]/page.tsx buradan okur.
+ * Değiştirirsen ikisi birden değişir; ayrı ayrı sabit yazma.
+ */
+export const SHOWCASE_INDEX_MIN_LISTINGS = 5;
+
+/**
  * Şablon bazlı (deterministik) SEO üretimi — AI gerektirmez, render anında çalışır.
  * İlan alanları zaten yapılandırılmış olduğundan başlık/açıklama/alt-text
  * kural tabanlı üretilir; depolama ve backfill gerekmez.

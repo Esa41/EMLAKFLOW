@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { SetupChecklist } from "@/components/setup-checklist";
 import { showcaseUrl } from "@/lib/url";
+import { SHOWCASE_INDEX_MIN_LISTINGS } from "@/lib/seo";
 import { getVertical } from "@/lib/verticals";
 
 function compactMoney(n: number) {
@@ -342,6 +343,29 @@ export default async function DashboardPage() {
           <ArrowRight size={15} className="shrink-0" />
         </Link>
       )}
+
+      {/* ── Google görünürlük bilgisi ──
+          Vitrin az ilanlıyken noindex alıyor (ince içerik kapısı). Bunu
+          söylememek "sitem neden Google'da yok" sorusuna yol açar. */}
+      {tenantBrand?.showcaseEnabled &&
+        activeListings > 0 &&
+        activeListings < SHOWCASE_INDEX_MIN_LISTINGS && (
+          <Link
+            href="/portfoy/yeni"
+            className="dash-in mt-6 flex items-center gap-2.5 rounded-2xl border border-ink/10 bg-[var(--app-surface)] px-4 py-3 text-[13px] transition hover:bg-[var(--app-surface-hover)]"
+            style={{ animationDelay: "90ms" }}
+          >
+            <Building2 size={15} className="shrink-0 text-ink/40" />
+            <span className="min-w-0 flex-1 text-ink/70">
+              Vitriniz Google&apos;da listelenmesi için{" "}
+              <strong className="text-ink">
+                {SHOWCASE_INDEX_MIN_LISTINGS - activeListings} ilan daha
+              </strong>{" "}
+              gerekiyor. Az ilanlı siteler aramada gösterilmiyor.
+            </span>
+            <ArrowRight size={15} className="shrink-0 text-ink/30" />
+          </Link>
+        )}
 
       {/* ── KPI şeridi ── */}
       <div className="mt-6 grid grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-3">
