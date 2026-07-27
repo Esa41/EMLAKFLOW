@@ -66,11 +66,11 @@ müşteri veritabanınız**, **kendi takibiniz**.
 Ofis adınızı ve bölgenizi girin; haritalı, mobil uyumlu, Google'a uygun emlak
 web siteniz hazır olarak yayına alınsın. Hosting, tema, SSL derdi yok.
 
-- Kendi logonuz ve kendi marka renginiz
 - Her ilan için otomatik SEO'lu detay sayfası ve paylaşım linki
 - Ziyaretçi talep formu — gelen her talep doğrudan panelinize düşer
 - Ücretsiz planda kredi kartı hiç sorulmaz
 - Kendi alan adınızı (`www.ofisadiniz.com`) Pro pakette bağlayın
+- Kendi logonuz ve marka renginiz Premium pakette
 
 > Artık müşteriye "ilanım sahibinden'de şu numarada" demiyorsunuz.
 > **Kendi sitenizin linkini** gönderiyorsunuz.

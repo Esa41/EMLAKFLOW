@@ -369,7 +369,7 @@ export function LandingContent({
                 items: [
                   "İlan başına SEO'lu detay sayfası",
                   "Ziyaretçi talep formu",
-                  "Kendi logonuz ve renginiz",
+                  `${FREE_LISTING_LIMIT} ilana kadar ücretsiz`,
                 ],
                 href: "#website",
               },
