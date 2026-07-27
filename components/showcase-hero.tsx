@@ -21,6 +21,9 @@ type Props = {
   heroImage?: string | null;
   /** Geriye dönük uyum — kullanılmıyor (video-hero iptal). */
   video?: { url: string; poster: string | null } | null;
+  /** İstatistik gösterilemeyecek kadar azsa basılan, envanterden bağımsız
+      güven vaatleri. Sıfır göstermektense bunlar gösterilir. */
+  trustPoints?: string[];
 };
 
 /**
@@ -36,6 +39,7 @@ export function ShowcaseHero({
   stats,
   badges,
   heroImage = null,
+  trustPoints = [],
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLDivElement>(null);
@@ -83,7 +87,34 @@ export function ShowcaseHero({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={heroImage} alt="" className="h-full w-full object-cover" />
         ) : (
-          <div className="h-full w-full bg-gradient-to-br from-[#4b4b52] via-[#2a2a30] to-[#111114]" />
+          /* Fotoğraf yoksa TİPOGRAFİK sahne — düz gradyan "yüklenmemiş" gibi
+             duruyordu; bu "böyle tasarlanmış" gibi duruyor. Yeni açılan,
+             henüz fotoğrafı olmayan ofisin vitrini boş görünmesin. */
+          <div className="fx-grain relative h-full w-full overflow-hidden bg-[#1d1d1f]">
+            <div
+              className="absolute inset-0 opacity-[0.13]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+                backgroundSize: "64px 64px",
+                maskImage:
+                  "radial-gradient(ellipse 75% 65% at 50% 40%, black 20%, transparent 78%)",
+              }}
+            />
+            <div
+              className="absolute -right-[15%] -top-[20%] h-[65vh] w-[65vh] rounded-full opacity-25 blur-3xl"
+              style={{
+                background:
+                  "radial-gradient(circle, rgba(255,255,255,0.55), transparent 70%)",
+              }}
+            />
+            <span
+              aria-hidden
+              className="absolute inset-x-0 bottom-[6%] select-none text-center font-display text-[26vw] font-extrabold leading-none tracking-[-0.05em] text-white/[0.05] sm:text-[18vw]"
+            >
+              {displayName}
+            </span>
+          </div>
         )}
       </div>
       {/* okunurluk örtüsü */}
@@ -135,6 +166,22 @@ export function ShowcaseHero({
         <span className="font-mono text-[10px] uppercase tracking-[0.2em]">Kaydır</span>
         <ChevronDown size={18} className="animate-bounce" />
       </div>
+
+      {/* İstatistik yoksa güven şeridi — "0+ işlem" basmaktansa vaat göster */}
+      {stats.length === 0 && trustPoints.length > 0 && (
+        <div className="relative z-10 border-t border-white/15 bg-black/25 backdrop-blur-md">
+          <div className="mx-auto flex max-w-[1080px] flex-wrap items-center justify-center gap-x-7 gap-y-2 px-4 py-4 sm:px-6">
+            {trustPoints.map((t) => (
+              <span
+                key={t}
+                className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* İstatistik şeridi — camlı */}
       {stats.length > 0 && (

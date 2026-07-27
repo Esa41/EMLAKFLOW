@@ -351,15 +351,42 @@ export default async function ShowcasePage({
       )
     : [];
 
-  const heroStats =
-    savedStats.length >= 4
-      ? savedStats.slice(0, 4)
-      : [
-          { value: String(activeCount), label: isAuto ? "Aktif Araç" : "Aktif İlan" },
-          { value: `${completedCount}+`, label: "Tamamlanan İşlem" },
-          { value: String(neighborhoodCount.length || districts.length), label: isAuto ? "Bölge" : "Mahalle" },
-          ...(savedStats[0] ? [savedStats[0]] : [{ value: "—", label: "Tecrübe" }]),
-        ].slice(0, 4);
+  /* ── İstatistik şeridi: SIFIRLARI GÖSTERME ──
+     Yeni bir ofiste eski mantık "0+ Tamamlanan İşlem" ve "—" basıyordu.
+     Potansiyel alıcıya "bu ofis hiç iş yapmamış" demek, hiçbir şey
+     dememekten kötüdür. Zayıf sinyal gizlenir. */
+  const regionCount = neighborhoodCount.length || districts.length;
+  const candidateStats = [
+    activeCount > 0
+      ? { value: String(activeCount), label: isAuto ? "Aktif Araç" : "Aktif İlan" }
+      : null,
+    // 1–2 işlem güven vermez; ancak anlamlı bir sayıdan sonra gösterilir
+    completedCount >= 3
+      ? { value: `${completedCount}+`, label: "Tamamlanan İşlem" }
+      : null,
+    regionCount > 0
+      ? { value: String(regionCount), label: isAuto ? "Bölge" : "Mahalle" }
+      : null,
+  ].filter((x): x is { value: string; label: string } => x !== null);
+
+  /* Ofisin Ayarlar'dan girdiği kendi istatistikleri her zaman önceliklidir —
+     yer tutucu ("—", "0") olanlar yine elenir. */
+  const presentableSaved = savedStats.filter(
+    (s) => s.value && s.value !== "—" && s.value !== "0",
+  );
+  const merged = [...presentableSaved, ...candidateStats].slice(0, 4);
+
+  /* 2'den az istatistik kalırsa şerit hiç gösterilmez; yerine içerikten
+     bağımsız güven şeridi geçer (bkz. trustPoints). */
+  const heroStats = merged.length >= 2 ? merged : [];
+
+  /* Her ofis için doğru olan, envantere bağlı olmayan vaatler. */
+  const trustPoints = [
+    "Aynı gün dönüş",
+    "Yerinde inceleme",
+    "Şeffaf fiyat",
+    isAuto ? "Ekspertiz desteği" : "Tapu sürecinde eşlik",
+  ];
 
   const place = tenant.district ?? tenant.city ?? "Bölgeniz";
   const eyebrow = tenant.aboutText
@@ -416,6 +443,7 @@ export default async function ShowcasePage({
           headline={headline}
           tagline={tagline}
           stats={heroStats}
+          trustPoints={trustPoints}
           slug={slug}
           badges={[
             `${activeCount} AKTİF ${isAuto ? "ARAÇ" : "İLAN"}`,
