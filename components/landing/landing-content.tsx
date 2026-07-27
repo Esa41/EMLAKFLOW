@@ -8,6 +8,7 @@ import {
   Check,
   Globe,
   LayoutGrid,
+  Sparkles,
   Users,
   Wallet,
 } from "lucide-react";
@@ -17,10 +18,6 @@ import { CrmPreview, HeroDemoProvider, HeroDemoNav } from "./crm-preview";
 import { PricingCompare } from "./pricing-compare";
 import { Kinetic, Rise, Spotlight, Tilt, ScrollProgress, Marquee } from "./fx";
 import { FREE_LISTING_LIMIT } from "@/lib/plans";
-
-/* Unsplash görsel yardımcısı (kategori kartları) — next/image ile optimize. */
-const U = (id: string) =>
-  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=400&q=70`;
 
 /* Gerçek demo ofisi (Prestij) ilanı — landing önizlemelerinde kullanılır. */
 export type DemoListing = {
@@ -262,7 +259,7 @@ export function LandingContent({
               <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink/60">
                 Ücretsiz emlak web siteni dakikalar içinde aç, ilanlarını ekle,
                 linkini paylaş. Gelen talepleri, kiralarını ve randevularını da
-                aynı yerden takip et — deftere, Excel'e gerek yok.
+                aynı yerden takip et.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <CtaButton href="/register">
@@ -334,7 +331,11 @@ export function LandingContent({
         </ScrollReveal>
       </section>
 
-      {/* ── NE SUNUYORUZ (Beehome "Listing category" kart dili) ── */}
+      {/* ── NE SUNUYORUZ ──
+          Stok fotoğraflar kaldırıldı: monokrom sayfada tek renk kaynağıydılar
+          ve marka dışıydılar (AI kartındaki görsel başka şirketlerin
+          logolarıydı). Yerine numaralı editoryal kolonlar — her sütun kendi
+          özelliklerini sayarak boşluğu içerikle dolduruyor. */}
       <section className="px-5 py-20 sm:px-8 sm:py-24">
         <div className="mx-auto max-w-6xl">
           <Rise>
@@ -343,36 +344,106 @@ export function LandingContent({
                 <h2 className="font-display text-3xl font-extrabold tracking-tight sm:text-[2.75rem]">
                   Ne sunuyoruz
                 </h2>
-                <p className="mt-2 text-lg text-ink/55">
+                <p className="mt-2 max-w-xl text-lg text-ink/55">
                   Bir emlakçının dijitalde ihtiyacı olan üç şey — tek çatı altında.
                 </p>
               </div>
-              <Link href="/register" aria-label="Ücretsiz başla" className="arrow-circle shrink-0">
+              <Link
+                href="/register"
+                aria-label="Ücretsiz başla"
+                className="arrow-circle shrink-0"
+              >
                 <ArrowRight size={20} />
               </Link>
             </div>
           </Rise>
 
-          <div className="mt-10 grid gap-4 lg:grid-cols-3">
+          <div className="mt-12 grid gap-px overflow-hidden rounded-[24px] border border-ink/10 bg-ink/10 lg:grid-cols-3">
             {[
-              { img: U("1560518883-ce09059eeffa"), t: "Web siteniz", d: "Haritalı vitrin + talep formu", tag: "Ücretsiz" },
-              { img: U("1600880292203-757bb62b4baf"), t: "Müşteri & Satış", d: "Talep, satış hattı ve kira takibi", tag: "CRM" },
-              { img: U("1611162617213-7d7a39e9b1d7"), t: "AI Stüdyo", d: "Tanıtım videoları & Vitrin Sunucusu", tag: "Yapay zeka" },
+              {
+                no: "01",
+                icon: Globe,
+                tag: "Ücretsiz",
+                t: "Web siteniz",
+                d: "Kendi adınıza, haritalı, mobil uyumlu bir vitrin. Google'a uygun, paylaşılabilir.",
+                items: [
+                  "İlan başına SEO'lu detay sayfası",
+                  "Ziyaretçi talep formu",
+                  "Kendi logonuz ve renginiz",
+                ],
+                href: "#website",
+              },
+              {
+                no: "02",
+                icon: Users,
+                tag: "CRM",
+                t: "Müşteri & satış",
+                d: "Gelen her talep tek listede. Kimi aradınız, kim bekliyor, hangi iş nerede takıldı.",
+                items: [
+                  "Alıcı–portföy eşleştirme",
+                  "Satış hattı ve randevular",
+                  "Kira ve tahsilat takibi",
+                ],
+                href: "#ozellikler",
+              },
+              {
+                no: "03",
+                icon: Sparkles,
+                tag: "Yapay zeka",
+                t: "AI Stüdyo",
+                d: "İlan fotoğraflarınızdan sosyal medyaya hazır tanıtım videosu ve içerik.",
+                items: [
+                  "Tanıtım videosu üretimi",
+                  "Fotoğraf iyileştirme",
+                  "Sosyal içerik planlayıcı",
+                ],
+                href: "#ozellikler",
+              },
             ].map((c, i) => (
               <ScrollReveal key={c.t} delay={i * 90}>
-                <article className="fx-sheen group flex items-center gap-4 overflow-hidden rounded-[22px] border border-ink/8 bg-white p-3 transition-all hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(29,29,31,0.35)]">
-                  <div className="relative h-24 w-28 shrink-0 overflow-hidden rounded-2xl">
-                    <Image src={c.img} alt={c.t} fill sizes="120px" loading="lazy" className="object-cover transition-transform duration-500 group-hover:scale-105" />
-                  </div>
-                  <div className="min-w-0 flex-1 pr-2">
-                    <span className="inline-block rounded-full bg-brand-50 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-brand-700">
-                      {c.tag}
+                <Link
+                  href={c.href}
+                  className="fx-sheen group flex h-full flex-col bg-white p-6 transition-colors hover:bg-paper sm:p-7"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-[28%] bg-ink text-white">
+                      <c.icon size={19} strokeWidth={1.9} />
                     </span>
-                    <h3 className="mt-1.5 font-display text-xl font-bold">{c.t}</h3>
-                    <p className="mt-0.5 text-[13px] leading-snug text-ink/55">{c.d}</p>
+                    <span className="font-mono text-[13px] font-bold text-ink/15">
+                      {c.no}
+                    </span>
                   </div>
-                  <ArrowUpRight size={20} className="mr-1 shrink-0 text-ink/25 transition-colors group-hover:text-brand-600" />
-                </article>
+
+                  <span className="mt-6 inline-block w-fit rounded-full bg-brand-50 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-brand-700">
+                    {c.tag}
+                  </span>
+                  <h3 className="mt-2 font-display text-2xl font-bold tracking-tight">
+                    {c.t}
+                  </h3>
+                  <p className="mt-2 text-[14px] leading-relaxed text-ink/55">
+                    {c.d}
+                  </p>
+
+                  <ul className="mt-5 space-y-2 border-t border-ink/8 pt-5">
+                    {c.items.map((it) => (
+                      <li
+                        key={it}
+                        className="flex items-start gap-2 text-[13.5px] text-ink/65"
+                      >
+                        <Check size={14} className="mt-0.5 shrink-0 text-ink/35" />
+                        {it}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <span className="mt-6 flex items-center gap-1.5 text-[13px] font-bold text-ink">
+                    İncele
+                    <ArrowUpRight
+                      size={15}
+                      className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                    />
+                  </span>
+                </Link>
               </ScrollReveal>
             ))}
           </div>
