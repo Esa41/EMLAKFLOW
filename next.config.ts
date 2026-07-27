@@ -1,11 +1,15 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 import withPWAInit from "@ducanh2912/next-pwa";
-import { securityHeaders } from "./lib/security-headers";
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
+import { buildSecurityHeaders } from "./lib/security-headers";
+
+export default function config(phase: string) {
+  const isDev = phase === PHASE_DEVELOPMENT_SERVER;
 
 const withPWA = withPWAInit({
   dest: "public",
-  disable: process.env.NODE_ENV === "development",
+  disable: isDev,
   // İlk boyama ile yarışmasın — client idle sonrası register (PwaRegister)
   register: false,
   fallbacks: {
@@ -34,7 +38,7 @@ const nextConfig: NextConfig = {
     // NOT: /_next/static için Cache-Control ELLE VERME — Vercel production'da
     // zaten immutable servis eder; dev'de chunk'lar hash'siz olduğundan
     // immutable cache tarayıcıda bayat chunk hatasına yol açar.
-    return [{ source: "/(.*)", headers: securityHeaders }];
+    return [{ source: "/(.*)", headers: buildSecurityHeaders(isDev) }];
   },
   async rewrites() {
     return [
@@ -65,4 +69,5 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPWA(nextConfig);
+  return withPWA(nextConfig);
+}

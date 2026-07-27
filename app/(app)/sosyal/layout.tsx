@@ -12,7 +12,9 @@ export default function SosyalLayout({
           Sosyal OS
         </h1>
         <p className="mt-1 text-sm text-ink/55">
-          İlandan içeriğe — üret, planla, yayınla, ölç.
+          {/* "yayınla" iddiası kaldırıldı: otomatik yayın kapsam dışı —
+              içerik hazırlanır, paylaşımı danışman kendi yapar. */}
+          İlandan içeriğe — hazırla, planla, paylaş.
         </p>
       </div>
       <SocialSubnav />

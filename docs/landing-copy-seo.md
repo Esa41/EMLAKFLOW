@@ -196,17 +196,32 @@ içinde kaybolmuyor. Kurulum ücretsiz, kredi kartı yok, taahhüt yok.
 
 ---
 
-## ⚠️ Çözülmesi gereken tutarsızlık — alan adı hangi pakette?
+## ⚠️ Açık kalan tutarsızlık — Pro'nun limitleri
 
-Bu metin **Pro** diyor (ürün sahibinin beyanı). Ancak canlı fiyat bölümünde
-(`components/landing/pricing-section.tsx`) "Kendi alan adınız (custom domain)"
-maddesi **Premium** özellikleri altında duruyor. Kodda `customDomain` için plan
-kısıtı yok — yani bu tamamen pazarlama kararı ve iki yerde farklı yazılı.
+Alan adı çelişkisi ÇÖZÜLDÜ: `pricing-section.tsx`'te Pro'ya taşındı, üst
+paketten çıkarıldı. Bu metinle artık uyumlu.
 
-Metin yayına girmeden önce ikisi eşitlenmeli; aksi halde aynı sayfada
-çelişkili iki vaat görünür.
+**Ama Pro kartında daha büyük bir çelişki duruyor** ve karar sizin:
 
----
+| Landing Pro kartı diyor | `lib/plans-config.ts` diyor |
+|---|---|
+| "Sınırsız ilan (20+ ilan için gerekli)" | `pro.listingLimit = 20` |
+| "Sınırsız kullanıcı — tüm ekibine hesap aç" | `pro.userLimit = 1` (yorum: "ekip hesabı Premium'da") |
+
+Ücretsiz kartı da "Sınırsız kullanıcı" diyor; config `free.userLimit = 1`.
+
+**Kritik not:** `listingLimit` ve `userLimit` kod tabanında HİÇBİR YERDE
+uygulanmıyor — yalnız tanımlı. Yani bugün kimse limite çarpmıyor; ürün
+landing'in dediği gibi davranıyor, config'in dediği gibi değil.
+
+Üç seçenek:
+1. Config'i landing'e uydur (Pro gerçekten sınırsız) — gelir kaybı riski
+2. Landing'i config'e uydur (Pro = 20 ilan, 1 kullanıcı) — vaadi geri çekmek;
+   mevcut Pro müşterisi varsa sözleşme sorunu
+3. Yeni bir sınır belirleyip İKİSİNİ birden güncelle + kodda uygula
+
+Seçim yapılana kadar landing'e dokunulmadı: yanlış tarafa çekmek ya para
+kaybettirir ya müşteriye verilmiş sözü bozar.
 
 ## Uygulama notları (geliştirici için)
 

@@ -37,7 +37,8 @@ export default async function TakvimPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-ink/55">
-          Zamanlanmış içerik kuyruğu. Sürükle-bırak takvim bir sonraki sürümde.
+          Paylaşım hatırlatma listesi. Otomatik yayın yok — planlanan saatte
+          içeriği siz paylaşırsınız. Sürükle-bırak takvim bir sonraki sürümde.
         </p>
         <Link
           href="/sosyal/planlayici"
@@ -69,7 +70,8 @@ export default async function TakvimPage() {
                         {item.asset?.headline || "İçerik"}
                       </p>
                       <p className="mt-0.5 truncate text-[12px] text-ink/45">
-                        {item.platform} · {item.status}
+                        {item.platform} ·{" "}
+                        {item.status === "QUEUED" ? "hatırlatma" : item.status}
                         {item.asset?.listing
                           ? ` · ${item.asset.listing.refCode}`
                           : ""}

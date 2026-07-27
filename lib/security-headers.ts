@@ -10,9 +10,16 @@
  *  - Vercel: vitals.vercel-insights.com (Speed Insights), vercel.live (preview yorumları)
  */
 
-const isDev = process.env.NODE_ENV === "development";
-
-const csp = [
+/**
+ * DİKKAT: NODE_ENV burada GÜVENİLİR DEĞİL. `next.config.ts` değerlendirilirken
+ * Next henüz NODE_ENV'i "development" yapmamış oluyor; bu yüzden isDev daima
+ * false kalıyor ve dev sunucusu 'unsafe-eval' içermeyen CSP gönderiyordu.
+ * Sonuç: React Refresh bundle'ı eval kullandığı için HYDRATION DÜŞÜYOR ve
+ * landing'deki tüm .landing-reveal blokları opacity:0'da kalıyordu (sayfa
+ * bomboş görünüyordu). Doğru kaynak Next'in `phase` parametresidir.
+ */
+function buildCsp(isDev: boolean) {
+  return [
   "default-src 'self'",
   // Next.js inline runtime script'leri nonce altyapısı olmadan 'unsafe-inline' ister;
   // dev'de React Refresh için 'unsafe-eval' gerekir (production'da eklenmez).
@@ -33,11 +40,16 @@ const csp = [
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
-  ...(isDev ? [] : ["upgrade-insecure-requests"]),
-].join("; ");
+    ...(isDev ? [] : ["upgrade-insecure-requests"]),
+  ].join("; ");
+}
 
-export const securityHeaders = [
-  { key: "Content-Security-Policy", value: csp },
+/**
+ * @param isDev next.config.ts'te `phase === PHASE_DEVELOPMENT_SERVER` ile geçilir.
+ */
+export function buildSecurityHeaders(isDev = false) {
+  return [
+  { key: "Content-Security-Policy", value: buildCsp(isDev) },
   // 2 yıl + preload — HSTS preload listesine başvuru için gerekli format
   {
     key: "Strict-Transport-Security",
@@ -52,4 +64,5 @@ export const securityHeaders = [
     value: "camera=(), microphone=(), geolocation=(self), payment=(), usb=()",
   },
   { key: "X-DNS-Prefetch-Control", value: "on" },
-];
+  ];
+}
