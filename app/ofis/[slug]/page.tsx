@@ -460,6 +460,8 @@ export default async function ShowcasePage({
       />
       <TrackImpressions tenantId={tenant.id} />
 
+      {/* heroImage: TAM BOY görsel geçilir. Eskiden cardUrl (≈528px) tam
+          ekrana gerilip bulanıklaşıyordu — heroFeatured.image orijinali verir. */}
       <div className="-mx-4 -mt-8 sm:-mx-6">
         <ShowcaseHero
           displayName={displayName}
@@ -475,7 +477,7 @@ export default async function ShowcasePage({
             `${neighborhoodCount.length || districts.length} ${isAuto ? "BÖLGE" : "MAHALLE"}`,
           ]}
           isAuto={isAuto}
-          featured={heroFeatured}
+          heroImage={heroFeatured?.image ?? null}
           layout={theme.hero}
         />
       </div>

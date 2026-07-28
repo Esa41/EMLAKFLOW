@@ -1,24 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { AnimatedCounter } from "@/components/animated-counter";
-import type { ShowcaseHeroLayout } from "@/lib/showcase-themes";
 
 type Stat = { value: string; label: string };
-
-export type HeroListing = {
-  id: string;
-  slug: string | null;
-  title: string;
-  image: string | null;
-  price: number;
-  purpose: string;
-  rooms: string | null;
-  netArea: number | null;
-  district: string;
-  neighborhood: string | null;
-};
 
 type Props = {
   displayName: string;
@@ -28,41 +14,24 @@ type Props = {
   tagline: string;
   stats: Stat[];
   slug: string;
+  /** Yüzen künye rozetleri, ör. "128 AKTİF İLAN" */
   badges: string[];
   isAuto?: boolean;
-  /** Vitrinin öne çıkardığı ilan — hero'da KART içinde gösterilir */
-  featured?: HeroListing | null;
-  /** İstatistik yoksa basılan, envanterden bağımsız güven vaatleri */
-  trustPoints?: string[];
-  /** Tema düzen varyantı — bkz. lib/showcase-themes.ts */
-  layout?: ShowcaseHeroLayout;
-  /** Geriye dönük uyum — artık tam ekran arka plan olarak KULLANILMIYOR */
+  /** Ofisin en iyi ilan fotoğrafı — hero arka planı (Apple×Airbnb v2). */
   heroImage?: string | null;
+  /** Geriye dönük uyum — kullanılmıyor (video-hero iptal). */
   video?: { url: string; poster: string | null } | null;
+  /** Tema düzen anahtarı — hero şu an tek düzen kullanıyor; tema farkı
+      kart/köşe/tipografi değişkenlerinden (globals `--sc-*`) geliyor. */
+  layout?: string;
+  /** İstatistik gösterilemeyecek kadar azsa basılan, envanterden bağımsız
+      güven vaatleri. Sıfır göstermektense bunlar gösterilir. */
+  trustPoints?: string[];
 };
 
-const trMoney = new Intl.NumberFormat("tr-TR", {
-  style: "currency",
-  currency: "TRY",
-  maximumFractionDigits: 0,
-});
-
 /**
- * Vitrin hero — İÇERİK ÖNCELİKLİ.
- *
- * Neden yeniden yazıldı: eski hero tam ekran (100svh) bir manifestoydu ve
- * arkasına ilan fotoğrafını gerdiriyordu. İki somut sorun doğuruyordu:
- *
- * 1. Arka plana gerilen görsel `cardUrl` varyantıydı (≈528px) — mobilde
- *    ~1290px'e esnetilince BULANIK çıkıyordu, üstüne okunurluk örtüleri
- *    binince de gri bir buluta dönüşüyordu.
- * 2. Emlak vitrininin ilk ekranında TEK BİR MÜLK görünmüyordu. Ziyaretçi
- *    kaydırmadan hiçbir gayrimenkul göremiyordu; oysa vitrinin tek işi
- *    mülk göstermek ve talep toplamaktır.
- *
- * Yeni düzen: kimlik solda kompakt, öne çıkan ilan sağda GERÇEK BİR KART
- * içinde (fotoğraf kendi ölçüsünde, net). Yükseklik ekranı doldurmuyor —
- * portföy kaydırmadan görünüyor.
+ * Vitrin hero — Apple × Airbnb: tam ekran gerçek fotoğraf, hafif parallax,
+ * ortalanmış dev tipografi, camlı istatistik şeridi.
  */
 export function ShowcaseHero({
   displayName,
@@ -71,190 +40,174 @@ export function ShowcaseHero({
   headline,
   tagline,
   stats,
-  slug,
-  featured = null,
+  badges,
+  heroImage = null,
   trustPoints = [],
-  layout = "split",
 }: Props) {
-  /* Tema düzenleri — hepsi AYNI parçaları kullanır, dizilişleri değişir.
-     compact/gallery/editorial için ayrı bileşen yazmak yerine tek kaynakta
-     ızgara ve ölçek farklılaşıyor; yeni tema eklemek satır eklemek oluyor. */
-  const grid =
-    layout === "gallery"
-      ? "lg:grid-cols-[minmax(0,380px)_1fr]" // fotoğraf büyür
-      : layout === "editorial"
-        ? "lg:grid-cols-[1.35fr_minmax(0,340px)]" // tipografi büyür
-        : layout === "compact"
-          ? "lg:grid-cols-[1fr_minmax(0,300px)]" // sıkı
-          : "lg:grid-cols-[1fr_minmax(0,420px)]"; // klasik
-  const pad =
-    layout === "compact" ? "py-9 sm:py-12" : layout === "editorial" ? "py-16 sm:py-24" : "py-14 sm:py-20";
-  const titleSize =
-    layout === "editorial"
-      ? "text-[clamp(34px,6.6vw,64px)]"
-      : layout === "compact"
-        ? "text-[clamp(26px,4.4vw,40px)]"
-        : "text-[clamp(30px,5.6vw,52px)]";
-  /* Galeri temasında mülk kartı önce gelsin — fotoğraf hikâyeyi taşır */
-  const mediaFirst = layout === "gallery";
-  const listingHref = featured
-    ? `/ofis/${slug}/ilan/${featured.slug ? `${featured.id}-${featured.slug}` : featured.id}`
-    : `/ofis/${slug}#koleksiyon`;
+  const rootRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLDivElement>(null);
 
-  const specs = featured
-    ? [
-        featured.rooms,
-        featured.netArea ? `${featured.netArea} m²` : null,
-        featured.neighborhood || featured.district,
-      ].filter(Boolean)
-    : [];
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const root = rootRef.current;
+    const img = imgRef.current;
+    if (!root || !img) return;
+    let heroH = root.offsetHeight || 1;
+    let raf = 0;
+    const frame = () => {
+      raf = 0;
+      const y = window.scrollY;
+      if (y > heroH * 1.4) return;
+      img.style.transform = `translate3d(0, ${(y * 0.22).toFixed(1)}px, 0) scale(1.08)`;
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(frame);
+    };
+    const onResize = () => {
+      heroH = root.offsetHeight || 1;
+      onScroll();
+    };
+    frame();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  const activeBadge = badges[0] ?? "";
 
   return (
-    <section className="fx-grain relative overflow-hidden border-b border-ink/10 bg-ink text-white">
-      {/* Renksiz derinlik — gerilmiş fotoğraf yerine ışık ve ızgara */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.12]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
-          backgroundSize: "64px 64px",
-          maskImage:
-            "radial-gradient(ellipse 80% 70% at 30% 30%, black 15%, transparent 80%)",
-        }}
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-[10%] -top-[25%] h-[70vh] w-[70vh] rounded-full opacity-20 blur-3xl"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(255,255,255,0.6), transparent 70%)",
-        }}
-        aria-hidden
-      />
-
-      <div
-        className={`relative mx-auto grid max-w-[1080px] items-center gap-10 px-4 sm:px-6 lg:gap-14 ${grid} ${pad}`}
-      >
-        {/* ── Kimlik ── */}
-        <div className={mediaFirst ? "lg:order-2" : undefined}>
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/55">
-            {eyebrow}
-          </p>
-          <h1
-            className={`mt-4 max-w-[15ch] font-display font-extrabold leading-[1.03] tracking-[-0.03em] text-balance ${titleSize}`}
-          >
-            {headline}
-          </h1>
-          <p className="mt-4 max-w-[46ch] text-[15.5px] leading-relaxed text-white/65">
-            {tagline}
-          </p>
-
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <a
-              href="#koleksiyon"
-              className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[15px] font-bold text-ink transition-transform hover:scale-[1.03]"
+    <div
+      ref={rootRef}
+      className="relative flex min-h-[calc(100svh-64px)] flex-col overflow-hidden border-b border-ink/10"
+    >
+      {/* Katman 0 — gerçek fotoğraf + hafif parallax */}
+      <div ref={imgRef} className="absolute inset-0 will-change-transform" style={{ transform: "scale(1.08)" }} aria-hidden>
+        {heroImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={heroImage} alt="" className="h-full w-full object-cover" />
+        ) : (
+          /* Fotoğraf yoksa TİPOGRAFİK sahne — düz gradyan "yüklenmemiş" gibi
+             duruyordu; bu "böyle tasarlanmış" gibi duruyor. Yeni açılan,
+             henüz fotoğrafı olmayan ofisin vitrini boş görünmesin. */
+          <div className="fx-grain relative h-full w-full overflow-hidden bg-[#1d1d1f]">
+            <div
+              className="absolute inset-0 opacity-[0.13]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+                backgroundSize: "64px 64px",
+                maskImage:
+                  "radial-gradient(ellipse 75% 65% at 50% 40%, black 20%, transparent 78%)",
+              }}
+            />
+            <div
+              className="absolute -right-[15%] -top-[20%] h-[65vh] w-[65vh] rounded-full opacity-25 blur-3xl"
+              style={{
+                background:
+                  "radial-gradient(circle, rgba(255,255,255,0.55), transparent 70%)",
+              }}
+            />
+            <span
+              aria-hidden
+              className="absolute inset-x-0 bottom-[6%] select-none text-center font-display text-[26vw] font-extrabold leading-none tracking-[-0.05em] text-white/[0.05] sm:text-[18vw]"
             >
-              Portföyü gör
-              <ArrowRight size={16} />
-            </a>
-            <a
-              href="#talep-form"
-              className="inline-flex items-center rounded-full border border-white/30 px-6 py-3 text-[15px] font-bold text-white transition-colors hover:bg-white/10"
-            >
-              Talep bırak
-            </a>
+              {displayName}
+            </span>
           </div>
+        )}
+      </div>
+      {/* okunurluk örtüsü */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/25 to-black/75" aria-hidden />
+      <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_-10%,rgba(0,0,0,0.35),transparent_55%)]" aria-hidden />
 
-          {/* İstatistik varsa sayılar, yoksa güven vaatleri — sıfır basılmaz */}
-          {stats.length > 0 ? (
-            <div className="mt-9 flex flex-wrap gap-x-9 gap-y-4 border-t border-white/12 pt-6">
-              {stats.map((s) => (
-                <div key={s.label}>
-                  <p className="font-display text-[26px] font-extrabold leading-none tracking-tight tabular-nums">
-                    <AnimatedCounter value={s.value} />
-                  </p>
-                  <p className="mt-1 font-mono text-[9.5px] uppercase tracking-[0.14em] text-white/50">
-                    {s.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            trustPoints.length > 0 && (
-              <div className="mt-9 flex flex-wrap gap-x-6 gap-y-2 border-t border-white/12 pt-6">
-                {trustPoints.map((t) => (
-                  <span
-                    key={t}
-                    className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/55"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            )
-          )}
-        </div>
-
-        {/* ── Öne çıkan mülk — ilk ekranda GERÇEK bir gayrimenkul ── */}
-        {featured && (
-          <Link
-            href={listingHref}
-            className={`sc-card group block overflow-hidden bg-white text-ink shadow-[0_40px_90px_-40px_rgba(0,0,0,0.7)] transition-transform hover:-translate-y-1 ${
-              mediaFirst ? "lg:order-1" : ""
-            }`}
+      {/* Katman 1 — ortalanmış içerik */}
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 py-24 text-center text-white sm:px-8">
+        <p className="hero-rise font-mono text-[11px] uppercase tracking-[0.22em] text-white/80" style={{ animationDelay: "40ms" }}>
+          {eyebrow}
+        </p>
+        <h1
+          className="hero-rise mt-5 max-w-[16ch] font-display text-[clamp(40px,7vw,86px)] font-extrabold leading-[0.98] tracking-[-0.03em] text-balance drop-shadow-[0_2px_30px_rgba(0,0,0,0.35)]"
+          style={{ animationDelay: "120ms" }}
+        >
+          {headline}
+        </h1>
+        <p
+          className="hero-rise mt-6 max-w-[46ch] text-[17px] leading-relaxed text-white/85 drop-shadow-[0_1px_16px_rgba(0,0,0,0.4)]"
+          style={{ animationDelay: "200ms" }}
+        >
+          {tagline}
+        </p>
+        <div className="hero-rise mt-8 flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: "280ms" }}>
+          {/* Beehome dili: ofis rengiyle dolu birincil + camlı ikincil */}
+          <a
+            href="#koleksiyon"
+            className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-7 py-3.5 text-[15px] font-bold text-white shadow-[0_14px_36px_-12px_rgba(0,0,0,0.6)] transition-transform hover:scale-[1.03]"
           >
-            <div className="sc-media relative overflow-hidden bg-n-100">
-              {featured.image ? (
-                /* Kart içinde, kendi ölçüsünde — tam ekrana gerdirilmiyor,
-                   bu yüzden küçük varyantlar da net görünüyor.
-                   eslint-disable-next-line @next/next/no-img-element */
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={featured.image}
-                  alt={featured.title}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center font-mono text-[11px] uppercase tracking-wider text-ink/30">
-                  Fotoğraf yakında
-                </div>
-              )}
-              <span className="absolute left-3 top-3 rounded-full bg-ink/85 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur">
-                {featured.purpose === "RENT" ? "Kiralık" : "Satılık"}
-              </span>
-            </div>
-            <div className="p-4">
-              <p className="font-display text-[21px] font-extrabold tracking-tight tabular-nums">
-                {trMoney.format(featured.price)}
-                {featured.purpose === "RENT" && (
-                  <span className="text-[14px] font-medium text-ink/45"> /ay</span>
-                )}
-              </p>
-              <p className="mt-1 line-clamp-1 text-[14px] font-semibold">
-                {featured.title}
-              </p>
-              {specs.length > 0 && (
-                <p className="mt-0.5 text-[12.5px] text-ink/50">
-                  {specs.join(" · ")}
-                </p>
-              )}
-              <span className="mt-3 flex items-center gap-1.5 text-[13px] font-bold">
-                İlanı incele
-                <ArrowRight
-                  size={14}
-                  className="transition-transform group-hover:translate-x-0.5"
-                />
-              </span>
-            </div>
-          </Link>
+            Portföyü Gör
+            <ArrowRight size={17} />
+          </a>
+          <a
+            href="#talep-form"
+            className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-7 py-3.5 text-[15px] font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+          >
+            Talep Bırak
+          </a>
+        </div>
+        {activeBadge && (
+          <p className="hero-rise mt-7 font-mono text-[11px] uppercase tracking-[0.16em] text-white/60" style={{ animationDelay: "360ms" }}>
+            {[displayName, district].filter(Boolean).join(" · ")} — {activeBadge}
+          </p>
         )}
       </div>
 
-      {district && (
-        <p className="relative border-t border-white/10 py-3 text-center font-mono text-[10px] uppercase tracking-[0.16em] text-white/40">
-          {displayName} · {district}
-        </p>
+      {/* Kaydırma ipucu */}
+      <div className="pointer-events-none absolute bottom-[92px] left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-1 text-white/55 md:flex">
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em]">Kaydır</span>
+        <ChevronDown size={18} className="animate-bounce" />
+      </div>
+
+      {/* İstatistik yoksa güven şeridi — "0+ işlem" basmaktansa vaat göster */}
+      {stats.length === 0 && trustPoints.length > 0 && (
+        <div className="relative z-10 border-t border-white/15 bg-black/25 backdrop-blur-md">
+          <div className="mx-auto flex max-w-[1080px] flex-wrap items-center justify-center gap-x-7 gap-y-2 px-4 py-4 sm:px-6">
+            {trustPoints.map((t) => (
+              <span
+                key={t}
+                className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/70"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
       )}
-    </section>
+
+      {/* İstatistik şeridi — camlı */}
+      {stats.length > 0 && (
+        <div className="relative z-10 border-t border-white/15 bg-black/25 backdrop-blur-md">
+          <div className="mx-auto grid max-w-[1080px] grid-cols-2 px-4 sm:px-6 md:grid-cols-4">
+            {stats.map((s, i) => (
+              <div
+                key={s.label}
+                className={`py-5 text-center text-white ${
+                  i > 0 ? "border-l border-white/12 max-md:[&:nth-child(3)]:border-l-0" : ""
+                }`}
+              >
+                <p className="font-display text-[30px] font-extrabold tracking-tight">
+                  <AnimatedCounter value={s.value} />
+                </p>
+                <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-white/60">
+                  {s.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
