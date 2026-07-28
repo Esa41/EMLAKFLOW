@@ -380,6 +380,27 @@ export default async function ShowcasePage({
      bağımsız güven şeridi geçer (bkz. trustPoints). */
   const heroStats = merged.length >= 2 ? merged : [];
 
+  /* Hero'daki öne çıkan mülk. Görselde ÖNCE `url` (orijinal) denenir:
+     eski hero `cardUrl`'ü (≈528px) tam ekrana gerdirdiği için bulanık
+     çıkıyordu. Kart içinde gösterildiği için artık esneme yok, yine de en
+     iyi kaynağı vermek doğru. */
+  const heroSource = featuredListings[0] ?? newListings[0] ?? listings[0] ?? null;
+  const heroFeatured = heroSource
+    ? {
+        id: heroSource.id,
+        slug: heroSource.slug,
+        title: heroSource.title,
+        image:
+          heroSource.media[0]?.url ?? heroSource.media[0]?.cardUrl ?? null,
+        price: Number(heroSource.price),
+        purpose: heroSource.purpose,
+        rooms: heroSource.rooms,
+        netArea: heroSource.netArea,
+        district: heroSource.district,
+        neighborhood: heroSource.neighborhood,
+      }
+    : null;
+
   /* Her ofis için doğru olan, envantere bağlı olmayan vaatler. */
   const trustPoints = [
     "Aynı gün dönüş",
@@ -450,8 +471,7 @@ export default async function ShowcasePage({
             `${neighborhoodCount.length || districts.length} ${isAuto ? "BÖLGE" : "MAHALLE"}`,
           ]}
           isAuto={isAuto}
-          heroImage={featuredCards[0]?.image ?? splitListings[0]?.image ?? null}
-          video={null}
+          featured={heroFeatured}
         />
       </div>
 
