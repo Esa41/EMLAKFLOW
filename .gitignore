@@ -1,20 +1,19 @@
-node_modules/
-.next/
-.env
-.env.local
-.DS_Store
-.claude/
-dist/
-build/
-.vercel
-.env*.local
-*.tsbuildinfo
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
 
-# PWA — build çıktısı (next-pwa)
-public/sw.js
-public/sw.js.map
-public/workbox-*.js
-public/workbox-*.js.map
-public/swe-worker-*.js
-public/swe-worker-*.js.map
-public/fallback-*.js
+# Runtime artifacts (DB, generated reports, sample data)
+data/
+*.db
+
+# Environment
+.env
+*.local
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store

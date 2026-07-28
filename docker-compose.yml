@@ -1,0 +1,30 @@
+services:
+  emlakflow-api:
+    build: .
+    command: uvicorn emlakflow.api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - EMLAKFLOW_HOME=/app/data
+    volumes:
+      - emlakflow_data:/app/data
+  emlakflow-ui:
+    build: .
+    command: streamlit run emlakflow/app.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    environment:
+      - EMLAKFLOW_HOME=/app/data
+    volumes:
+      - emlakflow_data:/app/data
+  emlakflow-scheduler:
+    build: .
+    command: python -m emlakflow.automation
+    environment:
+      - EMLAKFLOW_HOME=/app/data
+      - EMLAKFLOW_SCHEDULE_MIN=360
+    volumes:
+      - emlakflow_data:/app/data
+
+volumes:
+  emlakflow_data:
