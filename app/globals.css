@@ -1316,3 +1316,45 @@ body,
   .fx-spotlight { display: none; }
   .fx-sheen::before { display: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   VİTRİN TEMALARI (Faz 2) — bkz. lib/showcase-themes.ts
+   Her tema aynı bileşenleri kullanır; değişen köşe yarıçapı, tipografi
+   ölçeği ve yoğunluktur. Bileşenler bu değişkenleri okur, tema adını
+   bilmez — yeni tema eklemek bir blok CSS yazmak demektir.
+   ══════════════════════════════════════════════════════════════════ */
+.showcase-root {
+  --sc-radius: 24px;        /* kart köşesi */
+  --sc-title-scale: 1;      /* başlık büyütme çarpanı */
+  --sc-card-aspect: 4 / 3;  /* ilan kartı foto oranı */
+  --sc-section-gap: 2.5rem; /* bölümler arası nefes */
+}
+
+/* Editoryal — tipografi büyür, köşeler sertleşir, boşluk artar */
+.showcase-root[data-showcase-theme="editorial"] {
+  --sc-radius: 14px;
+  --sc-title-scale: 1.18;
+  --sc-card-aspect: 3 / 2;
+  --sc-section-gap: 3.5rem;
+}
+
+/* Galeri — fotoğraf büyür (kare), köşeler yumuşar, metin geri çekilir */
+.showcase-root[data-showcase-theme="gallery"] {
+  --sc-radius: 28px;
+  --sc-title-scale: 0.92;
+  --sc-card-aspect: 1 / 1;
+  --sc-section-gap: 2rem;
+}
+
+/* Minimal — süs yok, sıkı yoğunluk, hızlı tarama */
+.showcase-root[data-showcase-theme="minimal"] {
+  --sc-radius: 8px;
+  --sc-title-scale: 0.88;
+  --sc-card-aspect: 16 / 10;
+  --sc-section-gap: 1.75rem;
+}
+
+/* Bileşenlerin okuduğu yardımcılar */
+.sc-card { border-radius: var(--sc-radius); }
+.sc-media { aspect-ratio: var(--sc-card-aspect); }
+.sc-title { font-size: calc(1em * var(--sc-title-scale)); }

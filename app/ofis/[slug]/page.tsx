@@ -9,6 +9,7 @@ import { trMoney, ROOM_OPTIONS } from "@/lib/labels";
 import { RequestForm } from "@/components/showcase-forms";
 import { TrackImpressions } from "@/components/vitrin-tracking";
 import { officeJsonLd, SHOWCASE_INDEX_MIN_LISTINGS } from "@/lib/seo";
+import { resolveShowcaseTheme } from "@/lib/showcase-themes";
 import { getBaseUrl } from "@/lib/url";
 import { isAutoVertical } from "@/lib/verticals";
 import { ShowcaseWorkspace, type SplitListing } from "@/components/showcase-workspace";
@@ -156,12 +157,15 @@ export default async function ShowcasePage({
       vertical: true,
       officePhotoUrl: true,
       updatedAt: true,
+      plan: true,
+      showcaseTheme: true,
     },
   });
   if (!tenant || !tenant.showcaseEnabled) notFound();
 
   const displayName = tenant.brandName?.trim() || tenant.name;
   const isAuto = isAutoVertical(tenant.vertical);
+  const theme = resolveShowcaseTheme(tenant.showcaseTheme, tenant.plan);
 
   const num = (v?: string) => {
     const n = Number(v);
@@ -472,6 +476,7 @@ export default async function ShowcasePage({
           ]}
           isAuto={isAuto}
           featured={heroFeatured}
+          layout={theme.hero}
         />
       </div>
 

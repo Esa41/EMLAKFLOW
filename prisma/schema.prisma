@@ -299,6 +299,9 @@ model Tenant {
   contractExtraClauses   String? // sözleşme sonuna eklenen ek madde metni
 
   // Vitrin (public ofis sayfası) ayarları
+  /** Vitrin tema anahtarı — bkz. lib/showcase-themes.ts. Premium/Kurumsal
+      dışındaki planlarda sunucu tarafında "classic"e düşürülür. */
+  showcaseTheme    String  @default("classic")
   showcaseEnabled  Boolean @default(true)
   showcaseHeadline String? // hero başlığı (hook) — boşsa güçlü varsayılan
   showcaseTagline  String? // kahraman başlığın altındaki tanıtım cümlesi

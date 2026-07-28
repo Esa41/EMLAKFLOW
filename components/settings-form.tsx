@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { SHOWCASE_THEMES } from "@/lib/showcase-themes";
+import { isPremium } from "@/lib/plans-config";
 import { useRouter } from "next/navigation";
 import { Copy, Check } from "lucide-react";
 import { showcaseUrl } from "@/lib/url";
@@ -23,6 +25,7 @@ export interface TenantSettings {
   vertical: string;
   customDomain: string;
   showcaseEnabled: boolean;
+  showcaseTheme: string;
   showcaseHeadline: string;
   showcaseTagline: string;
   whatsapp: string;
@@ -96,6 +99,7 @@ export function SettingsForm({
         portalSahibindenAuto: v.portalSahibindenAuto,
         showcaseEnabled: v.showcaseEnabled,
         showcaseHeadline: v.showcaseHeadline,
+        showcaseTheme: v.showcaseTheme,
         showcaseTagline: v.showcaseTagline,
         whatsapp: v.whatsapp,
         aboutTitle: v.aboutTitle,
@@ -332,6 +336,59 @@ export function SettingsForm({
         </label>
 
         <div className="mt-4">
+          {/* ── Vitrin teması (Premium) ──
+              Ücretsiz/Pro'da diğerleri KİLİTLİ ama GÖRÜNÜR: neyin
+              kaçırıldığını göstermek yükseltme sebebidir. Kapı sunucuda da
+              uygulanır (resolveShowcaseTheme), burada yalnız arayüz. */}
+          <div className="mb-6">
+            <label className={labelCls}>Vitrin teması</label>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {SHOWCASE_THEMES.map((t) => {
+                const locked = t.premium && !isPremium(v.plan);
+                const on = v.showcaseTheme === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    disabled={locked}
+                    onClick={() => set("showcaseTheme", t.key)}
+                    className={`rounded-xl border p-3 text-left transition ${
+                      on
+                        ? "border-ink bg-ink/[0.04]"
+                        : "border-ink/12 hover:border-ink/30"
+                    } ${locked ? "cursor-not-allowed opacity-55" : ""}`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-[13.5px] font-bold">{t.label}</span>
+                      {locked && (
+                        <span className="rounded-full bg-ink/8 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wide text-ink/50">
+                          Premium
+                        </span>
+                      )}
+                      {on && !locked && (
+                        <span className="ml-auto font-mono text-[9px] font-bold uppercase tracking-wide text-ink/40">
+                          seçili
+                        </span>
+                      )}
+                    </span>
+                    <span className="mt-1 block text-[12px] leading-snug text-ink/55">
+                      {t.desc}
+                    </span>
+                    <span className="mt-1 block font-mono text-[10px] uppercase tracking-wide text-ink/35">
+                      {t.bestFor}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {!isPremium(v.plan) && (
+              <p className="mt-2 text-[12px] text-ink/45">
+                Diğer temalar Premium pakette açılır. Vitriniz Klasik tema ile
+                yayında.
+              </p>
+            )}
+          </div>
+
           <label className={labelCls}>Vitrin başlığı</label>
           <input
             className={inputCls}

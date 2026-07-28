@@ -42,6 +42,7 @@ export default async function SettingsPage() {
           city: tenant.city ?? "",
           district: tenant.district ?? "",
           plan: tenant.plan,
+          showcaseTheme: tenant.showcaseTheme ?? "classic",
           commissionRate: String(tenant.commissionRate),
           agentSharePct: String(tenant.agentSharePct),
           portalSahibinden: tenant.portalSahibinden,

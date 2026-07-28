@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { AnimatedCounter } from "@/components/animated-counter";
+import type { ShowcaseHeroLayout } from "@/lib/showcase-themes";
 
 type Stat = { value: string; label: string };
 
@@ -33,6 +34,8 @@ type Props = {
   featured?: HeroListing | null;
   /** İstatistik yoksa basılan, envanterden bağımsız güven vaatleri */
   trustPoints?: string[];
+  /** Tema düzen varyantı — bkz. lib/showcase-themes.ts */
+  layout?: ShowcaseHeroLayout;
   /** Geriye dönük uyum — artık tam ekran arka plan olarak KULLANILMIYOR */
   heroImage?: string | null;
   video?: { url: string; poster: string | null } | null;
@@ -71,7 +74,29 @@ export function ShowcaseHero({
   slug,
   featured = null,
   trustPoints = [],
+  layout = "split",
 }: Props) {
+  /* Tema düzenleri — hepsi AYNI parçaları kullanır, dizilişleri değişir.
+     compact/gallery/editorial için ayrı bileşen yazmak yerine tek kaynakta
+     ızgara ve ölçek farklılaşıyor; yeni tema eklemek satır eklemek oluyor. */
+  const grid =
+    layout === "gallery"
+      ? "lg:grid-cols-[minmax(0,380px)_1fr]" // fotoğraf büyür
+      : layout === "editorial"
+        ? "lg:grid-cols-[1.35fr_minmax(0,340px)]" // tipografi büyür
+        : layout === "compact"
+          ? "lg:grid-cols-[1fr_minmax(0,300px)]" // sıkı
+          : "lg:grid-cols-[1fr_minmax(0,420px)]"; // klasik
+  const pad =
+    layout === "compact" ? "py-9 sm:py-12" : layout === "editorial" ? "py-16 sm:py-24" : "py-14 sm:py-20";
+  const titleSize =
+    layout === "editorial"
+      ? "text-[clamp(34px,6.6vw,64px)]"
+      : layout === "compact"
+        ? "text-[clamp(26px,4.4vw,40px)]"
+        : "text-[clamp(30px,5.6vw,52px)]";
+  /* Galeri temasında mülk kartı önce gelsin — fotoğraf hikâyeyi taşır */
+  const mediaFirst = layout === "gallery";
   const listingHref = featured
     ? `/ofis/${slug}/ilan/${featured.slug ? `${featured.id}-${featured.slug}` : featured.id}`
     : `/ofis/${slug}#koleksiyon`;
@@ -107,13 +132,17 @@ export function ShowcaseHero({
         aria-hidden
       />
 
-      <div className="relative mx-auto grid max-w-[1080px] items-center gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1fr_minmax(0,420px)] lg:gap-14">
+      <div
+        className={`relative mx-auto grid max-w-[1080px] items-center gap-10 px-4 sm:px-6 lg:gap-14 ${grid} ${pad}`}
+      >
         {/* ── Kimlik ── */}
-        <div>
+        <div className={mediaFirst ? "lg:order-2" : undefined}>
           <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/55">
             {eyebrow}
           </p>
-          <h1 className="mt-4 max-w-[15ch] font-display text-[clamp(30px,5.6vw,52px)] font-extrabold leading-[1.03] tracking-[-0.03em] text-balance">
+          <h1
+            className={`mt-4 max-w-[15ch] font-display font-extrabold leading-[1.03] tracking-[-0.03em] text-balance ${titleSize}`}
+          >
             {headline}
           </h1>
           <p className="mt-4 max-w-[46ch] text-[15.5px] leading-relaxed text-white/65">
@@ -170,9 +199,11 @@ export function ShowcaseHero({
         {featured && (
           <Link
             href={listingHref}
-            className="group block overflow-hidden rounded-[24px] bg-white text-ink shadow-[0_40px_90px_-40px_rgba(0,0,0,0.7)] transition-transform hover:-translate-y-1"
+            className={`sc-card group block overflow-hidden bg-white text-ink shadow-[0_40px_90px_-40px_rgba(0,0,0,0.7)] transition-transform hover:-translate-y-1 ${
+              mediaFirst ? "lg:order-1" : ""
+            }`}
           >
-            <div className="relative aspect-[4/3] overflow-hidden bg-n-100">
+            <div className="sc-media relative overflow-hidden bg-n-100">
               {featured.image ? (
                 /* Kart içinde, kendi ölçüsünde — tam ekrana gerdirilmiyor,
                    bu yüzden küçük varyantlar da net görünüyor.

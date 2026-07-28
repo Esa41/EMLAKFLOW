@@ -8,6 +8,7 @@ import { SiteAuthHeader } from "@/components/site-auth";
 import { SiteSessionProvider } from "@/components/site-session-context";
 import { ShowcaseHomeLink } from "@/components/showcase-home-link";
 import { brandPalette } from "@/lib/color";
+import { resolveShowcaseTheme } from "@/lib/showcase-themes";
 
 // Vitrin ofisin markalı sayfasıdır: kök "%s | EmlakFlow" şablonunu nötrle —
 // hem beyaz etiket hem de başlığın 60 karakteri aşmaması için.
@@ -39,6 +40,7 @@ export default async function ShowcaseLayout({
       logoUrl: true,
       customDomain: true,
       plan: true,
+      showcaseTheme: true,
     },
   });
   if (!tenant || !tenant.showcaseEnabled) notFound();
@@ -46,6 +48,9 @@ export default async function ShowcaseLayout({
   // Oturum / headers burada OKUNMAZ: cookie veya headers() rotayı dynamic
   // yapar ve ilan detayının ISR önbelleğini bozar (500 / stale error riski).
   const palette = brandPalette(tenant.primaryColor || tenant.brandColor);
+  /* Tema plan kapısından geçirilir: ofis Premium'dan düşerse vitrin
+     kendiliğinden Klasik'e döner, seçim veritabanında korunur. */
+  const theme = resolveShowcaseTheme(tenant.showcaseTheme, tenant.plan);
   const displayName = tenant.brandName?.trim() || tenant.name;
   // Premium: her zaman rozetsiz. Pro/Free: alan adı veya marka adı varsa da gizle.
   const whiteLabel =
@@ -54,7 +59,11 @@ export default async function ShowcaseLayout({
 
   return (
     <SiteSessionProvider slug={slug}>
-    <div className="showcase-root min-h-screen" style={palette as React.CSSProperties}>
+    <div
+      className="showcase-root min-h-screen"
+      data-showcase-theme={theme.key}
+      style={palette as React.CSSProperties}
+    >
       {/* Antet — müşteri yüzü (Beehome dili: ince çizgi + camlı zemin) */}
       <header className="sticky top-0 z-30 border-b border-ink/10 bg-paper/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-[1080px] items-center gap-3 px-4 sm:px-6">

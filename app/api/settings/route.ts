@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { SHOWCASE_THEMES } from "@/lib/showcase-themes";
 import { randomBytes } from "crypto";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -26,6 +27,7 @@ export async function GET() {
       feedToken: true,
       vertical: true,
       showcaseEnabled: true,
+      showcaseTheme: true,
       showcaseHeadline: true,
       showcaseTagline: true,
       whatsapp: true,
@@ -113,6 +115,14 @@ export async function PATCH(req: Request) {
       ...(body.portalSahibindenAuto !== undefined && {
         portalSahibindenAuto: !!body.portalSahibindenAuto,
       }),
+      /* Tema: yalnız tanımlı anahtarlar kabul edilir. Plan kapısı burada
+         ZORLANMAZ — seçim saklanır, uygulanırken resolveShowcaseTheme()
+         Premium değilse Klasik'e düşürür. Böylece ofis Premium'a geçince
+         eski seçimi geri gelir. */
+      ...(body.showcaseTheme !== undefined &&
+        SHOWCASE_THEMES.some((t) => t.key === body.showcaseTheme) && {
+          showcaseTheme: String(body.showcaseTheme),
+        }),
       ...(body.showcaseEnabled !== undefined && {
         showcaseEnabled: !!body.showcaseEnabled,
       }),
