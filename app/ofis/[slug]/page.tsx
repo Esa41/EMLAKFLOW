@@ -10,6 +10,7 @@ import { RequestForm } from "@/components/showcase-forms";
 import { TrackImpressions } from "@/components/vitrin-tracking";
 import { officeJsonLd, SHOWCASE_INDEX_MIN_LISTINGS } from "@/lib/seo";
 import { resolveShowcaseTheme } from "@/lib/showcase-themes";
+import { getTenantListingVideos } from "@/lib/showcase-video";
 import { getBaseUrl } from "@/lib/url";
 import { isAutoVertical } from "@/lib/verticals";
 import { ShowcaseWorkspace, type SplitListing } from "@/components/showcase-workspace";
@@ -295,20 +296,27 @@ export default async function ShowcasePage({
     }),
   ]);
 
+  /* Stüdyoda üretilmiş tanıtım videoları. Bunlar için fal/Shotstack/
+     ElevenLabs'e ödeme yapılıyor; kartta rozet basılmazsa ziyaretçi
+     videonun varlığından haberdar olmuyor. Tek kiracı sorgusu — bkz.
+     lib/showcase-video.ts. */
+  const videoByListing = await getTenantListingVideos(tenant.id);
+  const hasVideoFor = (id: string) => videoByListing.has(id);
+
   const splitListings: SplitListing[] = listings.map((l) => ({
     ...toCardListing(l),
-    hasVideo: false,
+    hasVideo: hasVideoFor(l.id),
     lat: l.lat,
     lng: l.lng,
   }));
 
   const featuredCards = featuredListings.map((l) => ({
     ...toCardListing(l),
-    hasVideo: false,
+    hasVideo: hasVideoFor(l.id),
   }));
   const newCards = newListings.map((l) => ({
     ...toCardListing(l),
-    hasVideo: false,
+    hasVideo: hasVideoFor(l.id),
   }));
 
   /* ── Kategori kartları (Beehome "listing category" dili) ──

@@ -153,6 +153,35 @@ export function breadcrumbJsonLd(items: Array<{ name: string; url: string }>) {
   };
 }
 
+/**
+ * schema.org VideoObject — ilanın stüdyo tanıtım videosu için.
+ *
+ * Google video arama sonuçlarında küçük resim gösterebilsin diye eklenir:
+ * zaten üretilmiş (ve ücreti ödenmiş) videodan ek trafik çıkarmanın en ucuz
+ * yolu. `uploadDate` ve `thumbnailUrl` Google'ın zorunlu alanları — ikisi de
+ * yoksa zengin sonuç verilmez, o yüzden thumbnail yoksa hiç basma.
+ */
+export function videoJsonLd(input: {
+  name: string;
+  description: string;
+  contentUrl: string;
+  thumbnailUrl: string | null;
+  uploadDate: Date;
+  pageUrl: string;
+}) {
+  if (!input.thumbnailUrl) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "VideoObject",
+    name: input.name,
+    description: input.description,
+    thumbnailUrl: [input.thumbnailUrl],
+    uploadDate: input.uploadDate.toISOString(),
+    contentUrl: input.contentUrl,
+    embedUrl: input.pageUrl,
+  };
+}
+
 /** schema.org RealEstateAgent JSON-LD — ofis vitrin ana sayfasına gömülür. */
 export function officeJsonLd(
   tenant: Pick<Tenant, "name" | "slug" | "phone" | "city" | "district">,

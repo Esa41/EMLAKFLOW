@@ -10,6 +10,7 @@ import { DroneMapFlyover } from "@/components/drone-map-flyover";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ShareButton } from "@/components/share-button";
 import { ListingGallery } from "@/components/listing-gallery";
+import { getListingVideo } from "@/lib/showcase-video";
 import { ShowcaseListingCard } from "@/components/showcase-listing-card";
 import { TrackListingView } from "@/components/vitrin-tracking";
 import {
@@ -18,6 +19,7 @@ import {
   mediaAltText,
   listingJsonLd,
   breadcrumbJsonLd,
+  videoJsonLd,
 } from "@/lib/seo";
 import { trMoney } from "@/lib/labels";
 import { getBaseUrl } from "@/lib/url";
@@ -129,20 +131,25 @@ export default async function ListingShowcasePage({
 
   // Favori/oturum durumu client'ta SiteSessionProvider'dan gelir — burada
   // cookie okunmaz ki sayfa ISR önbelleğinde kalabilsin (bkz. revalidate).
-  const similar = await prisma.listing.findMany({
-    where: {
-      tenantId: tenant.id,
-      status: "ACTIVE",
-      id: { not: l.id },
-      OR: isAuto
-        ? [{ vehicleBrand: l.vehicleBrand }, { type: l.type }]
-        : [{ district: l.district }, { type: l.type }],
-      purpose: l.purpose,
-    },
-    orderBy: { createdAt: "desc" },
-    take: 3,
-    include: { media: { orderBy: { order: "asc" }, take: 1 } },
-  });
+  /* Stüdyo tanıtım videosu — galerinin İLK karesi olur. Benzer ilanlarla
+     paralel çekilir; ikisi de birbirine bağlı değil. */
+  const [studioVideo, similar] = await Promise.all([
+    getListingVideo(l.id),
+    prisma.listing.findMany({
+      where: {
+        tenantId: tenant.id,
+        status: "ACTIVE",
+        id: { not: l.id },
+        OR: isAuto
+          ? [{ vehicleBrand: l.vehicleBrand }, { type: l.type }]
+          : [{ district: l.district }, { type: l.type }],
+        purpose: l.purpose,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      include: { media: { orderBy: { order: "asc" }, take: 1 } },
+    }),
+  ]);
 
   const filled = buildListingSpecs(l, isAuto).filter(([, v]) => v);
 
@@ -157,10 +164,23 @@ export default async function ListingShowcasePage({
     { name: tenant.name, slug },
     baseUrl,
   );
+  const pageUrl = `${baseUrl}/ofis/${slug}/ilan/${publicId}`;
   const breadcrumb = breadcrumbJsonLd([
     { name: tenant.name, url: `${baseUrl}/ofis/${slug}` },
-    { name: l.title, url: `${baseUrl}/ofis/${slug}/ilan/${publicId}` },
+    { name: l.title, url: pageUrl },
   ]);
+  /* Zaten üretilmiş (ücreti ödenmiş) videodan ek trafik: Google video
+     sonuçlarında küçük resim gösterebilsin diye VideoObject basılır. */
+  const videoLd = studioVideo
+    ? videoJsonLd({
+        name: `${l.title} — tanıtım videosu`,
+        description: l.description ?? seoDescription(l, tenant.name),
+        contentUrl: studioVideo.url,
+        thumbnailUrl: l.media[0]?.cardUrl ?? l.media[0]?.url ?? null,
+        uploadDate: studioVideo.updatedAt,
+        pageUrl,
+      })
+    : null;
 
   return (
     <div className="space-y-8">
@@ -172,6 +192,12 @@ export default async function ListingShowcasePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
       />
+      {videoLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(videoLd) }}
+        />
+      )}
       <TrackListingView tenantId={tenant.id} listingId={l.id} />
       <Link
         href={`/ofis/${slug}`}
@@ -183,6 +209,14 @@ export default async function ListingShowcasePage({
       {/* Galeri */}
       <ListingGallery
         title={l.title}
+        studioVideo={
+          studioVideo
+            ? {
+                url: studioVideo.url,
+                poster: l.media[0]?.cardUrl ?? l.media[0]?.url ?? null,
+              }
+            : null
+        }
         media={l.media.map((m, i) => ({
           id: m.id,
           url: m.url,

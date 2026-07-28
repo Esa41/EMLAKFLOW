@@ -227,34 +227,41 @@ body,
 .stat-amber { background: var(--color-copper); }
 .stat-rose { background: #c13515; }
 
-/* ── Künye plakası — köşe çentiği durumu kodlar ── */
-.kunye {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--color-ink);
-  border-radius: 4px;
-  padding: 4px 9px 4px 8px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  background: var(--app-surface-hover);
-  position: relative;
-  overflow: hidden;
+/* ── Künye plakası — köşe çentiği durumu kodlar ──
+   @layer components ŞART: katmansız yazılırsa `position: relative`
+   Tailwind'in `absolute` yardımcısını yener ve etiket alta sabitlenmez
+   (galeri/kart/portföy üçünde de künye üstte, medyanın altında kalıyordu).
+   Katmandayken utilities sonra geldiği için çağrı yeri kazanır.
+   `absolute` da ::before çentiği için kapsayıcı blok kurar, çentik bozulmaz. */
+@layer components {
+  .kunye {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--color-ink);
+    border-radius: 4px;
+    padding: 4px 9px 4px 8px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    background: var(--app-surface-hover);
+    position: relative;
+    overflow: hidden;
+  }
+  .kunye::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    border-style: solid;
+    border-width: 9px 9px 0 0;
+    border-color: var(--color-brand-600) transparent transparent transparent;
+  }
+  .kunye-satildi::before { border-top-color: var(--color-copper); }
+  .kunye-bekliyor::before { border-top-color: #d9a21b; }
+  .kunye-pasif::before { border-top-color: color-mix(in srgb, var(--color-ink) 30%, transparent); }
+  .kunye-iptal::before { border-top-color: #c13515; }
 }
-.kunye::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  border-style: solid;
-  border-width: 9px 9px 0 0;
-  border-color: var(--color-brand-600) transparent transparent transparent;
-}
-.kunye-satildi::before { border-top-color: var(--color-copper); }
-.kunye-bekliyor::before { border-top-color: #d9a21b; }
-.kunye-pasif::before { border-top-color: color-mix(in srgb, var(--color-ink) 30%, transparent); }
-.kunye-iptal::before { border-top-color: #c13515; }
 
 /* ── Ölçü çizgisi — |— 3+1 · 140 m² —| ── */
 .olcu {

@@ -6,30 +6,60 @@ import { prisma } from "./prisma";
  * rotalarının ISR/statik önbellek disiplinine uyar.
  */
 
-export type ShowcaseVideo = { url: string; aspectRatio: string };
+export type ShowcaseVideo = {
+  url: string;
+  aspectRatio: string;
+  /** Videonun hazır olduğu an — VideoObject JSON-LD uploadDate'i için. */
+  updatedAt: Date;
+};
 
-/** İlan başına en son TAMAMLANMIŞ stüdyo videosu (varsa). */
-export async function getListingVideos(
-  listingIds: string[],
+/**
+ * Ofisin TÜM tamamlanmış stüdyo videoları, ilan kimliğine göre.
+ *
+ * Vitrin ana sayfası yüzlerce aktif ilan listeleyebiliyor; bunları
+ * `listingId: { in: [...] }` ile sormak devasa bir IN cümlesi üretirdi.
+ * Stüdyo projesi sayısı ilan sayısından çok daha az olduğu için tek bir
+ * kiracı sorgusu daha ucuz — ve `@@index([tenantId, status])` tam oturur.
+ */
+export async function getTenantListingVideos(
+  tenantId: string,
 ): Promise<Map<string, ShowcaseVideo>> {
-  if (listingIds.length === 0) return new Map();
   const projects = await prisma.studioProject.findMany({
-    where: {
-      listingId: { in: listingIds },
-      status: "COMPLETED",
-      finalVideoUrl: { not: null },
-    },
+    where: { tenantId, status: "COMPLETED", finalVideoUrl: { not: null } },
     orderBy: { updatedAt: "desc" },
-    select: { listingId: true, finalVideoUrl: true, aspectRatio: true },
+    select: {
+      listingId: true,
+      finalVideoUrl: true,
+      aspectRatio: true,
+      updatedAt: true,
+    },
   });
   const map = new Map<string, ShowcaseVideo>();
   for (const p of projects) {
-    // updatedAt desc — ilk görülen ilan başına en yenisidir
+    // updatedAt desc — ilan başına ilk görülen en yenisidir
     if (!map.has(p.listingId)) {
-      map.set(p.listingId, { url: p.finalVideoUrl!, aspectRatio: p.aspectRatio });
+      map.set(p.listingId, {
+        url: p.finalVideoUrl!,
+        aspectRatio: p.aspectRatio,
+        updatedAt: p.updatedAt,
+      });
     }
   }
   return map;
+}
+
+/** Tek ilanın en son tamamlanmış stüdyo videosu (ilan detay galerisi). */
+export async function getListingVideo(
+  listingId: string,
+): Promise<ShowcaseVideo | null> {
+  const p = await prisma.studioProject.findFirst({
+    where: { listingId, status: "COMPLETED", finalVideoUrl: { not: null } },
+    orderBy: { updatedAt: "desc" },
+    select: { finalVideoUrl: true, aspectRatio: true, updatedAt: true },
+  });
+  return p
+    ? { url: p.finalVideoUrl!, aspectRatio: p.aspectRatio, updatedAt: p.updatedAt }
+    : null;
 }
 
 /** Ofis hero arka planı için en yeni yatay (16:9) tamamlanmış video. */
@@ -44,7 +74,9 @@ export async function getTenantHeroVideo(
       aspectRatio: "16:9",
     },
     orderBy: { updatedAt: "desc" },
-    select: { finalVideoUrl: true, aspectRatio: true },
+    select: { finalVideoUrl: true, aspectRatio: true, updatedAt: true },
   });
-  return p ? { url: p.finalVideoUrl!, aspectRatio: p.aspectRatio } : null;
+  return p
+    ? { url: p.finalVideoUrl!, aspectRatio: p.aspectRatio, updatedAt: p.updatedAt }
+    : null;
 }

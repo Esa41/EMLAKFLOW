@@ -164,9 +164,14 @@ export function ListingGallery({
             </span>
           </button>
         )}
-        <span className="kunye absolute -bottom-3 left-4 max-w-[85%] truncate shadow-sm">
-          {current.type === "video" ? `${title} · Tanıtım videosu` : title}
-        </span>
+        {/* Künye yalnız FOTOĞRAF karesinde. Video karesinde tarayıcının kendi
+            oynatma çubuğunun üstüne biniyor; oynatıcı zaten videonun video
+            olduğunu anlatıyor, etiket gereksiz. */}
+        {current.type !== "video" && (
+          <span className="kunye absolute -bottom-3 left-4 max-w-[85%] truncate shadow-sm">
+            {title}
+          </span>
+        )}
         {count > 1 && current.type !== "video" && (
           <span className="absolute bottom-3 right-3 rounded-full bg-ink/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
             {active + 1} / {count}
@@ -182,7 +187,13 @@ export function ListingGallery({
               type="button"
               key={s.type === "video" ? "__video" : s.media.id}
               onClick={() => setActive(i)}
-              aria-label={s.type === "video" ? "Tanıtım videosunu oynat" : `${i + 1}. fotoğrafı göster`}
+              /* Fotoğraf sırası SLAYT sırasından sayılmaz: video ilk kare
+                 olduğunda ilk fotoğraf "2. fotoğraf" diye okunurdu. */
+              aria-label={
+                s.type === "video"
+                  ? "Tanıtım videosunu oynat"
+                  : `${photos.indexOf(s.media) + 1}. fotoğrafı göster`
+              }
               aria-current={i === active}
               className={`relative aspect-[4/3] w-full overflow-hidden rounded-md border transition ${
                 i === active
