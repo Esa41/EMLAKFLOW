@@ -405,6 +405,14 @@ export default async function ShowcasePage({
       }
     : null;
 
+  /* Galeri düzeninin mozaiği — hero fotoğrafından SONRAKİ en iyi iki kare.
+     Üçü de yoksa mozaik tek görsele düşer, düzen bozulmaz. */
+  const heroGallery = [...featuredListings, ...newListings, ...listings]
+    .map((l) => l.media[0]?.url ?? l.media[0]?.cardUrl ?? null)
+    .filter((u): u is string => Boolean(u) && u !== heroFeatured?.image)
+    .filter((u, i, arr) => arr.indexOf(u) === i)
+    .slice(0, 2);
+
   /* Her ofis için doğru olan, envantere bağlı olmayan vaatler. */
   const trustPoints = [
     "Aynı gün dönüş",
@@ -478,6 +486,15 @@ export default async function ShowcasePage({
           ]}
           isAuto={isAuto}
           heroImage={heroFeatured?.image ?? null}
+          /* Galeri düzeninin mozaiği ve Klasik'in künyeli kartı için:
+             hero yalnız arka plan fotoğrafı değil, gerçek ilan verisi de alır. */
+          galleryImages={heroGallery}
+          featured={heroFeatured}
+          quickLinks={categories.map((c) => ({
+            title: c.title,
+            count: c.count,
+            href: c.href,
+          }))}
           layout={theme.hero}
         />
       </div>

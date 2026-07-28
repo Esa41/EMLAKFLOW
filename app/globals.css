@@ -1336,7 +1336,7 @@ body,
   --sc-title-scale: 1;        /* hero başlık çarpanı */
   --sc-h2-scale: 1;           /* bölüm başlığı çarpanı */
   --sc-card-shadow: none;
-  --sc-hero-h: calc(100svh - 64px);
+  --sc-hero-h: auto;          /* Klasik hero içerik boyudur, tam ekran değil */
 }
 
 /* EDİTORYAL — dev tipografi, keskin köşe, geniş nefes, 2 sütun büyük kart */
@@ -1352,7 +1352,7 @@ body,
   --sc-title-scale: 1.18;
   --sc-h2-scale: 1.3;
   --sc-card-shadow: none;
-  --sc-hero-h: calc(100svh - 64px);
+  --sc-hero-h: min(780px, calc(100svh - 64px));
 }
 
 /* GALERİ — kare fotoğraf, çok yumuşak köşe, yükseltilmiş kart, metin geri planda */
@@ -1365,7 +1365,7 @@ body,
   --sc-grid-min: 300px;       /* 3 sütun kare — 2'ye düşerse kartlar devleşiyor */
   --sc-grid-gap: 1.5rem;
   --sc-section-gap: 3rem;
-  --sc-title-scale: 0.92;
+  --sc-title-scale: 0.74;     /* camlı kartın içinde durur, kartı taşırmaz */
   --sc-h2-scale: 0.95;
   --sc-card-shadow: 0 22px 45px -28px rgba(17, 17, 20, 0.55);
   --sc-hero-h: calc(100svh - 64px);
@@ -1384,7 +1384,7 @@ body,
   --sc-title-scale: 0.78;
   --sc-h2-scale: 0.8;
   --sc-card-shadow: none;
-  --sc-hero-h: 62svh;         /* portföye daha çabuk in */
+  --sc-hero-h: auto;          /* alçak banner — portföye iki saniyede in */
 }
 
 /* Bileşenlerin okuduğu yardımcılar — TEMA FARKI BURADAN GÖRÜNÜR OLUR.
@@ -1419,4 +1419,18 @@ body,
     calc(3.6vw * var(--sc-h2-scale)),
     calc(42px * var(--sc-h2-scale))
   );
+}
+
+/* Galeri temasının dev fotoğrafı için çok yavaş yakınlaşma — parallax
+   yerine geçer, kenarda boşluk açmaz. */
+@keyframes sc-kenburns {
+  from { transform: scale(1); }
+  to   { transform: scale(1.07); }
+}
+.fx-kenburns {
+  animation: sc-kenburns 24s ease-out forwards;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fx-kenburns { animation: none; }
 }
