@@ -1323,38 +1323,100 @@ body,
    ölçeği ve yoğunluktur. Bileşenler bu değişkenleri okur, tema adını
    bilmez — yeni tema eklemek bir blok CSS yazmak demektir.
    ══════════════════════════════════════════════════════════════════ */
+/* KLASİK — dengeli varsayılan. 3 sütun, 4:3 foto, yumuşak köşe. */
 .showcase-root {
-  --sc-radius: 24px;        /* kart köşesi */
-  --sc-title-scale: 1;      /* başlık büyütme çarpanı */
-  --sc-card-aspect: 4 / 3;  /* ilan kartı foto oranı */
-  --sc-section-gap: 2.5rem; /* bölümler arası nefes */
+  --sc-radius: 20px;          /* kart köşesi */
+  --sc-btn-radius: 9999px;    /* buton köşesi */
+  --sc-card-aspect: 4 / 3;    /* ızgara kartı foto oranı */
+  --sc-rail-aspect: 4 / 3;    /* yatay raf kartı foto oranı */
+  --sc-rail-w: 300px;         /* yatay raf kartı genişliği */
+  --sc-grid-min: 300px;       /* ızgara sütun taban genişliği → sütun sayısı */
+  --sc-grid-gap: 1.25rem;
+  --sc-section-gap: 3.5rem;   /* bölümler arası nefes */
+  --sc-title-scale: 1;        /* hero başlık çarpanı */
+  --sc-h2-scale: 1;           /* bölüm başlığı çarpanı */
+  --sc-card-shadow: none;
+  --sc-hero-h: calc(100svh - 64px);
 }
 
-/* Editoryal — tipografi büyür, köşeler sertleşir, boşluk artar */
+/* EDİTORYAL — dev tipografi, keskin köşe, geniş nefes, 2 sütun büyük kart */
 .showcase-root[data-showcase-theme="editorial"] {
-  --sc-radius: 14px;
-  --sc-title-scale: 1.18;
+  --sc-radius: 2px;
+  --sc-btn-radius: 2px;
   --sc-card-aspect: 3 / 2;
-  --sc-section-gap: 3.5rem;
+  --sc-rail-aspect: 3 / 2;
+  --sc-rail-w: 360px;
+  --sc-grid-min: 430px;       /* geniş sütun → masaüstünde 2 kart */
+  --sc-grid-gap: 2.25rem;
+  --sc-section-gap: 5.5rem;
+  --sc-title-scale: 1.18;
+  --sc-h2-scale: 1.3;
+  --sc-card-shadow: none;
+  --sc-hero-h: calc(100svh - 64px);
 }
 
-/* Galeri — fotoğraf büyür (kare), köşeler yumuşar, metin geri çekilir */
+/* GALERİ — kare fotoğraf, çok yumuşak köşe, yükseltilmiş kart, metin geri planda */
 .showcase-root[data-showcase-theme="gallery"] {
   --sc-radius: 28px;
+  --sc-btn-radius: 9999px;
+  --sc-card-aspect: 1 / 1;    /* KARE — en görünür fark */
+  --sc-rail-aspect: 1 / 1;
+  --sc-rail-w: 320px;
+  --sc-grid-min: 300px;       /* 3 sütun kare — 2'ye düşerse kartlar devleşiyor */
+  --sc-grid-gap: 1.5rem;
+  --sc-section-gap: 3rem;
   --sc-title-scale: 0.92;
-  --sc-card-aspect: 1 / 1;
-  --sc-section-gap: 2rem;
+  --sc-h2-scale: 0.95;
+  --sc-card-shadow: 0 22px 45px -28px rgba(17, 17, 20, 0.55);
+  --sc-hero-h: calc(100svh - 64px);
 }
 
-/* Minimal — süs yok, sıkı yoğunluk, hızlı tarama */
+/* MİNİMAL — süs yok, 4 sütun sıkı ızgara, alçak hero, hızlı tarama */
 .showcase-root[data-showcase-theme="minimal"] {
-  --sc-radius: 8px;
-  --sc-title-scale: 0.88;
-  --sc-card-aspect: 16 / 10;
-  --sc-section-gap: 1.75rem;
+  --sc-radius: 0px;
+  --sc-btn-radius: 0px;
+  --sc-card-aspect: 16 / 9;
+  --sc-rail-aspect: 16 / 9;
+  --sc-rail-w: 250px;
+  --sc-grid-min: 225px;       /* dar sütun → masaüstünde 4 kart */
+  --sc-grid-gap: 0.75rem;
+  --sc-section-gap: 2rem;
+  --sc-title-scale: 0.78;
+  --sc-h2-scale: 0.8;
+  --sc-card-shadow: none;
+  --sc-hero-h: 62svh;         /* portföye daha çabuk in */
 }
 
-/* Bileşenlerin okuduğu yardımcılar */
-.sc-card { border-radius: var(--sc-radius); }
+/* Bileşenlerin okuduğu yardımcılar — TEMA FARKI BURADAN GÖRÜNÜR OLUR.
+   Bileşenler tema ADINI bilmez, yalnızca bu sınıfları taşır; yeni tema
+   eklemek yukarıya bir değişken bloğu yazmaktan ibarettir.
+   Katmansız (unlayered) yazıldılar: Tailwind yardımcılarını kasten geçerler. */
+.sc-card {
+  border-radius: var(--sc-radius);
+  box-shadow: var(--sc-card-shadow);
+}
 .sc-media { aspect-ratio: var(--sc-card-aspect); }
-.sc-title { font-size: calc(1em * var(--sc-title-scale)); }
+.sc-media-rail { aspect-ratio: var(--sc-rail-aspect); }
+.sc-rail-card { width: var(--sc-rail-w); }
+.sc-btn { border-radius: var(--sc-btn-radius); }
+.sc-section { padding-top: var(--sc-section-gap); }
+.sc-hero { min-height: var(--sc-hero-h); }
+.sc-grid {
+  display: grid;
+  gap: var(--sc-grid-gap);
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--sc-grid-min), 100%), 1fr));
+}
+.sc-title {
+  font-size: clamp(
+    calc(40px * var(--sc-title-scale)),
+    calc(7vw * var(--sc-title-scale)),
+    calc(86px * var(--sc-title-scale))
+  );
+}
+.sc-h2 {
+  font-size: clamp(
+    calc(26px * var(--sc-h2-scale)),
+    calc(3.6vw * var(--sc-h2-scale)),
+    calc(42px * var(--sc-h2-scale))
+  );
+}

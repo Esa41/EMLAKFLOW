@@ -7,10 +7,11 @@ import { isPremium } from "./plans-config";
  * yoğunluktur. Böylece yeni bir tema eklemek yeni bir sayfa yazmak değil,
  * bir düzen varyantı tanımlamaktır — bakım yükü sabit kalır.
  *
- * Görsel farklar iki kanaldan uygulanır:
- *  1. `hero` — hero bileşeninin düzen varyantı (React tarafında dallanır)
- *  2. CSS değişkenleri — `[data-showcase-theme]` altında globals.css'te
- *     tanımlı; köşe yarıçapı, tipografi ölçeği, kart oranı, yoğunluk.
+ * Görsel farklar CSS değişkenlerinden gelir: `[data-showcase-theme]` altında
+ * globals.css'te tanımlı `--sc-*` kümesi (ızgara sütun sayısı, fotoğraf oranı,
+ * köşe yarıçapı, başlık ölçeği, gölge, hero yüksekliği, bölüm boşluğu).
+ * Bileşenler `sc-grid / sc-card / sc-media / sc-title / sc-hero` sınıflarını
+ * taşır ve tema ADINI bilmez.
  */
 
 export type ShowcaseHeroLayout = "split" | "editorial" | "gallery" | "compact";
@@ -22,6 +23,8 @@ export type ShowcaseTheme = {
   desc: string;
   /** Kime uygun — seçim yaparken yön verir */
   bestFor: string;
+  /** Somut olarak NE değişiyor — seçim ekranında tek satır olarak basılır */
+  changes: string;
   hero: ShowcaseHeroLayout;
   /** Ücretsiz/Pro planlarda kilitli mi */
   premium: boolean;
@@ -31,32 +34,36 @@ export const SHOWCASE_THEMES: ShowcaseTheme[] = [
   {
     key: "classic",
     label: "Klasik",
-    desc: "Kimlik solda, öne çıkan mülk sağda. Dengeli ve her portföyde çalışır.",
+    desc: "Dengeli düzen: üç sütunluk ızgara, 4:3 fotoğraf, yumuşak köşe. Her portföyde çalışır.",
     bestFor: "Karma portföy · varsayılan",
+    changes: "3 sütun · 4:3 foto · 20px köşe · tam ekran hero",
     hero: "split",
     premium: false,
   },
   {
     key: "editorial",
     label: "Editoryal",
-    desc: "Dev tipografi öne çıkar, fotoğraf ikincil kalır. Az fotoğrafla da dolu görünür.",
-    bestFor: "Butik ofis · az fotoğraf",
+    desc: "Dev tipografi ve keskin köşeler; kartlar iki sütuna büyür, aralar genişler. Az ilanla da dolu görünür.",
+    bestFor: "Butik ofis · az ilan",
+    changes: "2 geniş sütun · 3:2 foto · keskin köşe · %18 büyük başlık",
     hero: "editorial",
     premium: true,
   },
   {
     key: "gallery",
     label: "Galeri",
-    desc: "Fotoğraf büyür, metin geri çekilir. Görseli güçlü portföylerde etkileyici.",
+    desc: "Kare fotoğraflar, çok yumuşak köşeler ve yükseltilmiş kartlar. Metin geri çekilir, görsel öne çıkar.",
     bestFor: "Villa · lüks segment",
+    changes: "Kare (1:1) foto · 28px köşe · gölgeli kart · küçük başlık",
     hero: "gallery",
     premium: true,
   },
   {
     key: "minimal",
     label: "Minimal",
-    desc: "Sıkı satırlar, süs yok. Çok ilanı hızlı taratır.",
+    desc: "Süs yok: dört sütunluk sıkı ızgara, köşesiz kart, alçak hero. Çok ilanı hızlı taratır.",
     bestFor: "Ticari · kurumsal · geniş portföy",
+    changes: "4 sıkı sütun · 16:9 foto · köşesiz · alçak hero",
     hero: "compact",
     premium: true,
   },

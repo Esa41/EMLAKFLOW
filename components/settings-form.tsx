@@ -374,6 +374,11 @@ export function SettingsForm({
                     <span className="mt-1 block text-[12px] leading-snug text-ink/55">
                       {t.desc}
                     </span>
+                    {/* Somut fark — "tema hiçbir şey değiştirmiyor" hissini
+                        kırmak için ne değiştiği açıkça yazılır. */}
+                    <span className="mt-1.5 block font-mono text-[10px] leading-relaxed tracking-wide text-ink/45">
+                      {t.changes}
+                    </span>
                     <span className="mt-1 block font-mono text-[10px] uppercase tracking-wide text-ink/35">
                       {t.bestFor}
                     </span>

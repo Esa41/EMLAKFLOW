@@ -302,7 +302,9 @@ export function ShowcaseWorkspace({
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        // Sütun sayısı/boşluk VİTRİN TEMASINDAN gelir (globals --sc-grid-*):
+        // Editoryal 2 geniş, Klasik 3, Galeri 3, Minimal 4 sıkı sütun.
+        <div className="sc-grid">
           {listings.map((l) => (
             <ShowcaseCard key={l.id} slug={slug} listing={l} isAuto={isAuto} />
           ))}

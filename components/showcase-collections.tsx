@@ -51,14 +51,14 @@ export function ShowcaseCollections({ slug, featured, newest, isAuto = false }: 
   const active = panels.find((p) => p.id === tab) ?? panels[0];
 
   return (
-    <section id="koleksiyon" className="relative scroll-mt-20 pt-14 sm:pt-20">
+    <section id="koleksiyon" className="sc-section relative scroll-mt-20">
       <Reveal>
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
             <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand-600">
               Portföy
             </p>
-            <h2 className="mt-3 font-display text-[clamp(26px,3.6vw,42px)] font-extrabold leading-[1.04] tracking-tight">
+            <h2 className="sc-h2 mt-3 font-display font-extrabold leading-[1.04] tracking-tight">
               {active.title}
             </h2>
             <p className="mt-2 text-[15px] text-ink/55">{active.subtitle}</p>

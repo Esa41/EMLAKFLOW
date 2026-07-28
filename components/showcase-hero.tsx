@@ -82,7 +82,9 @@ export function ShowcaseHero({
   return (
     <div
       ref={rootRef}
-      className="relative flex min-h-[calc(100svh-64px)] flex-col overflow-hidden border-b border-ink/10"
+      /* sc-hero: yükseklik temadan gelir — Minimal alçak açılır, portföye
+         daha çabuk inilir; diğerleri tam ekran kalır. */
+      className="sc-hero relative flex flex-col overflow-hidden border-b border-ink/10"
     >
       {/* Katman 0 — gerçek fotoğraf + hafif parallax */}
       <div ref={imgRef} className="absolute inset-0 will-change-transform" style={{ transform: "scale(1.08)" }} aria-hidden>
@@ -130,7 +132,9 @@ export function ShowcaseHero({
           {eyebrow}
         </p>
         <h1
-          className="hero-rise mt-5 max-w-[16ch] font-display text-[clamp(40px,7vw,86px)] font-extrabold leading-[0.98] tracking-[-0.03em] text-balance drop-shadow-[0_2px_30px_rgba(0,0,0,0.35)]"
+          /* sc-title: punto clamp'i globals'ta, tema çarpanıyla ölçekleniyor —
+             Editoryal 1.18×, Klasik 1×, Galeri 0.92×, Minimal 0.78×. */
+          className="hero-rise sc-title mt-5 max-w-[16ch] font-display font-extrabold leading-[0.98] tracking-[-0.03em] text-balance drop-shadow-[0_2px_30px_rgba(0,0,0,0.35)]"
           style={{ animationDelay: "120ms" }}
         >
           {headline}
@@ -145,14 +149,14 @@ export function ShowcaseHero({
           {/* Beehome dili: ofis rengiyle dolu birincil + camlı ikincil */}
           <a
             href="#koleksiyon"
-            className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-7 py-3.5 text-[15px] font-bold text-white shadow-[0_14px_36px_-12px_rgba(0,0,0,0.6)] transition-transform hover:scale-[1.03]"
+            className="sc-btn inline-flex items-center gap-2 bg-brand-600 px-7 py-3.5 text-[15px] font-bold text-white shadow-[0_14px_36px_-12px_rgba(0,0,0,0.6)] transition-transform hover:scale-[1.03]"
           >
             Portföyü Gör
             <ArrowRight size={17} />
           </a>
           <a
             href="#talep-form"
-            className="inline-flex items-center rounded-full border border-white/35 bg-white/10 px-7 py-3.5 text-[15px] font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+            className="sc-btn inline-flex items-center border border-white/35 bg-white/10 px-7 py-3.5 text-[15px] font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/20"
           >
             Talep Bırak
           </a>

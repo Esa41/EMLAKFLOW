@@ -63,10 +63,16 @@ export function ShowcaseCard({
       href={href}
       data-imp={l.id}
       className={`group flex shrink-0 flex-col rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500 ${
-        compact ? "w-[300px] [scroll-snap-align:start]" : ""
+        compact ? "sc-rail-card [scroll-snap-align:start]" : ""
       }`}
     >
-      <div className={`relative overflow-hidden rounded-2xl bg-brand-50/60 ${compact ? "h-52" : "aspect-[4/3.3]"}`}>
+      {/* Köşe, gölge ve foto oranı VİTRİN TEMASINDAN gelir (globals --sc-*):
+         Galeri kare, Editoryal 3:2, Minimal 16:9, Klasik 4:3. */}
+      <div
+        className={`sc-card relative overflow-hidden bg-brand-50/60 ${
+          compact ? "sc-media-rail" : "sc-media"
+        }`}
+      >
         {l.image ? (
           <Image
             src={l.image}
