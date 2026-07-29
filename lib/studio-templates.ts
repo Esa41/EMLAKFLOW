@@ -208,6 +208,12 @@ type Beat = {
   room?: RoomKey;
   required?: boolean;
   durationSec?: 5 | 10;
+  /**
+   * Bu adıma özel kamera dili. Verilmezse şablonun havuzundan sırayla
+   * alınır. Dış mekân adımları bunu KULLANMALI: iç mekân havuzundan gelen
+   * "inside the room" ifadesi cephe fotoğrafında saçmalıyor.
+   */
+  motion?: string;
 };
 
 export type TemplateDef = {
@@ -255,9 +261,15 @@ const storyboard = (motions: string[], beats: Beat[]): SceneSlotDef[] =>
     hint: b.hint,
     required: b.required,
     roomKeyHint: b.room,
-    motions: [motions[i % motions.length]],
+    motions: [b.motion ?? motions[i % motions.length]],
     durationSec: b.durationSec ?? 5,
   }));
+
+// Dış mekân kamera dili — iç mekân havuzları buraya uymuyor.
+const EXT_WIDE = "slow steady aerial push-in towards the building, gentle descent, exterior shot, the building and surroundings stay exactly as in the source photo";
+const EXT_CLOSE = "slow cinematic push-in towards the facade, subtle upward tilt, exterior shot, architecture unchanged from the source photo";
+const EXT_GOLDEN = "slow crane rise over the exterior at golden hour, warm sunset light, long shadows, gentle lens flare, architecture unchanged";
+const EXT_LEAVE = "slow drone pull-back away from the property, revealing the garden and surroundings, exterior shot, nothing added or removed";
 
 /* ── HİKÂYELER ────────────────────────────────────────────────────────
    Bir ilan videosu oda dökümü değil, bir yolculuktur: gelirsin, girersin,
@@ -265,75 +277,106 @@ const storyboard = (motions: string[], beats: Beat[]): SceneSlotDef[] =>
    kaliteyi kontrol edersin, iyi bir tatla ayrılırsın. Adımlar bu sırayı
    izler; müşteri yalnızca her adıma doğru kareyi koyar.               */
 
-/** Tam ev turu — 8 adım (MAX_SCENES tavanı). */
-const TOUR_BEATS: Beat[] = [
-  { label: "Varış", hint: "Binanın dış cephesi veya sokaktan görünüşü — izleyici nereye geldiğini anlasın.", room: "exterior", required: true },
-  { label: "Eşik", hint: "Giriş holü ya da koridor; içeriye doğru bakan bir kare.", room: "hallway" },
-  { label: "Kalp", hint: "Salonun en geniş açılı, en etkileyici fotoğrafı. Videonun en önemli karesi.", room: "living", required: true },
-  { label: "Manzara", hint: "Pencereden veya balkondan görünen manzara — satan detay budur.", room: "view" },
-  { label: "Mutfak", hint: "Tezgâh ve dolaplar görünen bir kare.", room: "kitchen" },
-  { label: "Dinlenme", hint: "Yatak odası; yatak tamamen görünsün.", room: "bedroom" },
-  { label: "Detay", hint: "Banyo veya öne çıkarmak istediğiniz tek bir detay.", room: "bathroom" },
-  { label: "Veda", hint: "Bahçe, teras ya da dışarıdan son bir kare.", room: "garden" },
+/* Her şablonun KENDİ anlatı mantığı var — hiçbiri diğerinin adımlarını
+   tekrar etmez. Şablon seçmek bir kamera efekti seçmek değil, hangi
+   hikâyeyi anlatacağını seçmektir.                                    */
+
+/** FPV Ev Turu — konusu ROTA. Birbirine bağlanan mekânlar sırayla; FPV'nin
+    işi tek tek odalar değil, aralarındaki geçiş. */
+const ROUTE_BEATS: Beat[] = [
+  { label: "Kapı", hint: "Giriş kapısı veya antre — turun başladığı yer.", room: "hallway", required: true },
+  { label: "Koridor", hint: "Koridor ya da hol; ileriye, salona doğru bakan kare.", room: "hallway" },
+  { label: "Salon", hint: "Koridorun açıldığı salon. Geçişin inandırıcı olması için koridorla aynı yöne bakın.", room: "living", required: true },
+  { label: "Mutfak", hint: "Salona bağlı mutfak veya yemek alanı.", room: "kitchen" },
+  { label: "Oda", hint: "Yatak odası — turun iç halkası.", room: "bedroom" },
+  { label: "Çıkış", hint: "Balkon veya teras; kamera dışarıya süzülerek turu bitirir.", room: "balcony" },
 ];
 
-/** Lüks — az adım, ağır tempo. Kalabalık lüksü öldürür. */
-const LUXURY_BEATS: Beat[] = [
-  { label: "Yaklaşma", hint: "Dış cepheye uzaktan bakan, mimariyi bütün gösteren kare.", room: "exterior", required: true },
-  { label: "Eşik", hint: "Giriş holü — ilk izlenim burada kurulur.", room: "hallway" },
-  { label: "Kalp", hint: "Salonun en geniş, en aydınlık karesi.", room: "living", required: true },
-  { label: "Manzara", hint: "Pencere veya teras manzarası.", room: "view" },
-  { label: "İmza detay", hint: "Öne çıkarmak istediğiniz tek şey: mermer banyo, şömine, ada mutfak…", room: "bathroom" },
+/** Sinematik FPV Pro — konusu FRAGMAN. Tur değil, film fragmanı: merak
+    uyandır, yükselt, aç, doruğa çıkar. Bu yüzden az ve vurucu. */
+const TRAILER_BEATS: Beat[] = [
+  { label: "Teaser", hint: "Bütünü göstermeyen bir yakın kare: bir armatür, bir doku, bir köşe. Merak uyandırsın.", room: "kitchen", required: true },
+  { label: "Yükseliş", hint: "Koridor veya geçiş — gerilimi taşıyan kare.", room: "hallway" },
+  { label: "Açılım", hint: "Salonun en geniş karesi. Fragmanın 'işte bu' anı.", room: "living", required: true },
+  { label: "Doruk", hint: "Manzara veya teras. İzleyici burada karar verir.", room: "view" },
 ];
 
-/** Dikey kısa (Reels / sosyal) — kanca önce, cephe sonra. */
-const VERTICAL_BEATS: Beat[] = [
-  { label: "Kanca", hint: "İlanın EN etkileyici karesi. İlk iki saniyede izleyiciyi durduracak fotoğraf — cepheyle başlamayın.", room: "living", required: true },
-  { label: "Manzara", hint: "Pencere veya balkon manzarası.", room: "view" },
-  { label: "Yaşam", hint: "Mutfak veya yatak odası — burada yaşandığını gösteren kare.", room: "kitchen" },
-  { label: "Kapanış", hint: "Dış cephe veya bahçe; izleyici nerede olduğunu anlayarak ayrılsın.", room: "exterior" },
+/** FPV Reels — konusu ÜÇ SANİYE. Dikey, kısa, ters köşeli. Reels'te
+    dördüncü kareye kimse kalmıyor. */
+const REELS_BEATS: Beat[] = [
+  { label: "Kanca", hint: "İlanın en çarpıcı karesi. İlk iki saniyede parmağı durduracak fotoğraf — cepheyle başlamayın.", room: "living", required: true },
+  { label: "Ters köşe", hint: "Beklenmedik bir detay: gizli teras, çift banyo, dev pencere. 'Bir de bu var' karesi.", room: "view" },
+  { label: "Kapanış", hint: "Manzara veya cephe; izleyici nerede olduğunu anlayarak çıksın.", room: "exterior", motion: "vertical FPV drone pull-back away from the property in vertical framing, speed ramp, motion blur, exterior shot, nothing added or removed" },
 ];
 
-/** Gölge oyunu — ışığın kendisi konu. Işıksız fotoğraf bu şablonu bozar. */
-const SHADOW_BEATS: Beat[] = [
-  { label: "Işıklı salon", hint: "Pencereden güneş giren salon; ışık huzmesi ve gölge görünsün.", room: "living", required: true },
-  { label: "Işıklı oda", hint: "Güneş alan yatak odası veya çalışma odası.", room: "bedroom" },
-  { label: "Yüzey", hint: "Işığın düştüğü zemin, duvar veya tezgâh detayı.", room: "kitchen" },
+/** Lüks Vitrin — konusu MALZEME. Lüks oda sayısıyla değil işçilikle
+    satılır; bu yüzden "Malzeme" adımı yalnız burada var. */
+const PRESTIGE_BEATS: Beat[] = [
+  { label: "Mimari", hint: "Yapıyı bütün gösteren uzak dış kare. Kütle ve oran görünsün.", room: "exterior", required: true, motion: EXT_WIDE },
+  { label: "Eşik", hint: "Giriş holü — prestij ilk burada kurulur.", room: "hallway" },
+  { label: "Hacim", hint: "Salonun en ferah karesi; tavan yüksekliği ve ışık görünsün.", room: "living", required: true },
+  { label: "Malzeme", hint: "İşçiliğin göründüğü YAKIN kare: mermer, ahşap, armatür, şömine. Lüksü bu satar.", room: "bathroom" },
+  { label: "Manzara", hint: "Pencere veya terastan manzara — kapanış karesi.", room: "view" },
 ];
 
-/** Golden hour — tamamı dış çekim. */
-const GOLDEN_BEATS: Beat[] = [
-  { label: "Cephe", hint: "Gün batımı yönüne bakan dış cephe; gökyüzü de görünsün.", room: "exterior", required: true },
-  { label: "Yakın cephe", hint: "Cephenin daha yakın bir açısı veya bina girişi.", room: "exterior" },
-  { label: "Teras", hint: "Teras, balkon veya bahçeden manzara.", room: "balcony" },
+/** Klasik Ev Turu — konusu TAM ENVANTER. Alıcı her şeyi görmek istiyor;
+    bu şablonun kimliği eksiksizlik. Tek 8 adımlı hikâye bu. */
+const INVENTORY_BEATS: Beat[] = [
+  { label: "Bina", hint: "Dış cephe veya sokaktan görünüş.", room: "exterior", required: true, motion: EXT_WIDE },
+  { label: "Giriş", hint: "Antre veya koridor.", room: "hallway" },
+  { label: "Salon", hint: "Salonun en geniş açılı karesi.", room: "living", required: true },
+  { label: "Mutfak", hint: "Tezgâh ve dolaplar görünen kare.", room: "kitchen" },
+  { label: "1. Oda", hint: "Ebeveyn yatak odası; yatak tamamen görünsün.", room: "bedroom" },
+  { label: "2. Oda", hint: "İkinci yatak odası, çocuk odası veya çalışma odası.", room: "bedroom" },
+  { label: "Banyo", hint: "Banyo veya ebeveyn banyosu.", room: "bathroom" },
+  { label: "Dışarı", hint: "Balkon, teras veya bahçe — turu dışarıda bitir.", room: "garden" },
 ];
 
-/** Zaman akışı — gökyüzü konu, mimari sabit. İki uzun kare yeter. */
-const TIMELAPSE_BEATS: Beat[] = [
-  { label: "Gökyüzü", hint: "Gökyüzü bolca görünen dış cephe fotoğrafı. Gökyüzü ne kadar çoksa etki o kadar güçlü.", room: "exterior", required: true, durationSec: 10 },
+/** Golden Hour — konusu IŞIĞIN BİNADA DOLAŞMASI. Tamamı dış çekim. */
+const LIGHT_BEATS: Beat[] = [
+  { label: "Uzak", hint: "Gün batımı yönüne bakan uzak cephe; gökyüzü bolca görünsün.", room: "exterior", required: true, motion: EXT_GOLDEN },
+  { label: "Yüzey", hint: "Işığın vurduğu cephe yüzeyi veya bina girişi — sıcak ton burada okunur.", room: "exterior", motion: EXT_CLOSE },
+  { label: "Gölge", hint: "Bahçe, teras veya havuz; uzun gölgeler görünen kare.", room: "garden", motion: EXT_LEAVE },
+];
+
+/** Zaman Akışı — konusu GÖKYÜZÜ. Mimari sabit, yalnızca ışık ve bulut
+    hareket eder. İki uzun kare yeter. */
+const SKY_BEATS: Beat[] = [
+  { label: "Gökyüzü", hint: "Gökyüzü bolca görünen dış cephe. Gökyüzü ne kadar çoksa etki o kadar güçlü.", room: "exterior", required: true, durationSec: 10 },
   { label: "İkinci açı", hint: "Aynı binanın başka bir açısı veya havadan çekim. Zorunlu değil.", room: "exterior", durationSec: 10 },
 ];
 
-// Arsa/tarla: açık alanda morf riski düşük — crane/orbit serbest.
-const LAND_MOTIONS = [
-  "slow high aerial establishing shot, gentle forward drift over the land",
-  "smooth lateral drone pan across the terrain, revealing the boundaries",
-  "slow descending push-in towards the center of the plot, zoom emphasis",
-  "slow rising crane shot revealing the access road and surroundings",
+/** Gölge Oyunu — konusu IŞIĞIN KENDİSİ, oda değil. Işıksız fotoğraf bu
+    şablonu bozar. */
+const SHADOW_BEATS: Beat[] = [
+  { label: "Huzme", hint: "Pencereden giren güneş ışığının huzme halinde göründüğü kare.", room: "living", required: true },
+  { label: "Gölge", hint: "Zeminde veya duvarda gezinen gölge — panjur/kafes gölgesi ideal.", room: "bedroom" },
+  { label: "Doku", hint: "Işığın yüzeyde açtığı doku: ahşap, mermer, kumaş yakın çekimi.", room: "kitchen" },
 ];
 
-// Sosyal medya: dikkat çekici ama güvenli — zoom/tilt var, orbit yok.
-const SOCIAL_MOTIONS = [
-  "slow zoom-in with subtle drift",
-  "smooth vertical reveal tilting up slowly",
-  "slow push-in with gentle parallax",
+/** Sosyal Medya Reklamı — konusu REKLAM. Tur değil satış: kanca, fayda,
+    kanıt, çağrı. Reels'in üç karesiyle karıştırılmasın. */
+const AD_BEATS: Beat[] = [
+  { label: "Kanca", hint: "Kaydırmayı durduracak tek kare. En etkileyici fotoğraf.", room: "living", required: true },
+  { label: "Fayda", hint: "En büyük satış argümanınız: ferah salon, deniz manzarası, geniş bahçe.", room: "view", required: true },
+  { label: "Kanıt", hint: "Gerçekten iyi durumda olduğunu kanıtlayan kare: mutfak veya banyo.", room: "kitchen" },
+  { label: "Çağrı", hint: "Dış cephe veya bahçe — fiyat ve konum yazısı bu karenin üstüne biner.", room: "exterior", motion: "slow zoom-out revealing the building exterior, steady vertical framing, exterior shot, nothing added or removed" },
 ];
 
-/** Arsa / tarla — yatırımcının sorduğu dört soru: nerede, ne kadar, nasıl, ulaşım. */
+/** Vitrin Sunucusu — sahneler sunucunun ARKA PLANI. Sunucu konuşurken
+    arka plan değişir; tek kare 30 saniye boyunca sıkıcı. */
+const PRESENTER_BEATS: Beat[] = [
+  { label: "Açılış", hint: "Dış cephe veya havadan çekim — sunucu bu kuruluş sahnesinden sonra girer.", room: "exterior", required: true },
+  { label: "Arka plan 1", hint: "Sunucu anlatırken arkada duracak salon karesi.", room: "living" },
+  { label: "Arka plan 2", hint: "İkinci arka plan: manzara veya mutfak. Sunucu konu değiştirince kadraj da değişir.", room: "view" },
+];
+
+/** Arsa / Tarla — konusu YATIRIMCININ DÖRT SORUSU: nerede, ne kadar,
+    nasıl bir zemin, ulaşım nasıl. */
 const LAND_BEATS: Beat[] = [
   { label: "Konum", hint: "Yüksekten çekilmiş, arsanın çevresiyle birlikte göründüğü kare.", required: true },
-  { label: "Sınırlar", hint: "Arsanın sınırlarını gösteren geniş veya yandan kare.", },
-  { label: "Zemin", hint: "Arsanın ortasına yakın, toprak/bitki dokusu görünen kare." },
+  { label: "Sınırlar", hint: "Arsanın sınırlarını gösteren geniş veya yandan kare." },
+  { label: "Zemin", hint: "Arsanın ortasına yakın, toprak ve bitki dokusu görünen kare." },
   { label: "Ulaşım", hint: "Yol, giriş veya çevredeki yapılar — erişim burada anlaşılır." },
 ];
 
@@ -415,6 +458,21 @@ const PRESENTER_OPENING_MOTIONS = [
   "slow drone push-in from above toward the property facade, gentle descent, golden hour glow, terrain and building unchanged from the source photo",
 ];
 
+// Arsa/tarla: açık alanda morf riski düşük — crane/orbit serbest.
+const LAND_MOTIONS = [
+  "slow high aerial establishing shot, gentle forward drift over the land",
+  "smooth lateral drone pan across the terrain, revealing the boundaries",
+  "slow descending push-in towards the center of the plot, zoom emphasis",
+  "slow rising crane shot revealing the access road and surroundings",
+];
+
+// Sosyal medya: dikkat çekici ama güvenli — zoom/tilt var, orbit yok.
+const SOCIAL_MOTIONS = [
+  "slow zoom-in with subtle drift",
+  "smooth vertical reveal tilting up slowly",
+  "slow push-in with gentle parallax",
+];
+
 export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
   fpv_tour: {
     key: "fpv_tour",
@@ -434,7 +492,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       "En fazla 8 fotoğraf — sıralamayı gerçek gezinme rotası gibi yapın.",
     ],
     sceneRecipe: {
-      slots: storyboard(FPV_MOTIONS, TOUR_BEATS),
+      slots: storyboard(FPV_MOTIONS, ROUTE_BEATS),
       fallback: { label: "Ek oda", hint: "Turda göstermek istediğiniz başka bir oda.", motions: FPV_MOTIONS, durationSec: 5 },
     },
     transitions: { default: "zoom" },
@@ -484,7 +542,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     targetListingTypes: "housing",
     usesRooms: true,
     sceneRecipe: {
-      slots: storyboard(CINEMATIC_FPV_MOTIONS, TOUR_BEATS),
+      slots: storyboard(CINEMATIC_FPV_MOTIONS, TRAILER_BEATS),
       fallback: { label: "Ek oda", hint: "Turda göstermek istediğiniz başka bir oda.", motions: CINEMATIC_FPV_MOTIONS, durationSec: 5 },
     },
     transitions: { default: "zoomFast", sequence: ["zoomFast", "carouselLeft", "zoomFast"] },
@@ -537,7 +595,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     targetListingTypes: "housing",
     usesRooms: true,
     sceneRecipe: {
-      slots: storyboard(FPV_REELS_MOTIONS, VERTICAL_BEATS),
+      slots: storyboard(FPV_REELS_MOTIONS, REELS_BEATS),
       fallback: { label: "Ek kare", hint: "Öne çıkarmak istediğiniz başka bir fotoğraf.", motions: FPV_REELS_MOTIONS, durationSec: 5 },
     },
     transitions: { default: "zoomFast", sequence: ["zoomFast", "slideUp", "carouselLeft"] },
@@ -597,7 +655,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     targetListingTypes: "housing",
     usesRooms: true,
     sceneRecipe: {
-      slots: storyboard(LUXURY_MOTIONS, LUXURY_BEATS),
+      slots: storyboard(LUXURY_MOTIONS, PRESTIGE_BEATS),
       fallback: { label: "Ek detay", hint: "Öne çıkarmak istediğiniz başka bir detay.", motions: LUXURY_MOTIONS, durationSec: 5 },
     },
     transitions: { default: "fade" },
@@ -657,7 +715,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     targetListingTypes: "any",
     usesRooms: false,
     sceneRecipe: {
-      slots: storyboard(GOLDEN_HOUR_MOTIONS, GOLDEN_BEATS),
+      slots: storyboard(GOLDEN_HOUR_MOTIONS, LIGHT_BEATS),
       fallback: { label: "Ek kare", hint: "Dış cepheden başka bir açı.", motions: GOLDEN_HOUR_MOTIONS, durationSec: 5 },
     },
     transitions: { default: "fade", sequence: ["fade", "zoom", "fade"] },
@@ -719,7 +777,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       "Gündüz çekilmiş, net ve yüksek çözünürlüklü olsun.",
     ],
     sceneRecipe: {
-      slots: storyboard(TIMELAPSE_MOTIONS, TIMELAPSE_BEATS),
+      slots: storyboard(TIMELAPSE_MOTIONS, SKY_BEATS),
       fallback: { label: "Ek kare", hint: "Gökyüzü görünen başka bir dış cephe karesi.", motions: TIMELAPSE_MOTIONS, durationSec: 10 },
     },
     transitions: { default: "fade" },
@@ -823,7 +881,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     targetListingTypes: "housing",
     usesRooms: true,
     sceneRecipe: {
-      slots: storyboard(CLASSIC_MOTIONS, TOUR_BEATS),
+      slots: storyboard(CLASSIC_MOTIONS, INVENTORY_BEATS),
       fallback: { label: "Ek oda", hint: "Turda göstermek istediğiniz başka bir oda.", motions: CLASSIC_MOTIONS, durationSec: 5 },
     },
     transitions: { default: "fade" },
@@ -940,7 +998,7 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     targetListingTypes: "any",
     usesRooms: false,
     sceneRecipe: {
-      slots: storyboard(SOCIAL_MOTIONS, VERTICAL_BEATS),
+      slots: storyboard(SOCIAL_MOTIONS, AD_BEATS),
       fallback: {
         label: "Ek kare",
         hint: "İlandan öne çıkarmak istediğiniz başka bir fotoğraf.",
@@ -1031,17 +1089,10 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       "Manzara/balkon fotoğrafıyla bitirin — güçlü bir kapanış olur.",
     ],
     sceneRecipe: {
-      // İlk sahne: dış cephe/drone kuruluş çekimi — sinematik iniş
-      slots: [
-        {
-          label: "Açılış",
-          hint: "Dış cephe veya havadan çekim — sunucu bu kuruluş sahnesinden sonra girer.",
-          required: true,
-          roomKeyHint: "exterior",
-          motions: PRESENTER_OPENING_MOTIONS,
-          durationSec: 5,
-        },
-      ],
+      // Açılış sinematik iniş; sonraki iki sahne sunucunun arka planı
+      slots: storyboard(PRESENTER_MOTIONS, PRESENTER_BEATS).map((slot, i) =>
+        i === 0 ? { ...slot, motions: PRESENTER_OPENING_MOTIONS } : slot,
+      ),
       fallback: {
         label: "Arka plan",
         hint: "Sunucunun arkasında duracak sakin bir mekân karesi.",
@@ -1155,17 +1206,18 @@ export function buildTemplateScenePrompt(
 ): string {
   const room = roomKey ? ROOMS[roomKey as RoomKey] : undefined;
   const slot = slotFor(template, sceneIndex);
-  const templateMotion = slot.motions[sceneIndex % slot.motions.length];
-  // FPV şablonlarında hareket kimliği (hız rampası/uçuş) şablondan gelir;
-  // klasik turda odanın kendi güvenli hareketi tercih edilir.
-  const fpvTemplate =
-    template.key === "fpv_tour" ||
-    template.key === "cinematic_fpv" ||
-    template.key === "fpv_reels";
-  // Vitrin Sunucusu'nda şablonun sinematik açılış/sakin arka plan hareketi
-  // odanın genel hareketine tercih edilir
-  const templateFirst = fpvTemplate || template.key === "presenter_reels";
-  const motion = templateFirst ? templateMotion : (room?.motion ?? templateMotion);
+  /*
+   * KAMERA ŞABLONDAN, BAĞLAM ODADAN.
+   *
+   * Eskiden oda hareketi (ROOMS[x].motion) şablon hareketini eziyordu ve
+   * her şablonun kamera kimliği yok oluyordu: Zaman Akışı'nda kamera
+   * sabit kalıp gökyüzü akacakken "girişe doğru push-in" diyordu, Golden
+   * Hour'un altın ışığı düşüyordu, Lüks Vitrin'in bokeh'i kayboluyordu.
+   * Artık hareket her zaman adımdan/şablondan gelir; oda yalnızca mekânı
+   * tanıtır (room.en). Oda hareketleri eski konsept yolunda (buildScenePrompt)
+   * kullanılmaya devam ediyor.
+   */
+  const motion = slot.motions[sceneIndex % slot.motions.length];
   const context = room ? `${room.en}, ` : "";
   const atmosphere = atmosphereKey ? getAtmosphere(atmosphereKey).style : "";
   const atmoSuffix = atmosphere ? `, ${atmosphere}` : "";
@@ -1192,13 +1244,32 @@ export function buildTemplateTourPrompt(
   // lüks bokeh, golden hour crane… hepsi buradan)
   const camera = template.sceneRecipe.fallback.motions[0];
 
+  /* Tamamı dış çekim olan şablonlara (Zaman Akışı, Golden Hour) iç mekân
+     kısıtı basmak modele yanlış iş tarif ediyordu: "oda uydurma",
+     "kapıdan geçme" gibi cümleler gökyüzü timelapse'inde anlamsız ve
+     çıktıyı zayıflatıyor. Adımların hepsi dış mekânsa dil değişir. */
+  const allExterior = photos.every(
+    (p) => !p.roomKey || p.roomKey === "exterior" || p.roomKey === "garden",
+  );
+
+  if (allExterior) {
+    return [
+      "Cinematic real estate exterior film of a single property, one continuous smooth camera flow.",
+      `Cover the property in this exact order: ${seq}.`,
+      `Camera language: ${camera}.`,
+      template.style + ".",
+      "Every reference image is the same real building — the architecture, terrain and surroundings stay exactly as in the reference photos.",
+      "Do not add buildings, do not change the structure or the landscape; only the camera, the light and the sky may move.",
+    ].join(" ");
+  }
+
   return [
     "Cinematic real estate tour of a single property, one continuous smooth camera flow.",
     `Move through the property in this exact order: ${seq}.`,
     `Camera language: ${camera}.`,
     template.style + ".",
     "Each reference image is a real space of this property — the camera stays strictly inside the spaces shown in the reference images.",
-    "Do not invent rooms, do not pass into spaces that are not in the references, do not change the layout; furniture and fixtures stay exactly as in the photos.",
+    "Do not invent rooms, do not change the layout; furniture and fixtures stay exactly as in the photos.",
   ].join(" ");
 }
 
