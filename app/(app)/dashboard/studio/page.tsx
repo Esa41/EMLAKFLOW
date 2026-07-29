@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth";
 export const maxDuration = 60;
 import { getStudioCredits, getStudioListings, getStudioHistory } from "@/app/actions/studio";
 import { getTemplatePreviewUrls } from "@/lib/studio-previews";
+import { getStudioLibrary } from "@/app/actions/studio-video";
 import { StudioWorkspace } from "@/components/studio-workspace";
 import { isPro } from "@/lib/plans";
 
@@ -13,11 +14,12 @@ export default async function StudioPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const [credits, listings, history, templatePreviews] = await Promise.all([
+  const [credits, listings, history, templatePreviews, library] = await Promise.all([
     getStudioCredits(),
     getStudioListings(),
     getStudioHistory(),
     getTemplatePreviewUrls(),
+    getStudioLibrary(),
   ]);
 
   if (!credits) redirect("/login");
@@ -61,6 +63,7 @@ export default async function StudioPage() {
       credits={credits}
       history={history}
       templatePreviews={templatePreviews}
+      library={library}
     />
   );
 }

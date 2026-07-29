@@ -1,8 +1,11 @@
 "use client";
 
 import {
+  ArrowRightLeft,
   Clapperboard,
   Clock,
+  Image as ImageIcon,
+  LayoutGrid,
   Flame,
   Gem,
   Home,
@@ -95,6 +98,31 @@ const TEMPLATE_STYLES: Record<
   },
   shadow_play: {
     icon: Sun,
+    gradient: "from-ink/[0.05] to-ink/[0.02]",
+    borderActive: "border-ink",
+    iconColor: "text-ink/70",
+  },
+  // ── Kısa senaryolar ──
+  solo_shot: {
+    icon: ImageIcon,
+    gradient: "from-ink/[0.05] to-ink/[0.02]",
+    borderActive: "border-ink",
+    iconColor: "text-ink/70",
+  },
+  solo_story: {
+    icon: Smartphone,
+    gradient: "from-ink/[0.05] to-ink/[0.02]",
+    borderActive: "border-ink",
+    iconColor: "text-ink/70",
+  },
+  duo_transition: {
+    icon: ArrowRightLeft,
+    gradient: "from-ink/[0.05] to-ink/[0.02]",
+    borderActive: "border-ink",
+    iconColor: "text-ink/70",
+  },
+  trio_tour: {
+    icon: LayoutGrid,
     gradient: "from-ink/[0.05] to-ink/[0.02]",
     borderActive: "border-ink",
     iconColor: "text-ink/70",

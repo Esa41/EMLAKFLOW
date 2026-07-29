@@ -31,7 +31,15 @@ export type TemplateKey =
   | "social_promo"
   | "presenter_reels"
   | "timelapse"
-  | "shadow_play";
+  | "shadow_play"
+  /* ── Kısa senaryolar — az fotoğrafı olan ofis için ──
+     Şablonun kimliği fotoğraf SAYISI: elinde 1 kare olan da video
+     üretebilsin. Uzun turlar 5-8 fotoğraf istiyor, çoğu yeni ofiste o
+     kadar yok. */
+  | "solo_shot"
+  | "solo_story"
+  | "duo_transition"
+  | "trio_tour";
 
 /** Shotstack clip transition adları ile bire bir (Fast = whip/blur hissi). */
 export type TransitionKey =
@@ -456,6 +464,51 @@ const PRESENTER_MOTIONS = [
 const PRESENTER_OPENING_MOTIONS = [
   "cinematic aerial drone shot descending slowly toward the building entrance, smooth stabilized approach, warm natural light, the property remains exactly as in the source photo",
   "slow drone push-in from above toward the property facade, gentle descent, golden hour glow, terrain and building unchanged from the source photo",
+];
+
+/* ── KISA SENARYOLAR ──
+   Tek karede kamera hareketi tüm işi yapar: yavaş, uzun, sinematik.
+   Hızlı hareket az fotoğrafta halüsinasyonu büyütür. */
+const SOLO_MOTIONS = [
+  "very slow cinematic push-in with natural parallax, long steady move, the scene stays exactly as in the source photo",
+];
+const SOLO_VERTICAL_MOTIONS = [
+  "slow vertical zoom-in with gentle drift, steady portrait framing, punchy but smooth, the scene stays exactly as in the source photo",
+];
+const DUO_MOTIONS = [
+  "slow steady forward walk from the first space into the second, one continuous move, no cuts",
+];
+const TRIO_MOTIONS = [
+  "slow steady push-in, calm cinematic move",
+  "gentle slow pan revealing the space",
+  "slow push towards the window revealing the view outside",
+];
+
+/** Tek Kare (16:9) — elinde bir fotoğraf olan ofis için. Bilgiyi ekran
+    yazıları taşır, kamera yalnızca hayat verir. */
+const SOLO_BEATS: Beat[] = [
+  { label: "Tek kare", hint: "Elinizdeki en iyi fotoğraf. Dış cephe veya salon — hangisi daha etkileyiciyse.", required: true, durationSec: 10 },
+];
+
+/** Tek Kare Story (9:16) — Instagram story / WhatsApp durumu. */
+const SOLO_STORY_BEATS: Beat[] = [
+  { label: "Tek kare", hint: "Dikey kadrajda iyi duracak tek fotoğraf. Dikey çekilmişse ideal.", required: true, durationSec: 10 },
+];
+
+/** İkili Geçiş (2 foto, reference) — iki mekân arasındaki YÜRÜYÜŞ. 10 saniye
+    iki kareye bölününce mekân başına 5 saniye düşer: tek videoda en verimli
+    oran. Koridordan salona geçiş satan çekimdir. */
+const DUO_BEATS: Beat[] = [
+  { label: "Eşik", hint: "Nereden bakıldığı: koridor, antre veya kapı. İçeriye doğru bakan kare.", room: "hallway", required: true },
+  { label: "Varış", hint: "Nereye varıldığı: salon veya manzara. Eşikle aynı yöne bakması geçişi inandırıcı kılar.", room: "living", required: true },
+];
+
+/** Üçlü Tur (3 foto) — bir ilanın en az anlatımı: nerede, içi nasıl,
+    manzarası ne. Portal ilanı için yeterli. */
+const TRIO_BEATS: Beat[] = [
+  { label: "Nerede", hint: "Dış cephe veya bina girişi.", room: "exterior", required: true, motion: EXT_WIDE },
+  { label: "İçi", hint: "Salonun en geniş karesi.", room: "living", required: true },
+  { label: "Manzarası", hint: "Pencere, balkon veya bahçe.", room: "view" },
 ];
 
 // Arsa/tarla: açık alanda morf riski düşük — crane/orbit serbest.
@@ -1133,6 +1186,146 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     negative:
       "orbiting camera, spinning, fast movement, added props, staging changes, " +
       "people appearing in the background scenes",
+  },
+  // ── KISA SENARYOLAR ──
+  solo_shot: {
+    key: "solo_shot",
+    legacyConceptKey: "interior",
+    label: "Tek Kare",
+    subtitle: "1 fotoğraf · 10 saniye",
+    description:
+      "Tek fotoğrafınızdan sinematik bir tanıtım: yavaş yakınlaşma, fiyat ve konum ekran yazısı. Portföyünde tek karesi olan ilanlar için.",
+    badge: "1 foto",
+    aspectRatio: "16:9",
+    generationMode: "per_scene",
+    targetListingTypes: "any",
+    usesRooms: false,
+    shotGuide: [
+      "En iyi tek fotoğrafınızı seçin — kalabalık değil, net ve aydınlık olsun.",
+      "Geniş açı tercih edin; kamera içine doğru yaklaşacak.",
+      "Filigranlı fotoğraf kullanmayın, hareket sırasında filigran eğrilir.",
+    ],
+    sceneRecipe: {
+      slots: storyboard(SOLO_MOTIONS, SOLO_BEATS),
+      fallback: { label: "Tek kare", hint: "Elinizdeki en iyi fotoğraf.", motions: SOLO_MOTIONS, durationSec: 10 },
+    },
+    transitions: { default: "fade" },
+    overlaySlots: [
+      { key: "location", label: "Konum", source: "location", placement: "all", startSec: 0.8, lengthSec: 4, styleKey: "cardTopLeft" },
+      { key: "price", label: "Fiyat", source: "price", placement: "all", startSec: 5, lengthSec: 4.5, styleKey: "bigCenter" },
+    ],
+    musicDefault: "calm_piano",
+    musicVolume: 0.22,
+    voiceTone: "calm",
+    style:
+      "cinematic real estate showcase, photorealistic, steady gimbal movement, " +
+      "bright natural light, camera movement only, the scene stays exactly as in the source photo",
+    negative: "rotating camera, orbiting, fast movement, added props, staging changes",
+  },
+  solo_story: {
+    key: "solo_story",
+    legacyConceptKey: "social",
+    label: "Tek Kare Story",
+    subtitle: "1 fotoğraf · dikey",
+    description:
+      "Tek fotoğraftan dikey story videosu: hızlı yakınlaşma, kanca yazısı ve fiyat. Instagram story ve WhatsApp durumu için.",
+    badge: "1 foto",
+    aspectRatio: "9:16",
+    generationMode: "per_scene",
+    targetListingTypes: "any",
+    usesRooms: false,
+    shotGuide: [
+      "Dikey kadrajda iyi duracak bir fotoğraf seçin; dikey çekilmişse ideal.",
+      "Yatay fotoğrafta kenarlar kırpılır — ortada önemli bir şey olmasın.",
+    ],
+    sceneRecipe: {
+      slots: storyboard(SOLO_VERTICAL_MOTIONS, SOLO_STORY_BEATS),
+      fallback: { label: "Tek kare", hint: "Dikeyde iyi duracak tek fotoğraf.", motions: SOLO_VERTICAL_MOTIONS, durationSec: 10 },
+    },
+    transitions: { default: "fade" },
+    overlaySlots: [
+      { key: "hook", label: "Açılış Mesajı", source: "custom", placement: "all", startSec: 0.4, lengthSec: 3.5, styleKey: "hook", defaultText: "Bu ilanı kaçırmayın!" },
+      { key: "price", label: "Fiyat", source: "price", placement: "all", startSec: 5, lengthSec: 4.5, styleKey: "bigCenter" },
+    ],
+    musicDefault: "energetic_pop",
+    musicVolume: 0.28,
+    voiceTone: "energetic",
+    style:
+      "eye-catching vertical social media property showcase, vibrant colors, crisp details, " +
+      "photorealistic, smooth cinematic motion, scene content identical to the source photo, camera movement only",
+    negative: "orbiting camera, spinning, fast cuts, added props, staging changes",
+  },
+  duo_transition: {
+    key: "duo_transition",
+    legacyConceptKey: "interior",
+    label: "İkili Geçiş",
+    subtitle: "2 fotoğraf · kesintisiz yürüyüş",
+    description:
+      "İki mekân arasındaki yürüyüş: koridordan salona, salondan terasa. On saniye iki kareye bölününce mekân başına beş saniye düşer — tek videoda en verimli oran.",
+    badge: "2 foto",
+    aspectRatio: "16:9",
+    generationMode: "reference",
+    targetListingTypes: "housing",
+    usesRooms: true,
+    shotGuide: [
+      "İki fotoğrafın BİRBİRİNE BAĞLANAN mekânlar olması şart — koridor ve o koridorun açıldığı salon.",
+      "İkisinin de aynı yöne bakması geçişi inandırıcı kılar.",
+      "Bağlantısı olmayan iki oda verirseniz model arada olmayan bir mekân uydurur.",
+    ],
+    sceneRecipe: {
+      slots: storyboard(DUO_MOTIONS, DUO_BEATS),
+      fallback: { label: "Ek kare", hint: "Geçişin devamı olan bir mekân.", motions: DUO_MOTIONS, durationSec: 5 },
+    },
+    transitions: { default: "fade" },
+    overlaySlots: [
+      { key: "location", label: "Konum", source: "location", placement: "first", startSec: 0.8, lengthSec: 3.5, styleKey: "cardTopLeft" },
+      { key: "price", label: "Fiyat", source: "price", placement: "last", startSec: 0.5, lengthSec: 4, styleKey: "bannerBottom" },
+    ],
+    musicDefault: "calm_piano",
+    musicVolume: 0.2,
+    voiceTone: "calm",
+    style:
+      "photorealistic real estate walkthrough, bright natural daylight, stabilized gimbal motion, " +
+      "every piece of furniture and every fixture stays exactly where it is in the reference photos, camera movement only",
+    negative:
+      "rotating camera, orbiting, fast movement, rearranged furniture, new decor, " +
+      "changing the view outside the windows",
+  },
+  trio_tour: {
+    key: "trio_tour",
+    legacyConceptKey: "interior",
+    label: "Üçlü Tur",
+    subtitle: "3 fotoğraf · nerede, içi, manzarası",
+    description:
+      "Bir ilanın en az anlatımı: nerede olduğu, içinin nasıl olduğu, manzarası ne. Üç fotoğrafla portal ilanına yeterli video.",
+    badge: "3 foto",
+    aspectRatio: "16:9",
+    generationMode: "per_scene",
+    targetListingTypes: "housing",
+    usesRooms: true,
+    shotGuide: [
+      "Üç fotoğraf: dış cephe, salon, manzara. Bu üçü bir ilanı anlatmaya yeter.",
+      "Manzara yoksa bahçe veya balkon da olur.",
+    ],
+    sceneRecipe: {
+      slots: storyboard(TRIO_MOTIONS, TRIO_BEATS),
+      fallback: { label: "Ek kare", hint: "Göstermek istediğiniz başka bir mekân.", motions: TRIO_MOTIONS, durationSec: 5 },
+    },
+    transitions: { default: "fade", sequence: ["fade", "zoom"] },
+    overlaySlots: [
+      { key: "location", label: "Konum", source: "location", placement: "first", startSec: 0.8, lengthSec: 3.5, styleKey: "cardTopLeft" },
+      { key: "rooms", label: "Oda Sayısı", source: "rooms", placement: 1, startSec: 0.5, lengthSec: 3.5, styleKey: "bannerBottom" },
+      { key: "price", label: "Fiyat", source: "price", placement: "last", startSec: 0.5, lengthSec: 4, styleKey: "bigCenter" },
+    ],
+    musicDefault: "calm_piano",
+    musicVolume: 0.2,
+    voiceTone: "calm",
+    style:
+      "real estate video tour, bright natural daylight, photorealistic, steady gimbal movement, " +
+      "camera movement only, every piece of furniture and every fixture stays exactly where it is in the source photo",
+    negative:
+      "rotating camera, orbiting, fast movement, rearranged furniture, new decor, " +
+      "doors or windows appearing or disappearing",
   },
 };
 

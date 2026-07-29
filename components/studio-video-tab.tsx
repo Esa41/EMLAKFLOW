@@ -87,6 +87,10 @@ type Props = {
   history: StudioJobItem[];
   /** Şablon örnek klipleri — templateKey → imzalı R2 URL */
   templatePreviews: Record<string, string>;
+  /** Kütüphaneden açılan proje — düzenleyiciye yüklenir */
+  openProjectId?: string | null;
+  /** Yükleme tamamlanınca üst bileşen isteği temizler */
+  onProjectOpened?: () => void;
 };
 
 const MAX_SCENES = 8;
@@ -108,6 +112,8 @@ export function StudioVideoTab({
   onCreditsChange,
   history,
   templatePreviews,
+  openProjectId = null,
+  onProjectOpened,
 }: Props) {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey | null>(null);
   const [atmosphereKey, setAtmosphereKey] = useState<string>(DEFAULT_ATMOSPHERE);
@@ -168,6 +174,34 @@ export function StudioVideoTab({
     }, POLL_MS);
     return () => clearInterval(timer);
   }, [needsPoll, project?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* Kütüphaneden "Düzenle" — istenen projeyi düzenleyiciye yükler.
+     Şablon seçici kapanır, mevcut editörler (ekran yazısı / müzik /
+     seslendirme / sahne yenileme) o proje üzerinde açılır. */
+  useEffect(() => {
+    if (!openProjectId) return;
+    let iptal = false;
+    (async () => {
+      const r = await getStudioProject(openProjectId);
+      if (iptal) return;
+      if (r.ok) {
+        setProject(r.project);
+        setVoiceDraft(r.project.voiceText ?? "");
+        setNegativeInput(r.project.negativeTerms.join(", "));
+        setSelectedTemplate(null);
+        setSlotPhotos({});
+        setActiveSlot(null);
+        setError(null);
+      } else {
+        setError(r.error);
+      }
+      onProjectOpened?.();
+    })();
+    return () => {
+      iptal = true;
+    };
+    // onProjectOpened kimliği her render değişebilir; yalnız id'yi izle
+  }, [openProjectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Aktif adıma fotoğraf koyar. Aynı fotoğraf başka adımdaysa oradan alınır. */
   function assignPhoto(mediaId: string) {

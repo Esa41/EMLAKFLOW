@@ -26,6 +26,11 @@ const PREVIEWS: Record<TemplateKey, { cover: string; videoUrl?: string }> = {
   presenter_reels: { cover: U("1505873242700-f289a29e1e0f") },
   timelapse: { cover: U("1470071459604-3b5ec3a7fe05") },
   shadow_play: { cover: U("1522708323590-d24dbb6b0267") },
+  // Kısa senaryolar — az fotoğrafı olan ofis için
+  solo_shot: { cover: U("1600585154340-be6161a56a0c") },
+  solo_story: { cover: U("1505873242700-f289a29e1e0f") },
+  duo_transition: { cover: U("1560448204-e02f11c3d0e2") },
+  trio_tour: { cover: U("1600607687939-ce8a6c25118c") },
 };
 
 export function TemplateGallery() {

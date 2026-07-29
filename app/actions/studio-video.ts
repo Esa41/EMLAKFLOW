@@ -35,6 +35,7 @@ import {
   type ResolvedOverlay,
   type TemplateDef,
   type TransitionKey,
+  templateLabel,
 } from "@/lib/studio-templates";
 import { MUSIC_TRACKS, isMusicKey, type MusicKey } from "@/lib/studio-music";
 import { buildPresenterScript, DEFAULT_AVATAR_PERSONA } from "@/lib/studio-avatar";
@@ -1204,4 +1205,94 @@ export async function mergeProject(input: {
 
   const view = await toProjectView(project.id);
   return view ? { ok: true, project: view } : { ok: false, error: "Proje bulunamadı." };
+}
+
+// ── VİDEO KÜTÜPHANESİ ──
+// Üretilen videolar tek yerde toplanır ve YENİDEN AÇILABİLİR. Bu olmadan
+// düzenleyiciler (ekran yazısı, müzik, seslendirme, sahne yenileme) yalnız
+// üretimden hemen sonra erişilebiliyordu; sekmeden çıkan müşteri projesini
+// bir daha bulamıyordu.
+
+export type LibraryItem = {
+  id: string;
+  title: string;
+  status: string;
+  templateKey: string | null;
+  templateLabel: string;
+  aspectRatio: string;
+  finalVideoUrl: string | null;
+  /** Kütüphane kartının kapağı — ilk sahnenin kaynak fotoğrafı */
+  coverUrl: string | null;
+  sceneCount: number;
+  /** Tamamlanmış sahne sayısı — RENDERING durumunda ilerleme gösterir */
+  doneCount: number;
+  listingId: string;
+  listingTitle: string;
+  listingRefCode: string;
+  createdAt: string;
+};
+
+export async function getStudioLibrary(): Promise<LibraryItem[]> {
+  const session = await getSession();
+  if (!session) return [];
+
+  const projects = await prisma.studioProject.findMany({
+    where: { tenantId: session.tenantId },
+    orderBy: { updatedAt: "desc" },
+    take: 60,
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      templateKey: true,
+      conceptKey: true,
+      aspectRatio: true,
+      finalVideoUrl: true,
+      createdAt: true,
+      listing: { select: { id: true, title: true, refCode: true } },
+      scenes: {
+        orderBy: { order: "asc" },
+        select: { sourceImageUrl: true, status: true },
+      },
+    },
+  });
+
+  return projects.map((p) => ({
+    id: p.id,
+    title: p.title,
+    status: p.status,
+    templateKey: p.templateKey,
+    templateLabel: templateLabel(p.templateKey, p.conceptKey),
+    aspectRatio: p.aspectRatio,
+    finalVideoUrl: p.finalVideoUrl,
+    coverUrl: p.scenes[0]?.sourceImageUrl ?? null,
+    sceneCount: p.scenes.length,
+    doneCount: p.scenes.filter((s) => s.status === "COMPLETED").length,
+    listingId: p.listing.id,
+    listingTitle: p.listing.title,
+    listingRefCode: p.listing.refCode,
+    createdAt: p.createdAt.toISOString(),
+  }));
+}
+
+/** Kütüphaneden bir projeyi kalıcı olarak siler (kredi iade edilmez). */
+export async function deleteStudioProject(
+  projectId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Oturum bulunamadı." };
+
+  // Tenant sahipliği — başka ofisin projesi silinemez
+  const owned = await prisma.studioProject.findFirst({
+    where: { id: projectId, tenantId: session.tenantId },
+    select: { id: true, status: true },
+  });
+  if (!owned) return { ok: false, error: "Proje bulunamadı." };
+  if (owned.status === "RENDERING") {
+    return { ok: false, error: "Üretimi süren proje silinemez, bitmesini bekleyin." };
+  }
+
+  await prisma.studioProject.delete({ where: { id: projectId } });
+  revalidatePath("/dashboard/studio");
+  return { ok: true };
 }

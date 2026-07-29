@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { StudioPhotoTab } from "./studio-photo-tab";
 import { StudioVideoTab } from "./studio-video-tab";
+import { VideoLibrary } from "./studio/video-library";
+import type { LibraryItem } from "@/app/actions/studio-video";
 import type { StudioListing, StudioCredits, StudioJobItem } from "@/app/actions/studio";
 
 type Props = {
@@ -20,9 +22,17 @@ type Props = {
   history: StudioJobItem[];
   /** Şablon örnek klipleri — templateKey → imzalı R2 URL */
   templatePreviews: Record<string, string>;
+  /** Üretilmiş tüm videolar — kütüphane bölümü */
+  library: LibraryItem[];
 };
 
-export function StudioWorkspace({ listings, credits, history, templatePreviews }: Props) {
+export function StudioWorkspace({
+  listings,
+  credits,
+  history,
+  templatePreviews,
+  library,
+}: Props) {
   const [selectedListingId, setSelectedListingId] = useState<string | null>(
     null,
   );
@@ -31,6 +41,10 @@ export function StudioWorkspace({ listings, credits, history, templatePreviews }
   const [videoCredits, setVideoCredits] = useState(credits.videoCredits);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  /* Kütüphaneden "Düzenle": ilanı seç, video sekmesine geç, projeyi yükle.
+     Yeni bir editör yazılmadı — var olan düzenleyiciler erişilebilir oldu. */
+  const [openProjectId, setOpenProjectId] = useState<string | null>(null);
+  const [libraryItems, setLibraryItems] = useState(library);
 
   const selectedListing = listings.find((l) => l.id === selectedListingId);
   const filteredListings = listings.filter(
@@ -261,10 +275,44 @@ export function StudioWorkspace({ listings, credits, history, templatePreviews }
               onCreditsChange={setVideoCredits}
               history={listingHistory}
               templatePreviews={templatePreviews}
+              openProjectId={openProjectId}
+              onProjectOpened={() => setOpenProjectId(null)}
             />
           )}
         </div>
       )}
+
+      {/* ── VİDEO KÜTÜPHANESİ ──
+          İlan seçiminden BAĞIMSIZ: kütüphane tüm ilanları kapsar. Bu bölüm
+          olmadan üretilen video sekme kapanınca kayboluyordu. */}
+      <div className="dash-card dash-in space-y-4 p-5" style={{ animationDelay: "220ms" }}>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-bold">Video kütüphanesi</h2>
+            <p className="mt-0.5 text-xs text-ink/45">
+              Ürettiğiniz tüm videolar burada. Düzenle'ye basınca ekran
+              yazıları, müzik ve seslendirme tekrar açılır.
+            </p>
+          </div>
+          {libraryItems.length > 0 && (
+            <span className="font-mono text-[10px] uppercase tracking-wide text-ink/35">
+              {libraryItems.length} video
+            </span>
+          )}
+        </div>
+        <VideoLibrary
+          items={libraryItems}
+          onOpen={(projectId, listingId) => {
+            setSelectedListingId(listingId);
+            setActiveTab("video");
+            setOpenProjectId(projectId);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          onDeleted={(id) =>
+            setLibraryItems((prev) => prev.filter((x) => x.id !== id))
+          }
+        />
+      </div>
 
       {/* Henüz ilan seçilmedi */}
       {!selectedListing && (
