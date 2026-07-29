@@ -93,11 +93,13 @@ export function getConcept(key: string): ConceptDefinition {
 
 export type RoomKey =
   | "exterior"
+  | "hallway"
   | "living"
   | "kitchen"
   | "bedroom"
   | "bathroom"
   | "balcony"
+  | "view"
   | "garden";
 
 type RoomDefinition = {
@@ -111,6 +113,13 @@ export const ROOMS: Record<RoomKey, RoomDefinition> = {
     label: "Dış Cephe",
     en: "residential building exterior facade",
     motion: "slow steady push-in towards the entrance",
+  },
+  /* Hikâyenin "eşik" adımı — koridor fotoğrafı içeriye doğru bakar, bu yüzden
+     hareketi ileri süzülmedir. Salona bağlanan tek doğal geçiş budur. */
+  hallway: {
+    label: "Giriş / Koridor",
+    en: "entrance hallway leading further into the home",
+    motion: "slow steady forward glide down the hallway towards the next room",
   },
   living: {
     label: "Salon",
@@ -137,6 +146,13 @@ export const ROOMS: Record<RoomKey, RoomDefinition> = {
     en: "balcony with its open view",
     motion: "slow push towards the railing revealing the view",
   },
+  /* Manzara ayrı bir adım: modeller pencere dışını en çok uydurdukları yer,
+     bu yüzden kendi hareketi ve bağlamı olması sadakati artırır. */
+  view: {
+    label: "Manzara",
+    en: "wide window with the open view outside",
+    motion: "slow push towards the window revealing the view outside",
+  },
   garden: {
     label: "Bahçe",
     en: "landscaped garden",
@@ -147,11 +163,13 @@ export const ROOMS: Record<RoomKey, RoomDefinition> = {
 /** Referans şablon: profesyonel tur dizilimi — "Şablona göre sırala" bunu kullanır. */
 export const INTERIOR_TEMPLATE_ORDER: RoomKey[] = [
   "exterior",
+  "hallway",
   "living",
   "kitchen",
   "bedroom",
   "bathroom",
   "balcony",
+  "view",
   "garden",
 ];
 

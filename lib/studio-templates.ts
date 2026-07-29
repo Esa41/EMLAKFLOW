@@ -182,12 +182,32 @@ export type ResolvedOverlay = {
   styleKey: OverlayStyleKey;
 };
 
+/**
+ * Bir hikâye adımı. Müşteri artık "8 fotoğraf seç ve sırala" yapmıyor;
+ * şablonun anlattığı hikâyenin her adımına bir fotoğraf koyuyor. Hikâyeyi
+ * biz yazıyoruz, müşteri kareyi veriyor.
+ */
 export type SceneSlotDef = {
-  /** "Şablona göre sırala" + oda önerisi için ipucu */
+  /** Stüdyoda adımın başlığı — "Varış", "Eşik", "Kalp", "Manzara"… */
+  label: string;
+  /** "Buraya hangi fotoğrafı koyayım" talimatı — müşteriye görünür */
+  hint: string;
+  /** Boş bırakılırsa video anlamını yitirir; kaydetme engellenir */
+  required?: boolean;
+  /** Oda bağlamı — prompt'a girer, müşteriye artık sorulmaz */
   roomKeyHint?: RoomKey;
   /** Sahne index'i ile dönüşümlü kamera hareketleri — Kling prompt'una girer */
   motions: string[];
   durationSec: 5 | 10;
+};
+
+/** Şablon tanımlarında hikâye adımı yazmanın kısa hali. */
+type Beat = {
+  label: string;
+  hint: string;
+  room?: RoomKey;
+  required?: boolean;
+  durationSec?: 5 | 10;
 };
 
 export type TemplateDef = {
@@ -228,13 +248,94 @@ export type TemplateDef = {
   negative: string;
 };
 
-// İç mekân şablonlarında oda ipuçları referans tur sırasını izler
-const interiorSlots = (motions: string[]): SceneSlotDef[] =>
-  INTERIOR_TEMPLATE_ORDER.map((roomKey, i) => ({
-    roomKeyHint: roomKey,
+/** Hikâye adımlarını şablonun kamera havuzuyla birleştirir. */
+const storyboard = (motions: string[], beats: Beat[]): SceneSlotDef[] =>
+  beats.map((b, i) => ({
+    label: b.label,
+    hint: b.hint,
+    required: b.required,
+    roomKeyHint: b.room,
     motions: [motions[i % motions.length]],
-    durationSec: 5,
+    durationSec: b.durationSec ?? 5,
   }));
+
+/* ── HİKÂYELER ────────────────────────────────────────────────────────
+   Bir ilan videosu oda dökümü değil, bir yolculuktur: gelirsin, girersin,
+   etkilenirsin, manzarayı görürsün, orada yaşadığını hayal edersin,
+   kaliteyi kontrol edersin, iyi bir tatla ayrılırsın. Adımlar bu sırayı
+   izler; müşteri yalnızca her adıma doğru kareyi koyar.               */
+
+/** Tam ev turu — 8 adım (MAX_SCENES tavanı). */
+const TOUR_BEATS: Beat[] = [
+  { label: "Varış", hint: "Binanın dış cephesi veya sokaktan görünüşü — izleyici nereye geldiğini anlasın.", room: "exterior", required: true },
+  { label: "Eşik", hint: "Giriş holü ya da koridor; içeriye doğru bakan bir kare.", room: "hallway" },
+  { label: "Kalp", hint: "Salonun en geniş açılı, en etkileyici fotoğrafı. Videonun en önemli karesi.", room: "living", required: true },
+  { label: "Manzara", hint: "Pencereden veya balkondan görünen manzara — satan detay budur.", room: "view" },
+  { label: "Mutfak", hint: "Tezgâh ve dolaplar görünen bir kare.", room: "kitchen" },
+  { label: "Dinlenme", hint: "Yatak odası; yatak tamamen görünsün.", room: "bedroom" },
+  { label: "Detay", hint: "Banyo veya öne çıkarmak istediğiniz tek bir detay.", room: "bathroom" },
+  { label: "Veda", hint: "Bahçe, teras ya da dışarıdan son bir kare.", room: "garden" },
+];
+
+/** Lüks — az adım, ağır tempo. Kalabalık lüksü öldürür. */
+const LUXURY_BEATS: Beat[] = [
+  { label: "Yaklaşma", hint: "Dış cepheye uzaktan bakan, mimariyi bütün gösteren kare.", room: "exterior", required: true },
+  { label: "Eşik", hint: "Giriş holü — ilk izlenim burada kurulur.", room: "hallway" },
+  { label: "Kalp", hint: "Salonun en geniş, en aydınlık karesi.", room: "living", required: true },
+  { label: "Manzara", hint: "Pencere veya teras manzarası.", room: "view" },
+  { label: "İmza detay", hint: "Öne çıkarmak istediğiniz tek şey: mermer banyo, şömine, ada mutfak…", room: "bathroom" },
+];
+
+/** Dikey kısa (Reels / sosyal) — kanca önce, cephe sonra. */
+const VERTICAL_BEATS: Beat[] = [
+  { label: "Kanca", hint: "İlanın EN etkileyici karesi. İlk iki saniyede izleyiciyi durduracak fotoğraf — cepheyle başlamayın.", room: "living", required: true },
+  { label: "Manzara", hint: "Pencere veya balkon manzarası.", room: "view" },
+  { label: "Yaşam", hint: "Mutfak veya yatak odası — burada yaşandığını gösteren kare.", room: "kitchen" },
+  { label: "Kapanış", hint: "Dış cephe veya bahçe; izleyici nerede olduğunu anlayarak ayrılsın.", room: "exterior" },
+];
+
+/** Gölge oyunu — ışığın kendisi konu. Işıksız fotoğraf bu şablonu bozar. */
+const SHADOW_BEATS: Beat[] = [
+  { label: "Işıklı salon", hint: "Pencereden güneş giren salon; ışık huzmesi ve gölge görünsün.", room: "living", required: true },
+  { label: "Işıklı oda", hint: "Güneş alan yatak odası veya çalışma odası.", room: "bedroom" },
+  { label: "Yüzey", hint: "Işığın düştüğü zemin, duvar veya tezgâh detayı.", room: "kitchen" },
+];
+
+/** Golden hour — tamamı dış çekim. */
+const GOLDEN_BEATS: Beat[] = [
+  { label: "Cephe", hint: "Gün batımı yönüne bakan dış cephe; gökyüzü de görünsün.", room: "exterior", required: true },
+  { label: "Yakın cephe", hint: "Cephenin daha yakın bir açısı veya bina girişi.", room: "exterior" },
+  { label: "Teras", hint: "Teras, balkon veya bahçeden manzara.", room: "balcony" },
+];
+
+/** Zaman akışı — gökyüzü konu, mimari sabit. İki uzun kare yeter. */
+const TIMELAPSE_BEATS: Beat[] = [
+  { label: "Gökyüzü", hint: "Gökyüzü bolca görünen dış cephe fotoğrafı. Gökyüzü ne kadar çoksa etki o kadar güçlü.", room: "exterior", required: true, durationSec: 10 },
+  { label: "İkinci açı", hint: "Aynı binanın başka bir açısı veya havadan çekim. Zorunlu değil.", room: "exterior", durationSec: 10 },
+];
+
+// Arsa/tarla: açık alanda morf riski düşük — crane/orbit serbest.
+const LAND_MOTIONS = [
+  "slow high aerial establishing shot, gentle forward drift over the land",
+  "smooth lateral drone pan across the terrain, revealing the boundaries",
+  "slow descending push-in towards the center of the plot, zoom emphasis",
+  "slow rising crane shot revealing the access road and surroundings",
+];
+
+// Sosyal medya: dikkat çekici ama güvenli — zoom/tilt var, orbit yok.
+const SOCIAL_MOTIONS = [
+  "slow zoom-in with subtle drift",
+  "smooth vertical reveal tilting up slowly",
+  "slow push-in with gentle parallax",
+];
+
+/** Arsa / tarla — yatırımcının sorduğu dört soru: nerede, ne kadar, nasıl, ulaşım. */
+const LAND_BEATS: Beat[] = [
+  { label: "Konum", hint: "Yüksekten çekilmiş, arsanın çevresiyle birlikte göründüğü kare.", required: true },
+  { label: "Sınırlar", hint: "Arsanın sınırlarını gösteren geniş veya yandan kare.", },
+  { label: "Zemin", hint: "Arsanın ortasına yakın, toprak/bitki dokusu görünen kare." },
+  { label: "Ulaşım", hint: "Yol, giriş veya çevredeki yapılar — erişim burada anlaşılır." },
+];
 
 // Kamera fotoğrafta görünen alanın İÇİNDE kalır — "kapıdan geç" gibi ifadeler
 // modele olmayan mekân uydurtuyordu (Esa geri bildirimi, 16 Tem 2026).
@@ -333,8 +434,8 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       "En fazla 8 fotoğraf — sıralamayı gerçek gezinme rotası gibi yapın.",
     ],
     sceneRecipe: {
-      slots: interiorSlots(FPV_MOTIONS),
-      fallback: { motions: FPV_MOTIONS, durationSec: 5 },
+      slots: storyboard(FPV_MOTIONS, TOUR_BEATS),
+      fallback: { label: "Ek oda", hint: "Turda göstermek istediğiniz başka bir oda.", motions: FPV_MOTIONS, durationSec: 5 },
     },
     transitions: { default: "zoom" },
     overlaySlots: [
@@ -383,8 +484,8 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     targetListingTypes: "housing",
     usesRooms: true,
     sceneRecipe: {
-      slots: interiorSlots(CINEMATIC_FPV_MOTIONS),
-      fallback: { motions: CINEMATIC_FPV_MOTIONS, durationSec: 5 },
+      slots: storyboard(CINEMATIC_FPV_MOTIONS, TOUR_BEATS),
+      fallback: { label: "Ek oda", hint: "Turda göstermek istediğiniz başka bir oda.", motions: CINEMATIC_FPV_MOTIONS, durationSec: 5 },
     },
     transitions: { default: "zoomFast", sequence: ["zoomFast", "carouselLeft", "zoomFast"] },
     overlaySlots: [
@@ -436,8 +537,8 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     targetListingTypes: "housing",
     usesRooms: true,
     sceneRecipe: {
-      slots: interiorSlots(FPV_REELS_MOTIONS),
-      fallback: { motions: FPV_REELS_MOTIONS, durationSec: 5 },
+      slots: storyboard(FPV_REELS_MOTIONS, VERTICAL_BEATS),
+      fallback: { label: "Ek kare", hint: "Öne çıkarmak istediğiniz başka bir fotoğraf.", motions: FPV_REELS_MOTIONS, durationSec: 5 },
     },
     transitions: { default: "zoomFast", sequence: ["zoomFast", "slideUp", "carouselLeft"] },
     overlaySlots: [
@@ -496,8 +597,8 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     targetListingTypes: "housing",
     usesRooms: true,
     sceneRecipe: {
-      slots: interiorSlots(LUXURY_MOTIONS),
-      fallback: { motions: LUXURY_MOTIONS, durationSec: 5 },
+      slots: storyboard(LUXURY_MOTIONS, LUXURY_BEATS),
+      fallback: { label: "Ek detay", hint: "Öne çıkarmak istediğiniz başka bir detay.", motions: LUXURY_MOTIONS, durationSec: 5 },
     },
     transitions: { default: "fade" },
     overlaySlots: [
@@ -556,8 +657,8 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     targetListingTypes: "any",
     usesRooms: false,
     sceneRecipe: {
-      slots: [],
-      fallback: { motions: GOLDEN_HOUR_MOTIONS, durationSec: 5 },
+      slots: storyboard(GOLDEN_HOUR_MOTIONS, GOLDEN_BEATS),
+      fallback: { label: "Ek kare", hint: "Dış cepheden başka bir açı.", motions: GOLDEN_HOUR_MOTIONS, durationSec: 5 },
     },
     transitions: { default: "fade", sequence: ["fade", "zoom", "fade"] },
     overlaySlots: [
@@ -618,8 +719,8 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       "Gündüz çekilmiş, net ve yüksek çözünürlüklü olsun.",
     ],
     sceneRecipe: {
-      slots: [],
-      fallback: { motions: TIMELAPSE_MOTIONS, durationSec: 10 },
+      slots: storyboard(TIMELAPSE_MOTIONS, TIMELAPSE_BEATS),
+      fallback: { label: "Ek kare", hint: "Gökyüzü görünen başka bir dış cephe karesi.", motions: TIMELAPSE_MOTIONS, durationSec: 10 },
     },
     transitions: { default: "fade" },
     overlaySlots: [
@@ -673,8 +774,8 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       "Loş/karanlık fotoğraflardan kaçının — ışık kaynağı görünsün.",
     ],
     sceneRecipe: {
-      slots: interiorSlots(SHADOW_PLAY_MOTIONS),
-      fallback: { motions: SHADOW_PLAY_MOTIONS, durationSec: 5 },
+      slots: storyboard(SHADOW_PLAY_MOTIONS, SHADOW_BEATS),
+      fallback: { label: "Ek kare", hint: "Güneş alan başka bir mekân.", motions: SHADOW_PLAY_MOTIONS, durationSec: 5 },
     },
     transitions: { default: "fade", sequence: ["fade", "zoom", "fade"] },
     overlaySlots: [
@@ -722,8 +823,8 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     targetListingTypes: "housing",
     usesRooms: true,
     sceneRecipe: {
-      slots: interiorSlots(CLASSIC_MOTIONS),
-      fallback: { motions: CLASSIC_MOTIONS, durationSec: 5 },
+      slots: storyboard(CLASSIC_MOTIONS, TOUR_BEATS),
+      fallback: { label: "Ek oda", hint: "Turda göstermek istediğiniz başka bir oda.", motions: CLASSIC_MOTIONS, durationSec: 5 },
     },
     transitions: { default: "fade" },
     overlaySlots: [
@@ -768,32 +869,11 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       "Varsa yola cephe, sınır taşı veya manzara fotoğrafı koyun.",
     ],
     sceneRecipe: {
-      slots: [
-        {
-          motions: [
-            "slow high aerial establishing shot, gentle forward drift over the land",
-          ],
-          durationSec: 5,
-        },
-        {
-          motions: [
-            "smooth lateral drone pan across the terrain, revealing the boundaries",
-          ],
-          durationSec: 5,
-        },
-        {
-          motions: [
-            "slow descending push-in towards the center of the plot, zoom emphasis",
-          ],
-          durationSec: 5,
-        },
-      ],
+      slots: storyboard(LAND_MOTIONS, LAND_BEATS),
       fallback: {
-        motions: [
-          "slow aerial push-in towards the property, gentle descent",
-          "smooth lateral drone pan across the landscape",
-          "slow rising crane shot revealing the surroundings",
-        ],
+        label: "Ek kare",
+        hint: "Arsadan başka bir açı.",
+        motions: LAND_MOTIONS,
         durationSec: 5,
       },
     },
@@ -860,13 +940,11 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
     targetListingTypes: "any",
     usesRooms: false,
     sceneRecipe: {
-      slots: [],
+      slots: storyboard(SOCIAL_MOTIONS, VERTICAL_BEATS),
       fallback: {
-        motions: [
-          "slow zoom-in with subtle drift",
-          "smooth vertical reveal tilting up slowly",
-          "slow push-in with gentle parallax",
-        ],
+        label: "Ek kare",
+        hint: "İlandan öne çıkarmak istediğiniz başka bir fotoğraf.",
+        motions: SOCIAL_MOTIONS,
         durationSec: 5,
       },
     },
@@ -956,12 +1034,20 @@ export const TEMPLATES: Record<TemplateKey, TemplateDef> = {
       // İlk sahne: dış cephe/drone kuruluş çekimi — sinematik iniş
       slots: [
         {
+          label: "Açılış",
+          hint: "Dış cephe veya havadan çekim — sunucu bu kuruluş sahnesinden sonra girer.",
+          required: true,
           roomKeyHint: "exterior",
           motions: PRESENTER_OPENING_MOTIONS,
           durationSec: 5,
         },
       ],
-      fallback: { motions: PRESENTER_MOTIONS, durationSec: 5 },
+      fallback: {
+        label: "Arka plan",
+        hint: "Sunucunun arkasında duracak sakin bir mekân karesi.",
+        motions: PRESENTER_MOTIONS,
+        durationSec: 5,
+      },
     },
     transitions: { default: "fade" },
     overlaySlots: [

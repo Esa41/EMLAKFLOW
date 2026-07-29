@@ -7,7 +7,6 @@ import {
   Check,
   Loader2,
   AlertCircle,
-  GripVertical,
   Film,
   Clock,
   RotateCcw,
@@ -17,7 +16,6 @@ import {
   Trash2,
   ShieldCheck,
   Wand2,
-  ListOrdered,
   Share2,
 } from "lucide-react";
 import { sendStudioToSocial } from "@/app/actions/social-os";
@@ -42,7 +40,6 @@ import {
 } from "@/app/actions/studio-voice";
 import {
   ROOMS,
-  INTERIOR_TEMPLATE_ORDER,
   parseNegativeTerms,
   findNegativeTermViolations,
   type RoomKey,
@@ -114,9 +111,11 @@ export function StudioVideoTab({
 }: Props) {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey | null>(null);
   const [atmosphereKey, setAtmosphereKey] = useState<string>(DEFAULT_ATMOSPHERE);
-  const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
-  const [roomAssignments, setRoomAssignments] = useState<Record<string, string>>({});
-  const [sceneDurations, setSceneDurations] = useState<Record<string, number>>({});
+  /* ÜRETİM HATTI: müşteri artık "8 fotoğraf seç ve sırala" yapmıyor.
+     Şablon hikâyeyi tanımlıyor (lib/studio-templates.ts sceneRecipe.slots),
+     müşteri her adıma bir kare koyuyor. slotPhotos: adım index'i → medya id. */
+  const [slotPhotos, setSlotPhotos] = useState<Record<number, string>>({});
+  const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [project, setProject] = useState<StudioProjectView | null>(null);
@@ -170,35 +169,26 @@ export function StudioVideoTab({
     return () => clearInterval(timer);
   }, [needsPoll, project?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function togglePhoto(id: string) {
-    setSelectedPhotos((prev) => {
-      if (prev.includes(id)) return prev.filter((p) => p !== id);
-      if (prev.length >= MAX_SCENES) return prev;
-      return [...prev, id];
+  /** Aktif adıma fotoğraf koyar. Aynı fotoğraf başka adımdaysa oradan alınır. */
+  function assignPhoto(mediaId: string) {
+    if (activeSlot === null) return;
+    setSlotPhotos((prev) => {
+      const next: Record<number, string> = {};
+      for (const [k, v] of Object.entries(prev)) {
+        if (v !== mediaId) next[Number(k)] = v;
+      }
+      next[activeSlot] = mediaId;
+      return next;
     });
+    setActiveSlot(null);
   }
 
-  function movePhoto(id: string, direction: -1 | 1) {
-    setSelectedPhotos((prev) => {
-      const idx = prev.indexOf(id);
-      if (idx === -1) return prev;
-      const newIdx = idx + direction;
-      if (newIdx < 0 || newIdx >= prev.length) return prev;
-      const copy = [...prev];
-      [copy[idx], copy[newIdx]] = [copy[newIdx], copy[idx]];
-      return copy;
+  function clearSlot(index: number) {
+    setSlotPhotos((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
     });
-  }
-
-  /** Referans şablon: profesyonel tur dizilimine göre sırala (dış cephe → salon → …) */
-  function applyTemplateOrder() {
-    setSelectedPhotos((prev) =>
-      [...prev].sort((a, b) => {
-        const ra = INTERIOR_TEMPLATE_ORDER.indexOf(roomAssignments[a] as RoomKey);
-        const rb = INTERIOR_TEMPLATE_ORDER.indexOf(roomAssignments[b] as RoomKey);
-        return (ra === -1 ? 99 : ra) - (rb === -1 ? 99 : rb);
-      }),
-    );
   }
 
   function handleGenerate() {
@@ -209,10 +199,12 @@ export function StudioVideoTab({
       const result = await createStudioProject({
         listingId,
         templateKey: selectedTemplate,
-        selectedMedia: selectedPhotos.map((id) => ({
-          id,
-          roomKey: roomAssignments[id] ?? null,
-          durationSec: sceneDurations[id] === 10 ? 10 : 5,
+        /* Boş adımlar atlanır: eksik kare hikâyeyi kısaltır, bozmaz.
+           Oda etiketi ve süre artık müşteriye sorulmuyor — adım biliyor. */
+        selectedMedia: filledSlots.map(({ slot, mediaId }) => ({
+          id: mediaId,
+          roomKey: slot.roomKeyHint ?? null,
+          durationSec: slot.durationSec,
         })),
         ...(selectedTemplate === "presenter_reels" ? { atmosphereKey } : {}),
       });
@@ -226,9 +218,8 @@ export function StudioVideoTab({
         }
         setSelectedTemplate(null);
         setAtmosphereKey(DEFAULT_ATMOSPHERE);
-        setSelectedPhotos([]);
-        setRoomAssignments({});
-        setSceneDurations({});
+        setSlotPhotos({});
+        setActiveSlot(null);
       } else {
         setError(result.error);
       }
@@ -391,17 +382,25 @@ export function StudioVideoTab({
   // reference: tüm fotoğraflar tek videoya girer → sabit süre/bedel
   // per_scene: 5 sn = 20 kredi, 10 sn = 40 kredi
   const isReference = template?.generationMode === "reference";
+  /* Hikâye adımları — şablonun tanımladığı sahne sırası. Fotoğraf konmuş
+     adımlar sıra bozulmadan videoya girer. */
+  const storySlots = template?.sceneRecipe.slots ?? [];
+  const filledSlots = storySlots
+    .map((slot, index) => ({ slot, index, mediaId: slotPhotos[index] }))
+    .filter((x): x is { slot: (typeof storySlots)[number]; index: number; mediaId: string } =>
+      Boolean(x.mediaId),
+    );
+  const missingRequired = storySlots.filter(
+    (slot, index) => slot.required && !slotPhotos[index],
+  );
   const totalSeconds = isReference
     ? REFERENCE_DURATION_SEC
-    : selectedPhotos.reduce(
-        (sum, id) => sum + (sceneDurations[id] === 10 ? 10 : 5),
-        0,
-      );
+    : filledSlots.reduce((sum, x) => sum + x.slot.durationSec, 0);
   const totalCost = isReference
     ? REFERENCE_CREDIT_COST
-    : selectedPhotos.reduce(
-        (sum, id) =>
-          sum + (sceneDurations[id] === 10 ? SCENE_CREDIT_COST_10S : SCENE_CREDIT_COST),
+    : filledSlots.reduce(
+        (sum, x) =>
+          sum + (x.slot.durationSec === 10 ? SCENE_CREDIT_COST_10S : SCENE_CREDIT_COST),
         0,
       );
 
@@ -942,177 +941,178 @@ export function StudioVideoTab({
         />
       </div>
 
-      {/* Fotoğraf seçimi — şablon seçildikten sonra */}
+      {/* ── ÜRETİM HATTI — hikâye adımları ──
+          Eskiden: "8 fotoğraf seç, sırala, her birine oda etiketi ver."
+          Şimdi: şablon hikâyeyi anlatıyor, müşteri her adıma kare koyuyor.
+          Sıra, oda bağlamı ve süre adımdan geliyor — sorulmuyor. */}
       {template && (
         <div className="dash-card p-5">
           <h3 className="mb-1 text-sm font-bold">
-            Videoda kullanılacak fotoğrafları seçin
+            {template.label} — {storySlots.length} adımlık hikâye
           </h3>
           <p className="mb-4 text-xs text-ink/45">
+            Her adım için bir fotoğraf seçin. Sıralama, kamera hareketi ve
+            süreyi şablon belirler.{" "}
             {isReference ? (
               <>
-                Seçtiğiniz fotoğrafların tamamı AI'a referans verilir ve{" "}
-                <strong>tek akıcı tur videosu</strong> üretilir (
-                {REFERENCE_DURATION_SEC} sn, {REFERENCE_CREDIT_COST} kredi — en
-                fazla {MAX_SCENES} fotoğraf). Sıralama turun akışını belirler:
-                kamera fotoğraflarınızı bu sırayla dolaşır.
+                Doldurduğunuz adımlar <strong>tek akıcı tur videosu</strong>{" "}
+                olur ({REFERENCE_DURATION_SEC} sn, {REFERENCE_CREDIT_COST}{" "}
+                kredi — kaç adım doldurursanız aynı bedel).
               </>
             ) : (
-              <>
-                Her fotoğraf bir sahne olur: 5 sn = 20 kredi, 10 sn = 40 kredi (en
-                fazla {MAX_SCENES} sahne). Sıralama videonun akışını belirler.
-              </>
-            )}
-            {template.usesRooms &&
-              " Her fotoğrafa oda etiketi verin — AI mekânı tanır ve görüntüye sadık kalır."}
+              <>Her adım ayrı bir sahne olur: 5 sn = {SCENE_CREDIT_COST} kredi,
+                10 sn = {SCENE_CREDIT_COST_10S} kredi.</>
+            )}{" "}
+            <span className="text-ink/35">
+              Yıldızlı adımlar zorunlu; diğerlerini boş bırakırsanız hikâye
+              kısalır, bozulmaz.
+            </span>
           </p>
 
           {photos.length === 0 ? (
-            <div className="dash-empty">
-              Bu ilana henüz fotoğraf eklenmemiş.
-            </div>
+            <div className="dash-empty">Bu ilana henüz fotoğraf eklenmemiş.</div>
           ) : (
             <>
-              {/* Fotoğraf grid */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {photos.map((m) => {
-                  const isSelected = selectedPhotos.includes(m.id);
-                  const orderIdx = selectedPhotos.indexOf(m.id);
+              <ol className="space-y-2">
+                {storySlots.map((slot, index) => {
+                  const mediaId = slotPhotos[index];
+                  const m = mediaId ? photos.find((x) => x.id === mediaId) : undefined;
+                  const isActive = activeSlot === index;
+                  const isMissing = Boolean(slot.required) && !mediaId;
                   return (
-                    <button
-                      key={m.id}
-                      onClick={() => togglePhoto(m.id)}
-                      className={`group relative aspect-[4/3] overflow-hidden rounded-xl transition-all ${
-                        isSelected
-                          ? "ring-2 ring-brand-600 ring-offset-2 ring-offset-[var(--app-bg)]"
-                          : "ring-1 ring-[var(--app-border)] hover:ring-brand-500/40"
-                      }`}
-                    >
-                      <Image
-                        src={m.thumbUrl ?? m.url}
-                        alt=""
-                        fill
-                        sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-                        className="object-cover"
-                      />
-                      {isSelected && (
-                        <>
-                          <div className="absolute inset-0 bg-brand-600/15" />
-                          <span className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white shadow-md">
-                            {orderIdx + 1}
-                          </span>
-                        </>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Sıralama + oda etiketleri */}
-              {selectedPhotos.length > 0 && (
-                <div className="mt-5 space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs font-semibold text-ink/50">
-                      Sıralama ({selectedPhotos.length} sahne · {totalSeconds}{" "}
-                      saniye · {totalCost} kredi)
-                    </p>
-                    {template.usesRooms &&
-                      selectedPhotos.some((id) => roomAssignments[id]) && (
-                        <button
-                          onClick={applyTemplateOrder}
-                          className="flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700"
-                          title="Profesyonel tur dizilimi: Dış Cephe → Salon → Mutfak → Yatak → Banyo → Balkon"
-                        >
-                          <ListOrdered size={13} />
-                          Şablona göre sırala
-                        </button>
-                      )}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedPhotos.map((id, idx) => {
-                      const m = photos.find((p) => p.id === id);
-                      if (!m) return null;
-                      return (
-                        <div
-                          key={id}
-                          className="flex items-center gap-2 rounded-xl bg-[var(--app-input-bg)] px-3 py-2"
-                        >
-                          <GripVertical size={14} className="text-ink/30" />
-                          <div className="relative h-8 w-12 overflow-hidden rounded-md">
+                    <li key={`${slot.label}-${index}`}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveSlot(isActive ? null : index)}
+                        className={`flex w-full items-center gap-3 rounded-xl border-2 p-2.5 text-left transition-all ${
+                          isActive
+                            ? "border-brand-600 bg-brand-600/[0.04]"
+                            : isMissing
+                              ? "border-dashed border-[var(--color-warning)]/50"
+                              : "border-[var(--app-border)] hover:border-brand-500/40"
+                        }`}
+                      >
+                        {/* Kare veya boş yuva */}
+                        <span className="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-[var(--app-input-bg)]">
+                          {m ? (
                             <Image
                               src={m.thumbUrl ?? m.url}
                               alt=""
                               fill
+                              sizes="80px"
                               className="object-cover"
                             />
-                          </div>
-                          <span className="text-xs font-bold text-ink/60">
-                            #{idx + 1}
+                          ) : (
+                            <span className="flex h-full w-full items-center justify-center font-mono text-[10px] font-bold text-ink/30">
+                              {index + 1}
+                            </span>
+                          )}
+                        </span>
+
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center gap-1.5">
+                            <span className="font-mono text-[10px] font-bold text-ink/35">
+                              {String(index + 1).padStart(2, "0")}
+                            </span>
+                            <span className="text-[13.5px] font-bold">
+                              {slot.label}
+                            </span>
+                            {slot.required && (
+                              <span
+                                className="text-[var(--color-warning)]"
+                                title="Zorunlu adım"
+                              >
+                                *
+                              </span>
+                            )}
+                            {!isReference && (
+                              <span className="ml-auto shrink-0 font-mono text-[10px] text-ink/35">
+                                {slot.durationSec} sn
+                              </span>
+                            )}
                           </span>
-                          {template.usesRooms && (
-                            <select
-                              value={roomAssignments[id] ?? ""}
-                              onChange={(e) =>
-                                setRoomAssignments((prev) => ({
-                                  ...prev,
-                                  [id]: e.target.value,
-                                }))
-                              }
-                              className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-1.5 py-1 text-[11px] font-medium"
-                            >
-                              <option value="">Oda seçin…</option>
-                              {Object.entries(ROOMS).map(([key, r]) => (
-                                <option key={key} value={key}>
-                                  {r.label}
-                                </option>
-                              ))}
-                            </select>
-                          )}
-                          {/* reference modunda süre tüm videoya ait — sahne
-                              başına seçim anlamsız */}
-                          {!isReference && (
-                            <select
-                              value={sceneDurations[id] === 10 ? "10" : "5"}
-                              onChange={(e) =>
-                                setSceneDurations((prev) => ({
-                                  ...prev,
-                                  [id]: Number(e.target.value),
-                                }))
-                              }
-                              className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-1.5 py-1 text-[11px] font-medium"
-                              title="Sahne süresi — 10 sn sahne 40 kredi düşer"
-                            >
-                              <option value="5">5 sn · 20 kredi</option>
-                              <option value="10">10 sn · 40 kredi</option>
-                            </select>
-                          )}
-                          <div className="flex gap-0.5">
-                            <button
-                              onClick={(e) => {
+                          <span className="mt-0.5 block text-[11.5px] leading-snug text-ink/50">
+                            {slot.hint}
+                          </span>
+                        </span>
+
+                        {m ? (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              clearSlot(index);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
                                 e.stopPropagation();
-                                movePhoto(id, -1);
-                              }}
-                              disabled={idx === 0}
-                              className="rounded-md px-1.5 py-0.5 text-[10px] font-bold text-ink/40 hover:bg-ink/10 disabled:opacity-30"
-                            >
-                              ◀
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                movePhoto(id, 1);
-                              }}
-                              disabled={idx === selectedPhotos.length - 1}
-                              className="rounded-md px-1.5 py-0.5 text-[10px] font-bold text-ink/40 hover:bg-ink/10 disabled:opacity-30"
-                            >
-                              ▶
-                            </button>
-                          </div>
+                                clearSlot(index);
+                              }
+                            }}
+                            className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold text-ink/40 hover:bg-ink/10 hover:text-ink"
+                          >
+                            Kaldır
+                          </span>
+                        ) : (
+                          <span className="shrink-0 font-mono text-[10px] uppercase tracking-wide text-brand-600">
+                            {isActive ? "seçin ↓" : "fotoğraf ekle"}
+                          </span>
+                        )}
+                      </button>
+
+                      {/* Adım açıkken fotoğraf ızgarası — modal yok, akış
+                          kesilmiyor: tıkla, kareyi seç, adım kapanır. */}
+                      {isActive && (
+                        <div className="mt-2 grid grid-cols-3 gap-2 rounded-xl bg-[var(--app-input-bg)] p-2 sm:grid-cols-5">
+                          {photos.map((ph) => {
+                            const usedAt = Object.entries(slotPhotos).find(
+                              ([, v]) => v === ph.id,
+                            );
+                            return (
+                              <button
+                                key={ph.id}
+                                type="button"
+                                onClick={() => assignPhoto(ph.id)}
+                                title={
+                                  usedAt
+                                    ? `${storySlots[Number(usedAt[0])]?.label} adımından taşınır`
+                                    : undefined
+                                }
+                                className="group relative aspect-[4/3] overflow-hidden rounded-lg ring-1 ring-[var(--app-border)] transition-all hover:ring-2 hover:ring-brand-600"
+                              >
+                                <Image
+                                  src={ph.thumbUrl ?? ph.url}
+                                  alt=""
+                                  fill
+                                  sizes="(min-width: 640px) 18vw, 30vw"
+                                  className="object-cover"
+                                />
+                                {usedAt && (
+                                  <span className="absolute inset-0 flex items-end bg-ink/45 p-1">
+                                    <span className="truncate font-mono text-[9px] font-bold text-white">
+                                      {storySlots[Number(usedAt[0])]?.label}
+                                    </span>
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+
+              <p className="mt-4 text-xs font-semibold text-ink/50">
+                {filledSlots.length}/{storySlots.length} adım dolu · {totalSeconds}{" "}
+                saniye · {totalCost} kredi
+              </p>
+              {missingRequired.length > 0 && (
+                <p className="mt-1 text-xs text-[var(--color-warning)]">
+                  Zorunlu adım eksik: {missingRequired.map((x) => x.label).join(", ")}
+                </p>
               )}
 
               {/* Arka plan atmosferi — yalnızca Vitrin Sunucusu'nda: sunucu
@@ -1155,7 +1155,8 @@ export function StudioVideoTab({
                   disabled={
                     pending ||
                     !selectedTemplate ||
-                    selectedPhotos.length === 0 ||
+                    filledSlots.length === 0 ||
+                    missingRequired.length > 0 ||
                     (!unlimited && videoCredits < totalCost)
                   }
                   className="dash-btn-primary"
@@ -1173,7 +1174,7 @@ export function StudioVideoTab({
                   )}
                 </button>
                 <span className="text-xs text-ink/45">
-                  {selectedPhotos.length > 0
+                  {filledSlots.length > 0
                     ? unlimited
                       ? "Test modu — kredi düşülmez"
                       : videoCredits >= totalCost
