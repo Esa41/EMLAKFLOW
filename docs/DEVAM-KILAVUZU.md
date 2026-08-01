@@ -70,6 +70,18 @@ Plan: `docs/vitrin-evrensel-tasarim-plani.md`. Faz 1 (boşluğa dayanıklı taba
   canlı sürüm çalışmaya devam eder. En kötü senaryo "deploy olmaz", "veri silinir" değil.
 - Yerelde hiç çalışmaz; `npm run build` davranışı aynı.
 
+### D) İlan detayı vitrin temasına bağlandı (1 Ağu)
+`data-showcase-theme` zaten layout'ta (`app/ofis/[slug]/layout.tsx`) tüm alt
+rotalara uygulanıyordu, ama detay sayfasındaki hiçbir eleman `sc-*` sınıfı
+taşımadığı için tema değişkenleri orada atıl kalıyordu — özellikle "benzer
+ilanlar" hâlâ eski blueprint kartındaydı (künye plakası + ölçü çizgisi).
+- "Benzer ilanlar" artık vitrin ana sayfasıyla **aynı** `ShowcaseCard`'ı kullanıyor;
+  ızgara `sc-grid` (sütun sayısı/foto oranı/köşe temadan).
+- Danışman kartı ve bilgi formu paneli `sc-card`, ara/WhatsApp butonları `sc-btn`.
+- Kart eşleyicisi tek yere alındı: `lib/showcase-card.ts` → `toShowcaseCardListing()`
+  (iki sayfa ayrı eşleyici kullandığı için sessizce ayrışmışlardı).
+- `components/showcase-listing-card.tsx` silindi (blueprint kalıntısı).
+
 ---
 
 ## 3. `c2fbaf3` sonrası büyük resim (41 commit)
@@ -131,20 +143,20 @@ Bu kılavuzun bir önceki sürümü `c2fbaf3`'te kalmıştı. Aradaki iş, dört
 
 ## 6. Kalan işler (öncelik sırası)
 
-1. **İlan detay sayfası temadan etkilenmiyor.** `sc-*` sınıfları yalnız 4
-   bileşende bağlı (hero, card, collections, workspace). `showcase-listing-card.tsx`
-   ve `showcase-rail.tsx` sabit stilde — Premium bir ofis tema seçtiğinde ilan
-   detayına girince tema kayboluyor. Tema sisteminin görünür açığı, ilk iş bu.
-2. **AI Stüdyo — before/after + gerçek videolar:** landing demosundaki AI Stüdyo
+1. **AI Stüdyo — before/after + gerçek videolar:** landing demosundaki AI Stüdyo
    sekmesi hâlâ gradient placeholder; videolar hazır olunca gerçek öncesi/sonrası
    ve tanıtım videoları konacak.
-3. **İlk-giriş onboarding:** `SetupChecklist` (`d1e9a92`) var ama yeni ofise iyi
+2. **İlk-giriş onboarding:** `SetupChecklist` (`d1e9a92`) var ama yeni ofise iyi
    varsayılan vitrin içeriği (hero başlığı, hakkımızda) öneren akış yok.
-4. **Sosyal OS kalanı:** DnD takvim, onay akışı, 30/60/90 günlük plan.
+3. **Sosyal OS kalanı:** DnD takvim, onay akışı, 30/60/90 günlük plan.
    (Meta auto-publish **iptal** — bkz. `docs/sosyal-os-durum-ve-plan.md`.)
-5. **Online ödeme:** kredi yüklemesi şimdilik manuel havale → süper-admin bakiyeyi
+4. **Online ödeme:** kredi yüklemesi şimdilik manuel havale → süper-admin bakiyeyi
    yükler. iyzico bağlanınca webhook aynı `CreditLog` akışını kullanacak.
-6. **Prestij demo `visionText`** hâlâ video-merkezli — Ayarlar > Vitrin'den güncellenmeli.
+5. **Prestij demo `visionText`** hâlâ video-merkezli — Ayarlar > Vitrin'den güncellenmeli.
+6. **Vitrin başlıkları temadan bağımsız:** ilan detayındaki `.bolum` etiketleri ve
+   detay sayfasının `h1`'i sabit puntoda; `sc-h2` yalnız koleksiyonlarda kullanılıyor.
+   Tipografi de temaya bağlanacaksa sıradaki adım bu (bilinçli olarak ertelendi —
+   düzen/köşe/ızgara farkı önce geldi).
 
 ---
 
@@ -166,7 +178,9 @@ Bu kılavuzun bir önceki sürümü `c2fbaf3`'te kalmıştı. Aradaki iş, dört
   (`lib/security-headers.ts`) ikisine birden ekle.
 - **Ölü kod:** kullanılmayan eski landing bileşenleri (`video-hero`,
   `before-after`, `template-gallery`, `scrub-hero`, `marquee`) repoda duruyor,
-  import edilmiyor.
+  import edilmiyor. `components/showcase-rail.tsx` de hiçbir yerden import
+  edilmiyor (içi güncel — `ShowcaseCard` kullanıyor, yani silmeden önce bir
+  yerde kullanılacak mı diye bakmaya değer).
 
 ---
 

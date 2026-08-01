@@ -16,7 +16,7 @@ import { ShowcaseWorkspace, type SplitListing } from "@/components/showcase-work
 import { ShowcaseHero } from "@/components/showcase-hero";
 import { ShowcaseCollections } from "@/components/showcase-collections";
 import { AnimatedCounter } from "@/components/animated-counter";
-import type { ShowcaseCardListing } from "@/components/showcase-card";
+import { toShowcaseCardListing } from "@/lib/showcase-card";
 
 const BASE_URL = getBaseUrl();
 
@@ -48,43 +48,6 @@ const SORT_OPTIONS: Record<string, { label: string; orderBy: Record<string, stri
   price_desc: { label: "Fiyat ↓", orderBy: { price: "desc" } },
   area_desc: { label: "m² ↓", orderBy: { netArea: "desc" } },
 };
-
-function toCardListing(
-  l: {
-    id: string;
-    title: string;
-    slug: string | null;
-    purpose: string;
-    price: unknown;
-    rooms: string | null;
-    netArea: number | null;
-    grossArea: number | null;
-    district: string;
-    neighborhood: string | null;
-    features: string[];
-    vehicleYear?: number | null;
-    media: Array<{ cardUrl: string | null; url: string; alt: string | null }>;
-    _count?: { media: number };
-  },
-): ShowcaseCardListing {
-  return {
-    id: l.id,
-    title: l.title,
-    slug: l.slug,
-    purpose: l.purpose,
-    price: Number(l.price),
-    rooms: l.rooms,
-    netArea: l.netArea,
-    grossArea: l.grossArea,
-    district: l.district,
-    neighborhood: l.neighborhood,
-    features: l.features,
-    vehicleYear: l.vehicleYear,
-    mediaCount: l._count?.media,
-    image: l.media[0]?.cardUrl ?? l.media[0]?.url ?? null,
-    imageAlt: l.media[0]?.alt ?? l.title,
-  };
-}
 
 export async function generateMetadata({
   params,
@@ -296,18 +259,18 @@ export default async function ShowcasePage({
   ]);
 
   const splitListings: SplitListing[] = listings.map((l) => ({
-    ...toCardListing(l),
+    ...toShowcaseCardListing(l),
     hasVideo: false,
     lat: l.lat,
     lng: l.lng,
   }));
 
   const featuredCards = featuredListings.map((l) => ({
-    ...toCardListing(l),
+    ...toShowcaseCardListing(l),
     hasVideo: false,
   }));
   const newCards = newListings.map((l) => ({
-    ...toCardListing(l),
+    ...toShowcaseCardListing(l),
     hasVideo: false,
   }));
 

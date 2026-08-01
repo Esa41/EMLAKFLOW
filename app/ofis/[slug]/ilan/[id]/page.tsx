@@ -10,7 +10,8 @@ import { DroneMapFlyover } from "@/components/drone-map-flyover";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ShareButton } from "@/components/share-button";
 import { ListingGallery } from "@/components/listing-gallery";
-import { ShowcaseListingCard } from "@/components/showcase-listing-card";
+import { ShowcaseCard } from "@/components/showcase-card";
+import { toShowcaseCardListing } from "@/lib/showcase-card";
 import { TrackListingView } from "@/components/vitrin-tracking";
 import {
   seoTitle,
@@ -289,7 +290,7 @@ export default async function ListingShowcasePage({
 
         {/* Danışman kartı */}
         <aside>
-          <div className="rounded-[10px] border border-ink bg-white p-5">
+          <div className="sc-card border border-ink bg-white p-5">
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink/50">
               {copy.agentLabel}
             </p>
@@ -303,7 +304,7 @@ export default async function ListingShowcasePage({
                   <a
                     href={telHref(phone)!}
                     data-track="CLICK"
-                    className="btn-selvi flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700"
+                    className="btn-selvi sc-btn flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-700"
                   >
                     <Phone size={15} /> Hemen ara
                   </a>
@@ -316,7 +317,7 @@ export default async function ListingShowcasePage({
                     target="_blank"
                     rel="noopener noreferrer"
                     data-track="CLICK"
-                    className="flex items-center justify-center gap-2 rounded-lg border border-ink/20 bg-white px-4 py-2.5 text-sm font-bold text-ink hover:border-ink/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+                    className="sc-btn flex items-center justify-center gap-2 border border-ink/20 bg-white px-4 py-2.5 text-sm font-bold text-ink hover:border-ink/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
                   >
                     WhatsApp'tan yaz
                   </a>
@@ -330,22 +331,23 @@ export default async function ListingShowcasePage({
             </p>
           </div>
 
-          <div className="mt-5 rounded-[10px] border border-ink/15 bg-white p-5">
+          <div className="sc-card mt-5 border border-ink/15 bg-white p-5">
             <InfoForm slug={slug} listingId={l.id} listingTitle={l.title} />
           </div>
         </aside>
       </div>
 
-      {/* Benzer ilanlar */}
+      {/* Benzer ilanlar — vitrin ana sayfasıyla AYNI kart (ShowcaseCard).
+         Izgara `sc-grid`: sütun sayısı, foto oranı ve köşe temadan gelir. */}
       {similar.length > 0 && (
-        <section>
+        <section className="sc-section">
           <h2 className="bolum">{copy.similarTitle}</h2>
-          <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="sc-grid mt-4">
             {similar.map((s) => (
-              <ShowcaseListingCard
+              <ShowcaseCard
                 key={s.id}
                 slug={slug}
-                listing={s}
+                listing={toShowcaseCardListing(s)}
                 isAuto={isAuto}
               />
             ))}
